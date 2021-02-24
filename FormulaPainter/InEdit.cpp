@@ -620,7 +620,7 @@ EdAction XPInEdit::EditAction( U_A_T Uact  )
   {
   int MaxVarLen = 1, VarLen;
   bool Simplevar= false;
-  if ( m_pL->m_pSub_L->m_pMother != NULL )
+  if ( m_pL->m_pSub_L->m_pMother != nullptr )
     {
     if( TypeConvert( EdVect ) != NULL )
       {
@@ -669,10 +669,8 @@ EdAction XPInEdit::EditAction( U_A_T Uact  )
     if( AllowedChar )
       {
       EdTable *pTable = nullptr;
-      EdTwo *pIndex = nullptr;
       if(m_pL->m_pSub_L->m_pMother != nullptr ) pTable = TypeConvert( EdTable );
-      if( pTable != nullptr )
-        if( pTable->m_GridState != TGRVisible )
+      if( pTable != nullptr && pTable->m_GridState != TGRVisible )
           {
           EdTable& elementT = *pTable;
           if( elementT.m_GridState == TGRUnvisible && m_pL->m_pSub_L->m_pFirst != nullptr ) elementT.InsertColumn();
@@ -690,23 +688,7 @@ EdAction XPInEdit::EditAction( U_A_T Uact  )
             }
           }
         else
-          if( pTable->m_pCurrentCell->m_pLast != nullptr )
-            pIndex = dynamic_cast <EdTwo*> ( pTable->m_pCurrentCell->m_pLast->m_pMember.data() );
-      if(pIndex == nullptr )
-        m_pL->m_pSub_L->Append_Before(new EdChar(Uact.c(), this));
-      else
-        {
-        if(pIndex->m_pAA->IsEmpty() )
-          pIndex->m_pAA->Append_Before(new EdChar(Uact.c(), this));
-        else
-          if(pIndex->m_pBB->IsEmpty() )
-            pIndex->m_pBB->Append_Before(new EdChar(Uact.c(), this));
-          else
-            {
-            pTable->m_pCurrentCell->Append_Before(new EdChar(Uact.c(), this));
-            m_pL->m_pSub_L = pTable->m_pCurrentCell;
-            }
-        }
+          m_pL->m_pSub_L->Append_Before(new EdChar(Uact.c(), this));
       return edRefresh;
       }
     return edNone;
@@ -1054,7 +1036,7 @@ EdAction XPInEdit::EditAction( U_A_T Uact  )
 
   if( Uact == "CELL" )
     {
-    m_pL->m_pSub_L = m_pCurrentTable->GetCell();
+    m_pL = m_pCurrentTable->GetCell();
     return edRefresh;
     }
 
@@ -1063,11 +1045,12 @@ EdAction XPInEdit::EditAction( U_A_T Uact  )
     if( !m_pCurrentTable->m_NoFreeze ) m_pCurrentTable->Freeze();
     if( !sm_IsRetryEdit && sm_pEditor == this )
       {
-      m_pL->m_pSub_L = m_pCurrentTable->m_Body[m_pCurrentTable->m_Row][m_pCurrentTable->m_Col];
+      m_pL = m_pCurrentTable->m_pOwnerList;
       return edRefresh;
       }
     m_pCurrentTable->m_Row = m_pCurrentTable->m_RowCount - 1;
     m_pCurrentTable->m_Col = m_pCurrentTable->m_ColCount - 1;
+    m_pL = m_pCurrentTable->m_pOwnerList;
     m_pL->m_pSub_L->MoveRight( m_pL->m_pSub_L );
     return edCursor;
     }
@@ -7128,7 +7111,7 @@ void EdMeas::Draw (TPoint P)
 QByteArray EdMeas::Write()
   {
   QByteArray M(m_pBB->Write());
-  if ( M == "`Ý'" || M == "`Þ'" )
+  if ( M == "`?'" || M == "`?'" )
     return m_pAA->Write() + m_pBB->Write();
   QByteArray A = m_pAA->Write();
   int EqPos = A.indexOf('=');
@@ -7182,7 +7165,7 @@ bool EdMeas::MoveToPrev (EdList* &pL)
 
 QByteArray EdMeas::SWrite()
   {
-  if ( ( m_pBB->SWrite() == "`Ý'" ) || ( m_pBB->SWrite() == "`Þ'" ) )//2.11.2015
+  if ( ( m_pBB->SWrite() == "`?'" ) || ( m_pBB->SWrite() == "`?'" ) )//2.11.2015
     return m_pAA->SWrite() + m_pBB->SWrite();
   return "\\units{" + m_pAA->SWrite() + "}{" + m_pBB->SWrite() + '}';//2.11.2015
   }
@@ -8259,7 +8242,8 @@ void EdTable::SetColumnNumber( int NewNumber )
       for( int j = m_ColCount; j < NewNumber; j++ )
         {
         EdList *pList = new EdList( m_pOwner );
-          pList->m_IsCell = m_GridState != TGRUnvisible && m_GridState != TGRPartlyVisible;
+        pList->m_IsCell = m_GridState != TGRUnvisible && m_GridState != TGRPartlyVisible;
+        pList->m_pSub_L = new EdList( m_pOwner );
         m_Body[i].push_back( pList );
         }
     else
@@ -8297,7 +8281,7 @@ bool EdTable::SetCurrent( const TPoint& C, EdList*& SL, EdMemb* &Cr )
     }
   if( j == -1 ) return false;
   m_pOwner->m_pCurrentTable = this;
-  SL = m_Body[i][j];
+  SL = m_Body[i][j]->m_pSub_L;
   Cr = SL->m_pCurr;
   m_Row = i;
   m_Col = j;
@@ -8309,16 +8293,16 @@ bool EdTable::SetCurrent( const TPoint& C, EdList*& SL, EdMemb* &Cr )
   if( Dlg.IsString() )
     {
     QString Result = Dlg.GetString();
-    SL->Clear();
+    SL->m_pSub_L->Clear();
     if( !Result.isEmpty() )
-      SL->Append_Before( new EdStr( m_pOwner, Result ) );
+      SL->m_pSub_L->Append_Before( new EdStr( m_pOwner, Result ) );
     return true;
     }
   QByteArray Result = Dlg.GetFormula();
-  SL->Clear();
+  SL->m_pSub_L->Clear();
   if( !Result.isEmpty() )
   for( int i = 0; i < Result.count(); i++ )
-    SL->Append_Before( new EdChar( Result[i], m_pOwner ) );
+    SL->m_pSub_L->Append_Before( new EdChar( Result[i], m_pOwner ) );
   return true;
   }
 
@@ -8336,7 +8320,7 @@ void EdTable::PreCalc( TPoint P, QSize& S, int& A )
         m_FrozenCells[i][j] = true;
       else
         {
-        m_Body[i][j]->PreCalc( P, m_Size, A );
+        m_Body[i][j]->m_pSub_L->PreCalc( P, m_Size, A );
         m_SizeRows[i] = max( m_SizeRows[i], m_Size.height() );
         m_SizeCols[j] = max( m_SizeCols[j], m_Size.width() );
         }
@@ -8352,7 +8336,7 @@ void EdTable::PreCalc( TPoint P, QSize& S, int& A )
   m_Size.setWidth( m_BorderSize * 2 );
   for( int j = 0; j < m_ColCount; j++ )
     {
-    if( !m_UnvisibleColumns[j] && ( m_GridState != TGRUnvisible || m_Body[0][j]->m_Size.width() == 0 ) )
+    if( !m_UnvisibleColumns[j] && ( m_GridState != TGRUnvisible || m_Body[0][j]->m_pSub_L->m_Size.width() == 0 ) )
       m_SizeCols[j] += 2 * m_BorderSize;
     m_Size.setWidth( m_Size.width() + m_SizeCols[j] );
     }
@@ -8363,14 +8347,14 @@ void EdTable::PreCalc( TPoint P, QSize& S, int& A )
     int x = m_Start.X + m_BorderSize;
     for( int j = 0; j < m_ColCount; j++ )
       {
-      if(  m_Body[i][j]->m_Size.width() == 0 ||
-        ( m_Body[i][j]->m_pFirst != nullptr && IsConstEdType( EdChart, m_Body[i][j]->m_pFirst->m_pMember.data() ) ) )
+      if(  m_Body[i][j]->m_pSub_L->m_Size.width() == 0 ||
+        ( m_Body[i][j]->m_pSub_L->m_pFirst != nullptr && IsConstEdType( EdChart, m_Body[i][j]->m_pSub_L->m_pFirst->m_pMember.data() ) ) )
         P.X = x + m_BorderSize;
       else
-        P.X = x + ( m_SizeCols[j] - m_Body[i][j]->m_Size.width() ) / 2;
-      P.Y = y + ( m_SizeRows[i] - m_Body[i][j]->m_Size.height() ) / 2;
+        P.X = x + ( m_SizeCols[j] - m_Body[i][j]->m_pSub_L->m_Size.width() ) / 2;
+      P.Y = y + ( m_SizeRows[i] - m_Body[i][j]->m_pSub_L->m_Size.height() ) / 2;
       QSize S1;
-      m_Body[i][j]->PreCalc( P, S1, A );
+      m_Body[i][j]->m_pSub_L->PreCalc( P, S1, A );
       x += m_SizeCols[j];
       }
     y += m_SizeRows[i];
@@ -8384,9 +8368,9 @@ void EdTable::Draw( TPoint P )
   {
   auto CanDrawBorder = [] ( EdList* pCell )
     {
-    return pCell->m_pFirst == nullptr || !( IsConstEdType( EdStr, pCell->m_pFirst->m_pMember.data() ) ) &&
-      ( !( IsConstEdType( EdChar, pCell->m_pFirst->m_pMember.data() ) ) ||
-      ( dynamic_cast< EdChar* >( pCell->m_pFirst->m_pMember.data() )->c() != '"' ) );
+    return pCell->m_pSub_L->m_pFirst == nullptr || !( IsConstEdType( EdStr, pCell->m_pSub_L->m_pFirst->m_pMember.data() ) ) &&
+      ( !( IsConstEdType( EdChar, pCell->m_pSub_L->m_pFirst->m_pMember.data() ) ) ||
+      ( dynamic_cast< EdChar* >( pCell->m_pSub_L->m_pFirst->m_pMember.data() )->c() != '"' ) );
     };
   SelectRect();
   m_pOwner->m_pCurrentTable = this;
@@ -8415,7 +8399,7 @@ void EdTable::Draw( TPoint P )
         for( int j = 0, Left = m_BorderSize; j < m_ColCount; Left += m_SizeCols[j++] )
           {
           if( m_UnvisibleColumns[j] ) continue;
-          EdList &Body = *m_Body[i][j];
+          EdList &Body = *m_Body[i][j]->m_pSub_L;
           if( m_FrozenCells[i][j] && ( !m_IsTEdChartEditor || m_RowCount == 2 ) )
             FloodFill( QRect( Left, Top, m_SizeCols[j], m_SizeRows[i] ),
               dynamic_cast< QImage* >( m_pOwner->m_pCanvas->device() ), Body.Start(), QColor( 0x00ffff ) );
@@ -8428,7 +8412,7 @@ void EdTable::Draw( TPoint P )
       for( int i = 0; i < m_RowCount; i++ )
         for( int j = 0; j < m_ColCount; j++ )
           {
-          EdList *pCell = m_Body[i][j];
+          EdList *pCell = m_Body[i][j]->m_pSub_L;
           pCell->Draw( pCell->m_Start );
           }
       break;
@@ -8440,26 +8424,26 @@ void EdTable::Draw( TPoint P )
         {
         int YNext = y + m_SizeRows[i];
         int x = m_Start.X + m_BorderSize;
-        if( CanDrawBorder( m_Body[i][0] ) )
+        if( CanDrawBorder( m_Body[i][0]->m_pSub_L ) )
           m_pOwner->Line( x, y, x, YNext );
         for( int j = 0; j < m_ColCount; j++ )
           {
           int XNext = x + m_SizeCols[j];
-          if( CanDrawBorder( m_Body[i][j] ) )
+          if( CanDrawBorder( m_Body[i][j]->m_pSub_L ) )
             {
             m_pOwner->Line( x, y, XNext, y );
             m_pOwner->Line( x, YNext, XNext, YNext );
             x = XNext;
             }
           x = XNext;
-          if( j < m_ColCount - 1 && CanDrawBorder( m_Body[i][j + 1] ) || CanDrawBorder( m_Body[i][j] ) )
+          if( j < m_ColCount - 1 && CanDrawBorder( m_Body[i][j + 1]->m_pSub_L ) || CanDrawBorder( m_Body[i][j]->m_pSub_L ) )
             m_pOwner->Line( x, y, x, YNext );
           }
         y = YNext;
         }
       for( int i = 0; i < m_RowCount; i++ )
         for( int j = 0; j < m_ColCount; j++ )
-          m_Body[i][j]->Draw( m_Body[i][j]->m_Start );
+          m_Body[i][j]->m_pSub_L->Draw( m_Body[i][j]->m_pSub_L->m_Start );
       }
     }
   }
@@ -8478,7 +8462,7 @@ QByteArray EdTable::GetFragment()
         break;
         }
       for( int j = 0; j < m_ColCount; j++ )
-        Result += m_Body[i][j]->GetFragment();
+        Result += m_Body[i][j]->m_pSub_L->GetFragment();
       return Result;
       }
   if( !bFragment ) return Result;
@@ -8492,7 +8476,7 @@ QByteArray EdTable::GetFragment()
       SelectionStarted = true;
       for( int j = 0; j < m_ColCount; j++ )
         {
-        QByteArray S = m_Body[i][j]->Write();
+        QByteArray S = m_Body[i][j]->m_pSub_L->Write();
         if( S.isEmpty() ) S = " ";
         if( S.indexOf( ',' ) > -1 && IsListEx( S ) )
           S = "@ListOrd(" + S + ')';
@@ -8515,7 +8499,7 @@ void EdTable::SelectFragment( QRect &FRect )
     for( int j = 0; j < m_ColCount; j++ )
       {
       m_Body[i][j]->SelectFragment( FRect );
-      if( m_Body[i][j]->m_Selected )
+      if( m_Body[i][j]->m_pSub_L->m_Selected )
         m_SelectedCount[i]++;
       }
     if( m_SelectedCount[i] > 0 )
@@ -8527,14 +8511,14 @@ void EdTable::SelectFragment( QRect &FRect )
     m_Selected = true;
     for( int i = 0; i < m_RowCount; i++ )
       for( int j = 0; j < m_ColCount; j++ )
-        m_Body[i][j]->Select();
+        m_Body[i][j]->m_pSub_L->Select();
     return;
     }
   if( SelectedRows == 1 ) return;
   for( int i = 0; i < m_RowCount; i++ )
     if( m_SelectedCount[i] > 0 )
       for( int j = 0; j < m_ColCount; j++ )
-        m_Body[i][j]->Select();
+        m_Body[i][j]->m_pSub_L->Select();
   }
 
 void EdTable::ClearSelection()
@@ -8544,7 +8528,7 @@ void EdTable::ClearSelection()
       {
       m_SelectedCount[i] = 0;
       for( int j = 0; j < m_ColCount; j++ )
-        m_Body[i][j]->ClearSelection();
+        m_Body[i][j]->m_pSub_L->ClearSelection();
       }
   m_Selected = false;
   }
@@ -8557,14 +8541,14 @@ QByteArray EdTable::Write()
     for( int j = 0; j < m_ColCount; j++ )
       if( m_Body[0][j]->m_pFirst != nullptr )
         {
-        EdStr *pStr = dynamic_cast< EdStr* >( m_Body[0][j]->m_pFirst->m_pMember.data() );
+        EdStr *pStr = dynamic_cast< EdStr* >( m_Body[0][j]->m_pSub_L->m_pFirst->m_pMember.data() );
         if( pStr != nullptr )
           {
           if( pStr->m_Value == "=" ) return Result;
           Result += pStr->m_Value;
           }
         else
-          Result += m_Body[0][j]->m_pFirst->m_pMember->Write();
+          Result += m_Body[0][j]->m_pSub_L->m_pFirst->m_pMember->Write();
         }
     return Result;
     }
@@ -8588,7 +8572,7 @@ QByteArray EdTable::Write()
     {
     for( int j = 0; j < m_ColCount; j++ )
       {
-      S = m_Body[i][j]->Write();
+      S = m_Body[i][j]->m_pSub_L->Write();
       if( S.isEmpty() ) S = "\" \"";
       if( S.indexOf( ',' ) > -1 && IsListEx( S ) )
         S = "@ListOrd(" + S + ')';
@@ -8615,7 +8599,7 @@ QByteArray EdTable::SWrite()
   Result += '}';
   for( int i = 0; i < m_RowCount; i++ )
     for( int j = 0; j < m_ColCount; j++ )
-      Result += "\\cell{" + m_Body[i][j]->SWrite() + '}';
+      Result += "\\cell{" + m_Body[i][j]->m_pSub_L->SWrite() + '}';
   return Result + "\\endtable";
   }
 
@@ -8949,25 +8933,27 @@ EdList* EdTable::GetCell()
 bool EdTable::MoveToNext( EdList*& L )
   {
   m_pOwner->m_pCurrentTable = this;
-  if( dynamic_cast <EdTwo*> ( m_pCurrentCell->m_pLast->m_pMember.data() ) == nullptr )
+  if( m_pCurrentCell->m_pSub_L->m_pMother != nullptr )
     {
-    int iNewCol = m_Col + 1;
-    int iNewRow = m_Row;
-    while( iNewRow < m_RowCount && iNewRow >= 0 )
-      {
-      for( ; iNewCol < m_ColCount && m_FrozenCells[iNewRow][iNewCol] && m_GridState != TGRUnvisible; iNewCol++ );
-      if( iNewCol < m_ColCount ) break;
-      if( XPInEdit::sm_Language == 0 )
-        iNewRow--;
-      else
-        iNewRow++;
-      iNewCol = 0;
-      }
-    if( iNewRow == m_RowCount || iNewRow == -1 ) return false;
-    m_Row = iNewRow;
-    m_Col = iNewCol;
+    L->MoveRight( L );
+    return true;
     }
-  L = m_Body[m_Row][m_Col];
+  int iNewCol = m_Col + 1;
+  int iNewRow = m_Row;
+  while( iNewRow < m_RowCount && iNewRow >= 0 )
+    {
+    for( ; iNewCol < m_ColCount && m_FrozenCells[iNewRow][iNewCol] && m_GridState != TGRUnvisible; iNewCol++ );
+    if( iNewCol < m_ColCount ) break;
+    if( XPInEdit::sm_Language == 0 )
+      iNewRow--;
+    else
+      iNewRow++;
+    iNewCol = 0;
+    }
+  if( iNewRow == m_RowCount || iNewRow == -1 ) return false;
+  m_Row = iNewRow;
+  m_Col = iNewCol;
+  L = m_Body[m_Row][m_Col]->m_pSub_L;
   L->m_pCurr = L->m_pFirst;
   return true;
   }
@@ -8990,7 +8976,7 @@ bool EdTable::MoveToPrev( EdList*& L )
   if( iNewRow == m_RowCount || iNewRow == -1 ) return false;
   m_Row = iNewRow;
   m_Col = iNewCol;
-  L = m_Body[m_Row][m_Col];
+  L = m_Body[m_Row][m_Col]->m_pSub_L;
   L->m_pCurr = L->m_pFirst;
   m_pOwner->m_pCurrentTable = this;
   return true;
@@ -9013,7 +8999,7 @@ bool EdTable::MoveInRight( EdList*& L )
   if( iNewRow == m_RowCount ) return false;
   m_Row = iNewRow;
   m_Col = iNewCol;
-  L = m_Body[m_Row][m_Col];
+  L = m_Body[m_Row][m_Col]->m_pSub_L;
   L->m_pCurr = L->m_pFirst;
   m_pOwner->m_pCurrentTable = this;
   return true;
@@ -9036,7 +9022,7 @@ bool EdTable::MoveInLeft( EdList*& L )
   if( iNewRow == -1 ) return false;
   m_Row = iNewRow;
   m_Col = iNewCol;
-  L = m_Body[m_Row][m_Col];
+  L = m_Body[m_Row][m_Col]->m_pSub_L;
   L->m_pCurr = L->m_pFirst;
   m_pOwner->m_pCurrentTable = this;
   return true;
@@ -9062,7 +9048,7 @@ bool EdTable::MoveToUp( EdList*& L )
   if( iNewRow == -1 ) return false;
   m_Row = iNewRow;
   m_Col = iNewCol;
-  L = m_Body[m_Row][m_Col];
+  L = m_Body[m_Row][m_Col]->m_pSub_L;
   L->m_pCurr = L->m_pFirst;
   return true;
   }
@@ -9087,7 +9073,7 @@ bool EdTable::MoveToDown( EdList*& L )
   if( iNewRow == m_RowCount ) return false;
   m_Row = iNewRow;
   m_Col = iNewCol;
-  L = m_Body[m_Row][m_Col];
+  L = m_Body[m_Row][m_Col]->m_pSub_L;
   L->m_pCurr = L->m_pFirst;
   return true;
   }
@@ -9105,6 +9091,8 @@ void EdTable::SetAppending( EdMemb& appending )
   for( int i = 0; i < m_RowCount; i++ )
     for( int j = 0; j < m_ColCount; j++ )
       m_Body[i][j]->m_pMother = &appending;
+  m_pOwnerList = m_pOwner->m_pL;
+  m_pCurrentCell = m_pOwner->m_pL = m_Body[0][0];
   }
 
 void EdTable::DelRow()

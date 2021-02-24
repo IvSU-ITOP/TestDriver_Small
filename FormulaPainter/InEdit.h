@@ -1227,6 +1227,7 @@ class EdTable : public EdElm
     static PEdElm sm_pTemplate;
     QVector< QVector <EdList*> > m_Body;
     EdList *m_pCurrentCell;
+    EdList *m_pOwnerList;
   bool m_IsTEdChartEditor;
   TableGrid m_GridState;
   bool m_NoFreeze;
