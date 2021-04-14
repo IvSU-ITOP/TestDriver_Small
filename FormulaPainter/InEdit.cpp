@@ -560,6 +560,8 @@ void XPInEdit::EditDraw()
 //  m_SelectedRect.setSize( QSize( 0, 0 ) );
   if( m_SelectedRect.isValid() )
     m_pCanvas->fillRect( m_SelectedRect, ~m_EditSets.m_BkgrColor.rgb() );
+  if(m_pCurrentTable != nullptr)
+     m_pL = m_pCurrentTable->m_pOwnerList;
   m_pL->PreCalc( m_Start, m_Size, m_Axis );
   m_pL->Draw( m_Start );
   }
@@ -1010,7 +1012,8 @@ EdAction XPInEdit::EditAction( U_A_T Uact  )
     m_pCurrentTable = new EdTable( this, Dlg.GetResult() );
     EdMemb *pAppending = m_pL->m_pSub_L->Append_Before( m_pCurrentTable );
     m_pCurrentTable->SetAppending( *pAppending );
-    m_pL->m_pSub_L->MoveLeft( m_pL->m_pSub_L );
+    m_pCurrentTable->m_pOwnerList->m_pSub_L->MoveLeft( m_pCurrentTable->m_pOwnerList->m_pSub_L );
+//    m_pL->m_pSub_L->MoveLeft( m_pL->m_pSub_L );
     return edRefresh;
     }
 
@@ -1070,7 +1073,7 @@ EdAction XPInEdit::EditAction( U_A_T Uact  )
 
   if( Uact == "CHARTEDITOR" )
     {
-    new EdChartEditor( this );
+    m_pCurrentTable = new EdChartEditor( this );
     return edRefresh;
     }
 
@@ -8215,7 +8218,7 @@ void EdStr::AddChar(char c)
   }
 
 EdTable::EdTable( XPInEdit* pOwn, const QByteArray& Parms ) : EdElm( pOwn ), m_IsTEdChartEditor( false ), m_WasTemplate( sm_WasTemplate ),
-  m_Row(0), m_Col(0), m_ColCount(0), m_pCurrentCell(nullptr)
+  m_Row(0), m_Col(0), m_ColCount(0), m_pCurrentCell(nullptr), m_pOwnerList(nullptr)
   {
   QByteArrayList ParmList( Parms.split( ',' ) );
   m_GridState = (TableGrid) ParmList[2].toInt();
@@ -8933,7 +8936,8 @@ EdList* EdTable::GetCell()
 bool EdTable::MoveToNext( EdList*& L )
   {
   m_pOwner->m_pCurrentTable = this;
-  if( m_pCurrentCell->m_pSub_L->m_pMother != nullptr )
+  if( m_pCurrentCell->m_pSub_L->m_pMother != nullptr &&
+    m_pCurrentCell->m_pSub_L->m_pMother != m_pCurrentCell->m_pMother )
     {
     L->MoveRight( L );
     return true;
@@ -9090,9 +9094,10 @@ void EdTable::SetAppending( EdMemb& appending )
   {
   for( int i = 0; i < m_RowCount; i++ )
     for( int j = 0; j < m_ColCount; j++ )
-      m_Body[i][j]->m_pMother = &appending;
+      m_Body[i][j]->m_pSub_L->m_pMother = m_Body[i][j]->m_pMother = &appending;
   m_pOwnerList = m_pOwner->m_pL;
-  m_pCurrentCell = m_pOwner->m_pL = m_Body[0][0];
+  m_pCurrentCell = m_Body[0][0];
+  m_pOwner->m_pL = m_Body[0][0];
   }
 
 void EdTable::DelRow()
@@ -9363,25 +9368,25 @@ void EdChartEditor::CreateBody()
   m_pParentMemb = m_pOwner->m_pL->m_pSub_L->Append_Before( this );
   SetAppending( *m_pParentMemb );
   m_Row = m_RowCount - 2;
-  m_Body[m_Row][0]->Append_Before( m_pTemplChart->m_pNameX );
-  m_Body[m_Row][0]->Append_Before( new EdChar( ':', m_pOwner ) );
-  m_Body[m_Row][0]->Append_Before( m_pTemplChart->m_pLabelX );
-  m_Body[m_Row + 1][0]->Append_Before( m_pTemplChart->m_pNameY );
-  m_Body[m_Row + 1][0]->Append_Before( new EdChar( ':', m_pOwner ) );
-  m_Body[m_Row + 1][0]->Append_Before( m_pTemplChart->m_pLabelY );
+  m_Body[m_Row][0]->m_pSub_L->Append_Before( m_pTemplChart->m_pNameX );
+  m_Body[m_Row][0]->m_pSub_L->Append_Before( new EdChar( ':', m_pOwner ) );
+  m_Body[m_Row][0]->m_pSub_L->Append_Before( m_pTemplChart->m_pLabelX );
+  m_Body[m_Row + 1][0]->m_pSub_L->Append_Before( m_pTemplChart->m_pNameY );
+  m_Body[m_Row + 1][0]->m_pSub_L->Append_Before( new EdChar( ':', m_pOwner ) );
+  m_Body[m_Row + 1][0]->m_pSub_L->Append_Before( m_pTemplChart->m_pLabelY );
   for( int j = 1; j < m_ColCount; j++ )
     {
     QByteArray &Labels = m_pTemplChart->m_Labels[j - 1];
-    for( int k = 0; k < Labels.count(); m_Body[m_Row][j]->Append_Before( new EdChar( Labels[k++], m_pOwner ) ) );
+    for( int k = 0; k < Labels.count(); m_Body[m_Row][j]->m_pSub_L->Append_Before( new EdChar( Labels[k++], m_pOwner ) ) );
     }
   if( !m_WasTemplate )
     {
-    m_Body[0][0]->Append_Before( new EdChartType( this ) );
+    m_Body[0][0]->m_pSub_L->Append_Before( new EdChartType( this ) );
     for( int j = 1; j < m_ColCount; j++ )
       {
-      m_Body[0][j]->Append_Before( new EdColumnColor( m_pTemplChart->m_Colors[j - 1], this ) );
+      m_Body[0][j]->m_pSub_L->Append_Before( new EdColumnColor( m_pTemplChart->m_Colors[j - 1], this ) );
       const QByteArray &Values = QByteArray::number( m_pTemplChart->m_Y[j - 1] );
-      for( int k = 0; k < Values.count(); m_Body[2][j]->Append_Before( new EdChar( Values[k++], m_pOwner ) ) );
+      for( int k = 0; k < Values.count(); m_Body[2][j]->m_pSub_L->Append_Before( new EdChar( Values[k++], m_pOwner ) ) );
       m_FrozenCells[0][j] = true;
       }
     m_FrozenCells[0][0] = true;
@@ -9390,7 +9395,7 @@ void EdChartEditor::CreateBody()
     Freeze();
   m_Col = 1;
   m_Row = m_RowCount - 1;
-  m_pOwner->m_pL->m_pSub_L = m_Body[m_Row][m_Col];
+  m_pOwnerList->m_pSub_L = m_Body[m_Row][m_Col]->m_pSub_L;
   }
 
 EdChartEditor::EdChartEditor( XPInEdit *pOwn, EdChart *pChart ) : EdTable( pOwn, ( sm_WasTemplate ? "2," : "3," ) +
@@ -9419,11 +9424,11 @@ void EdChartEditor::SetColumnNumber( int NewNumber )
   SetAppending( *m_pParentMemb );
   for( int j = OldColCount; j < m_ColCount; j++ )
     {
-    m_Body[0][j]->Append_Before( new EdColumnColor( m_pTemplChart->m_Colors[j - 1], this ) );
+    m_Body[0][j]->m_pSub_L->Append_Before( new EdColumnColor( m_pTemplChart->m_Colors[j - 1], this ) );
     QByteArray &Labels = m_pTemplChart->m_Labels[j - 1];
-    for( int k = 0; k < Labels.count(); m_Body[1][j]->Append_Before( new EdChar( Labels[k++], m_pOwner ) ) );
+    for( int k = 0; k < Labels.count(); m_Body[1][j]->m_pSub_L->Append_Before( new EdChar( Labels[k++], m_pOwner ) ) );
     const QByteArray &Values = QByteArray::number( m_pTemplChart->m_Y[j - 1] );
-    for( int k = 0; k < Values.count(); m_Body[2][j]->Append_Before( new EdChar( Values[k++], m_pOwner ) ) );
+    for( int k = 0; k < Values.count(); m_Body[2][j]->m_pSub_L->Append_Before( new EdChar( Values[k++], m_pOwner ) ) );
     m_FrozenCells[0][j] = true;
     }
   }
@@ -9438,9 +9443,9 @@ bool EdChartEditor::SetCurrent( const TPoint& C, EdList *& SL, EdMemb *& Cr )
       if( C.X >= x && C.X <= x + m_SizeCols[k] )
         {
         if( k > 0 )
-          dynamic_cast< EdColumnColor* >( m_Body[0][k]->m_pFirst->m_pMember.data() )->ChangeColor();
+          dynamic_cast< EdColumnColor* >( m_Body[0][k]->m_pSub_L->m_pFirst->m_pMember.data() )->ChangeColor();
         else
-          dynamic_cast< EdChartType* >( m_Body[0][0]->m_pFirst->m_pMember.data() )->ChangeType();
+          dynamic_cast< EdChartType* >( m_Body[0][0]->m_pSub_L->m_pFirst->m_pMember.data() )->ChangeType();
         SL = m_Body[1][k];
         Cr = SL->m_pCurr;
         m_Row = 1;
@@ -9460,7 +9465,7 @@ bool EdChartEditor::ResetChart()
     {
     for( int j = 1; j < m_ColCount; j++ )
       {
-      m_pTemplChart->m_Y[j - 1] = m_Body[1][j]->Write().toInt( &Ok );
+      m_pTemplChart->m_Y[j - 1] = m_Body[1][j]->m_pSub_L->Write().toInt( &Ok );
       if( !Ok ) return false;
       }
     return true;
@@ -9468,14 +9473,14 @@ bool EdChartEditor::ResetChart()
   if( m_pTemplChart->m_Type == ThinCol )
     for( int j = 1; j < m_ColCount; j++ )
       {
-      m_pTemplChart->m_Labels[j - 1] = m_Body[1][j]->Write();
+      m_pTemplChart->m_Labels[j - 1] = m_Body[1][j]->m_pSub_L->Write();
       m_pTemplChart->m_Labels[j - 1].toInt( &Ok );
       if( !Ok ) return false;
       }
   else
     for( int j = 1; j < m_ColCount; j++ )
       {
-      QByteArray Label( m_Body[1][j]->Write() );
+      QByteArray Label( m_Body[1][j]->m_pSub_L->Write() );
       int iPos = Label.indexOf( '-' );
       if( iPos < 1 || iPos == Label.length() - 1 ) return false;
       Label.left( iPos ).toInt( &Ok );
@@ -9486,16 +9491,16 @@ bool EdChartEditor::ResetChart()
       }
   for( int j = 1; j < m_ColCount; j++ )
     {
-    m_pTemplChart->m_Y[j - 1] = m_Body[2][j]->Write().toInt( &Ok );
+    m_pTemplChart->m_Y[j - 1] = m_Body[2][j]->m_pSub_L->Write().toInt( &Ok );
     if( !Ok ) return false;
-    m_pTemplChart->m_Colors[j - 1] = dynamic_cast< EdColumnColor* >( m_Body[0][j]->m_pFirst->m_pMember.data() )->m_Color;
+    m_pTemplChart->m_Colors[j - 1] = dynamic_cast< EdColumnColor* >( m_Body[0][j]->m_pSub_L->m_pFirst->m_pMember.data() )->m_Color;
     }
-  QByteArray LabName = m_Body[1][0]->Write().replace('"', "" );
+  QByteArray LabName = m_Body[1][0]->m_pSub_L->Write().replace('"', "" );
   int iColon = LabName.indexOf( ':' );
   if( iColon == -1 ) return false;
   m_pTemplChart->m_pNameX = new EdStr( m_pOwner, LabName.left(iColon) );
   m_pTemplChart->m_pLabelX = new EdStr( m_pOwner, LabName.mid( iColon + 1 ) );
-  LabName = m_Body[2][0]->Write().replace( '"', "" );;
+  LabName = m_Body[2][0]->m_pSub_L->Write().replace( '"', "" );;
   iColon = LabName.indexOf( ':' );
   if( iColon == -1 ) return false;
   m_pTemplChart->m_pNameY = new EdStr( m_pOwner, LabName.left( iColon ) );
