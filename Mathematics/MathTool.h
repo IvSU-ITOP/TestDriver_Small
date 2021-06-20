@@ -1,4 +1,4 @@
-#ifndef MATH_TOOL
+Ôªø#ifndef MATH_TOOL
 #define MATH_TOOL
 #include <qbytearray.h>
 #include "ExpOb.h"
@@ -44,7 +44,7 @@ void LComDen( int n1, int d1, int n2, int d2, int& n1r, int& n2r, int& cd, int& 
 int GrComDiv( int x, int y );
 MathExpr Expand( MathExpr );
 MathExpr ExpandExpr( MathExpr );
-MathExpr SubtSq( MathExpr );	// Formula a˝ - b˝ = ( ma ^ ( 2k ) - nb ^ ( 2l ) ) processing
+MathExpr SubtSq( MathExpr );	// Formula a—ç - b—ç = ( ma ^ ( 2k ) - nb ^ ( 2l ) ) processing
 int LComMul( int x, int y );
 MathExpr DeletBR( const MathExpr& exp );
 void ConvertComDec( int i, int n, int d, double& x, QByteArray& StDecNum );

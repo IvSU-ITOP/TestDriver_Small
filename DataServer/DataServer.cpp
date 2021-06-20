@@ -229,7 +229,6 @@ void ReadyRead(const QByteArray& Args)
   {
   QByteArrayList Parms( m_pSocket->readAll().split( '&' ) );
   QMutexLocker locker(&s_Critical);
-  DataTask Task;
   qDebug() << "StartReadyRead";
   if( !DB.isValid() ) DB = QSqlDatabase::addDatabase( "QMYSQL" );
   qDebug() << "QMYSQL Added";
@@ -240,6 +239,7 @@ void ReadyRead(const QByteArray& Args)
     if( !DB.isValid() ) throw ErrParser( "Error in: QMYSQL", ParserErr::peNewErr );
     if( Parms.count() < prmCharset + 1 )
       {
+      DataTask Task;
       QByteArray Formulas;
       for( int i = 0; i < Parms.count(); i++ )
         {
@@ -250,11 +250,11 @@ void ReadyRead(const QByteArray& Args)
         << ++s_pDataServer->m_ConnectionsCount;
       TStr::sm_Server = true;
       MathExpr Expr = MathExpr( Parser::StrToExpr( Parms[0] ) );
+      TStr::sm_Server = false;
+      if( s_GlobalInvalid || Expr.IsEmpty() ) throw ErrParser( "Syntax Error in: " + Parms[0], ParserErr::peNewErr );
 #ifdef DEBUG_TASK
       qDebug() << "Contents " << CastPtr( TExpr, Expr )->m_Contents;
 #endif
-      TStr::sm_Server = false;
-      if( s_GlobalInvalid || Expr.IsEmpty() ) throw ErrParser( "Syntax Error in: " + Parms[0], ParserErr::peNewErr );
       int iEqual = 1;
       for( ; iEqual < Parms.count(); iEqual++ )
         {
@@ -298,19 +298,22 @@ void ReadyRead(const QByteArray& Args)
       m_pSocket->flush();
       return;
       }
-    qDebug() << "Start to create task" << m_SocketDescriptor << "; Topic: " << Parms[prmTopic] << "; Work Type: " << Parms[prmTaskType] <<
-      ", URL:" << Parms[prmURL] << ", Connections Count: " << ++s_pDataServer->m_ConnectionsCount;
-    if( Parms.count() != prmCharset + 1 ) throw ErrParser( "Error; Number of parameters must be 8", ParserErr::peNewErr );
-//    if( !DB.isValid() ) throw ErrParser( "Error; Database was not valid", ParserErr::peNewErr );
+    if( !DB.isValid() ) DB = QSqlDatabase::addDatabase( "QMYSQL" );
+    qDebug() << "QMYSQL Added";
     DB.setDatabaseName( Parms[prmDatabase] );
     DB.setUserName( "root" );
     DB.setHostName( "localhost" );
     DB.setPassword( Parms[prmPassword] );
+//    DB.setPassword( "Jozefa,Niedzw." );
     if( !DB.open() ) throw ErrParser( "Error; Can't open database: " + Parms[prmDatabase] + "; " + Parms[prmPassword], ParserErr::peNewErr );
     QSqlQuery Query( DB );
     QString Q( "Select Distinct RndValues From BusyTopic Where tpc_id =" + Parms[prmTopic] );
+    qDebug() << "Start to create task" << m_SocketDescriptor << "; Topic: " << Parms[prmTopic] << "; Work Type: " << Parms[prmTaskType] <<
+      ", URL:" << Parms[prmURL] << ", Connections Count: " << ++s_pDataServer->m_ConnectionsCount;
+    if( Parms.count() != prmCharset + 1 ) throw ErrParser( "Error; Number of parameters must be 8", ParserErr::peNewErr );
     Query.exec( Q );
     ArrBusy Busy;
+    DataTask Task;
     while( Query.next() )
       {
       QByteArrayList Values( Query.value( 0 ).toByteArray().split( ',' ) );
@@ -330,191 +333,219 @@ void ReadyRead(const QByteArray& Args)
     if(EdStr::sm_pCodec == nullptr ) throw ErrParser( "Error; Invalid Charset", ParserErr::peNewErr );
     s_MemorySwitch = SWtask;
     ExpStore::sm_pExpStore->Init_var();
-    Task.SetWorkMode( Parms[prmTaskType] );
-    Task.SetFileName( Parms[prmPathFile] );
-    XPInEdit::sm_Language = Task.GetLanguage();
-    Task.CalcRead();
-    QString Comment( ToLang( Task.GetComment() ) );
-    QString TrackDescription;
-    QString TrackNames;
-    QByteArray CurrentTrack( "0" );
-    if( Task.m_pTrack->m_MultyTrack && Parms[prmTaskType] != "wrkExam" )
+    QByteArray TaskType(Parms[prmTaskType]);
+    QByteArrayList PathFiles;
+    if( BaseTask::GetLangByFileName( Parms[prmPathFile] ) == lngAll )
       {
-      QByteArray TrackDescr;
-      QByteArray TrackName;
-      CurrentTrack = "-1";
-      TrackDescr = Task.m_pTrack->m_TracksDescription->GetText();
-      if(!TrackDescr.isEmpty()) TrackDescription = ToLang(TrackDescr);
-      QByteArrayList &TaskTrackNames = Task.m_pTrack->m_NameOfTrack;
-      for( int iTrack = 0; iTrack < TaskTrackNames.count(); )
+      TaskType = "wrkKids";
+      QByteArray Path(Parms[prmPathFile].left(Parms[prmPathFile].lastIndexOf('/') + 1 ));
+      QFile TaskListFile(Parms[prmPathFile].replace("Tasks", "Series"));
+      TaskListFile.open( QIODevice::ReadOnly );
+      if( !TaskListFile.isOpen() )
+        throw ErrParser( "Can't open task list file " + Parms[prmPathFile], ParserErr::peNewErr );
+      QByteArray Line;
+      TaskListFile.readLine();
+      do
         {
-        TrackName += TaskTrackNames[iTrack];
-        if( ++iTrack < TaskTrackNames.count() ) TrackName += "\n";
-        }
-      if(!TrackName.isEmpty()) TrackNames = ToLang(TrackName);
+        QByteArray FName = TaskListFile.readLine().trimmed();
+        if( !FName.isEmpty() )  PathFiles.append(Path + FName + ".HEB");
+       } while( !TaskListFile.atEnd());
       }
-    Q = "Insert Into Task( usr_id,tpc_id,H_Id,TaskType,Comment, URL, Description_tracks, TrackNames, CurrentTrack) Values(" + Parms[prmUser] + ',' +
-      Parms[prmTopic] + ',' + Parms[prmHid] + ",'" + Parms[prmTaskType] + "','" + Comment +
-      "','" + Parms[prmURL] + "','" + TrackDescription + "','" + TrackNames + "'," + CurrentTrack + ')';
-    //    m_pSocket->write( Q.toUtf8() + "\n\n" );
-    //    m_pSocket->flush();
-    //    return;
-    Query.exec( Q );
-    QByteArray idTask = Query.lastInsertId().toByteArray();
-    if( idTask == "0" || idTask == "")
+    else
+      PathFiles.append(Parms[prmPathFile]);
+    QByteArray FirstTask;
+    char InstDots = 'a', PrevDot = '.';
+    for(int iFile = 0; iFile < PathFiles.length(); iFile++)
       {
-      Query.exec( "Delete From Task Where usr_id=" + Parms[prmUser] + " and URL='" + Parms[prmURL] + "'");
+      Q = "Delete From Task where usr_id=" + Parms[prmUser] + " and URL='" + Parms[prmURL] + "'";
       Query.exec( Q );
-      idTask = Query.lastInsertId().toByteArray();
-      qDebug() << idTask << "2";
-      }
-    if( idTask == "0" || idTask  == "" ) throw ErrParser( "Error; Cant't add Task, query: " + Q, ParserErr::peNewErr );
-    Query.prepare( "Update Task Set QuestionWindow = ? where idTask = " + idTask );
-    m_TempPath = QString( s_Temp ) + Parms[prmUser] + Parms[prmURL].replace( '.', 'a' );
-    QDir().mkpath( m_TempPath );
-    ContentCreator CC( m_TempPath );
-    Query.addBindValue( CC.GetContent( Task.m_pQuestion ) );
-    if( !Query.exec() )
-      throw ErrParser( "Error; Cant't add Content for QuestionWindow, topic: " + Parms[prmTopic], ParserErr::peNewErr );
-
-    for( Task.m_pTrack->m_SelectedTrack = Task.m_pTrack->m_MultyTrack ? 1 : 0; Task.m_pTrack->m_SelectedTrack <= Task.m_pTrack->m_NameOfTrack.count(); Task.m_pTrack->m_SelectedTrack++ )
-      {
-      Task.ClearTrackDependent();
-      Task.LoadTrackDependentFromFile();
-      QString TrackId( QString::number( Task.m_pTrack->m_SelectedTrack ) );
-      QString Q( "Insert Into HelpTask( idTask,TaskName,TrackId,Step) Values(" + idTask + ",'" + ToLang( Task.m_Name ) +
-        "'," + TrackId + ",0)" );
-      if( !Query.exec( Q ) )
-        throw ErrParser( "Error; Cant't add HelpTask, query: " + Q, ParserErr::peNewErr );
-      if( Parms[prmTaskType] != "wrkExam" )
+      Task.SetWorkMode( TaskType );
+      Task.SetFileName( PathFiles[iFile] );
+      XPInEdit::sm_Language = Task.GetLanguage();
+      Task.CalcRead();
+      QString Comment( ToLang( Task.GetComment() ) );
+      QString TrackDescription;
+      QString TrackNames;
+      QByteArray CurrentTrack( "0" );
+      if( Task.m_pTrack->m_MultyTrack && Parms[prmTaskType] != "wrkExam" )
         {
-        Query.prepare( "Update HelpTask Set HelpText = ? where idHelpTask = " + Query.lastInsertId().toByteArray() );
-        Query.addBindValue( CC.GetContent( Task.m_pMethodL ) );
-        if( !Query.exec() )
-          throw ErrParser( "Error; Cant't add Content for HelpTask, topic: " + Parms[prmTopic] + " Step = 0", ParserErr::peNewErr );
+        QByteArray TrackDescr;
+        QByteArray TrackName;
+        CurrentTrack = "-1";
+        TrackDescr = Task.m_pTrack->m_TracksDescription->GetText();
+        if(!TrackDescr.isEmpty()) TrackDescription = ToLang(TrackDescr);
+        QByteArrayList &TaskTrackNames = Task.m_pTrack->m_NameOfTrack;
+        for( int iTrack = 0; iTrack < TaskTrackNames.count(); )
+          {
+          TrackName += TaskTrackNames[iTrack];
+          if( ++iTrack < TaskTrackNames.count() ) TrackName += "\n";
+          }
+        if(!TrackName.isEmpty()) TrackNames = ToLang(TrackName);
         }
-      char iStep = '1';
-      for( PStepMemb pStep = Task.m_pStepsL->m_pFirst; !pStep.isNull(); pStep = pStep->m_pNext, iStep++ )
+      Q = "Insert Into Task( usr_id,tpc_id,H_Id,TaskType,Comment, URL, Description_tracks, TrackNames, CurrentTrack) Values(" + Parms[prmUser] + ',' +
+        Parms[prmTopic] + ',' + Parms[prmHid] + ",'" + TaskType + "','" + Comment +
+        "','" + Parms[prmURL] + "','" + TrackDescription + "','" + TrackNames + "'," + CurrentTrack + ')';
+      Query.exec( Q );
+      QByteArray idTask = Query.lastInsertId().toByteArray();
+      qDebug() << "IdTask:" << idTask;
+      if( idTask == "0" || idTask == "")
         {
-        Q = "Insert Into HelpTask( idTask,TaskName,TrackId,Step) Values(" + idTask + ",'" + ToLang( pStep->m_Name ) + "'," + TrackId + ',' + iStep + ')';
+        qDebug() << "Query:" << Q;
+        Query.exec( "Select max(idTask) From Task Where usr_id=" + Parms[prmUser] + " and URL='" + Parms[prmURL] + "'");
+        Query.exec( Q );
+        Query.next();
+        idTask = Query.value( 0 ).toByteArray();
+        qDebug() << idTask << "2";
+        }
+      if( idTask == "0" || idTask  == "" ) throw ErrParser( "Error; Cant't add Task, query: " + Q, ParserErr::peNewErr );
+      if(FirstTask.isEmpty()) FirstTask = idTask;
+      Query.prepare( "Update Task Set QuestionWindow = ? where idTask = " + idTask );
+      m_TempPath = QString( s_Temp ) + Parms[prmUser] + Parms[prmURL].replace( PrevDot, InstDots );
+      PrevDot = InstDots++;
+      QDir().mkpath( m_TempPath );
+      ContentCreator CC( m_TempPath );
+      Query.addBindValue( CC.GetContent( Task.m_pQuestion ) );
+      if( !Query.exec() )
+        throw ErrParser( "Error; Cant't add Content for QuestionWindow, topic: " + Parms[prmTopic], ParserErr::peNewErr );
+      for( Task.m_pTrack->m_SelectedTrack = Task.m_pTrack->m_MultyTrack ? 1 : 0; Task.m_pTrack->m_SelectedTrack <= Task.m_pTrack->m_NameOfTrack.count(); Task.m_pTrack->m_SelectedTrack++ )
+        {
+        Task.ClearTrackDependent();
+        Task.LoadTrackDependentFromFile();
+        QString TrackId( QString::number( Task.m_pTrack->m_SelectedTrack ) );
+        QString Q( "Insert Into HelpTask( idTask,TaskName,TrackId,Step) Values(" + idTask + ",'" + ToLang( Task.m_Name ) +
+          "'," + TrackId + ",0)" );
         if( !Query.exec( Q ) )
           throw ErrParser( "Error; Cant't add HelpTask, query: " + Q, ParserErr::peNewErr );
         if( Parms[prmTaskType] != "wrkExam" )
           {
           Query.prepare( "Update HelpTask Set HelpText = ? where idHelpTask = " + Query.lastInsertId().toByteArray() );
-          Query.addBindValue( CC.GetContent( pStep->m_pMethodL ) );
+          Query.addBindValue( CC.GetContent( Task.m_pMethodL ) );
           if( !Query.exec() )
+            throw ErrParser( "Error; Cant't add Content for HelpTask, topic: " + Parms[prmTopic] + " Step = 0", ParserErr::peNewErr );
+          }
+        char iStep = '1';
+        for( PStepMemb pStep = Task.m_pStepsL->m_pFirst; !pStep.isNull(); pStep = pStep->m_pNext, iStep++ )
+          {
+          Q = "Insert Into HelpTask( idTask,TaskName,TrackId,Step) Values(" + idTask + ",'" + ToLang( pStep->m_Name ) + "'," + TrackId + ',' + iStep + ')';
+          if( !Query.exec( Q ) )
+            throw ErrParser( "Error; Cant't add HelpTask, query: " + Q, ParserErr::peNewErr );
+          if( TaskType != "wrkExam" )
+            {
+            Query.prepare( "Update HelpTask Set HelpText = ? where idHelpTask = " + Query.lastInsertId().toByteArray() );
+            Query.addBindValue( CC.GetContent( pStep->m_pMethodL ) );
+            if( !Query.exec() )
               throw ErrParser( "Error; Cant't add Content for HelpTask, topic: " + Parms[prmTopic] + " Step = " + iStep, ParserErr::peNewErr );
+            }
           }
-        }
 
-      auto AddFormula = [&] ( const QByteArray& Table, const PDescrMemb& pMemb, const QByteArray& Id, const QString& IdValue = QString()  )
-        {
-        MathExpr Expr;
-        QByteArray Answer;
-        for( PDescrMemb pM = pMemb; !pM.isNull(); pM = pM->m_pNext )
+         auto AddFormula = [&] ( const QByteArray& Table, const PDescrMemb& pMemb, const QByteArray& Id, const QString& IdValue = QString()  )
           {
-          if( pM->m_Content.isEmpty() || pM->m_Kind != tXDexpress ) continue;
-          MathExpr AExpr = MathExpr( Parser::StrToExpr( pM->m_Content ) );
-          if( s_GlobalInvalid || AExpr.IsEmpty() ) throw ErrParser( "Error; Bad task, formula: " + pM->m_Content, ParserErr::peNewErr );
-          if( Answer.isEmpty() )
-            Expr = AExpr;
+          MathExpr Expr;
+          QByteArray Answer;
+          for( PDescrMemb pM = pMemb; !pM.isNull(); pM = pM->m_pNext )
+            {
+            if( pM->m_Content.isEmpty() || pM->m_Kind != tXDexpress ) continue;
+            MathExpr AExpr = MathExpr( Parser::StrToExpr( pM->m_Content ) );
+            if( s_GlobalInvalid || AExpr.IsEmpty() ) throw ErrParser( "Error; Bad task, formula: " + pM->m_Content, ParserErr::peNewErr );
+            if( Answer.isEmpty() )
+              Expr = AExpr;
+            else
+              Answer += '#';
+            TStr::sm_Server = true;
+            Answer += AExpr.WriteE();
+            TStr::sm_Server = false;
+            if( Answer.isEmpty() ) Answer = pM->m_Content;
+            }
+          if( Answer.isEmpty() ) throw ErrParser( "Error; Bad task, all content is empty", ParserErr::peNewErr );
+          QByteArray EdFormula( Expr.SWrite() );
+          XPInEdit InEd( EdFormula, *BaseTask::sm_pEditSets, CC.ViewSettings() );
+          if( Expr.HasStr() )
+            {
+            TStr::sm_Server = true;
+            EdFormula = Expr.SWrite();
+            TStr::sm_Server = false;
+            }
+          QByteArray FormulaPic;
+          QBuffer Buffer( &FormulaPic );
+          Buffer.open( QIODevice::WriteOnly );
+          InEd.GetImage()->save( &Buffer, "JPG" );
+          QString LastId = IdValue;
+          if(LastId.isEmpty()) LastId = Query.lastInsertId().toString();
+          QString Q( "Update " + Table + " Set Formula = '" +
+            EdFormula.replace( '\\', "\\\\\\\\" ).replace( '\n', "\\\\n" ).replace( '\'', "\\'" ) + "', Image = '" + FormulaPic.toBase64() + "', Answer='" +
+            Encode( Answer ).replace( '\'', "\\'" ) + "' where " + Id + " = " + LastId );
+          if( !Query.exec( Q ) )
+            throw ErrParser( "Error; Cant't add Formula, Query: " + Q, ParserErr::peNewErr );
+          return LastId;
+          };
+
+        iStep = '1';
+        bool bFirstStep = true;
+        for( PStepMemb pStep = Task.m_pStepsL->m_pFirst; !pStep.isNull(); pStep = pStep->m_pNext, iStep++ )
+          {
+          if( bFirstStep )
+            Query.exec( QString( "Update Task Set CurrentStep =" ) + iStep + " where idTask = " + idTask );
+          bFirstStep = false;
+          QString Q, IdHintValue;
+          if( Parms[prmTaskType] == "wrkExam" )
+            {
+            if( pStep->m_Mark == 0 && !pStep->m_pNext.isNull() )
+              {
+              bFirstStep = true;
+              continue;
+              }
+            Q = "Insert Into HintTask( idTask,Comment,Template,Step,Mark,NoHint) Values(" + idTask + ",'" +
+              ToLang( pStep->GetComment() ) + "','" + Task.GetTemplate( iStep - '0' ) +
+              "'," + iStep + ',' + QString::number( pStep->m_Mark ) + ',' + ('0' + pStep->m_ShowParms.m_NoHint) + ')';
+            if (!Query.exec(Q))
+              throw ErrParser("Error; Cant't add HintTask, query: " + Q, ParserErr::peNewErr);
+            if (!pStep->m_pAnswerPrompt->m_pFirst.isNull())
+              {
+              IdHintValue = Query.lastInsertId().toString();
+              Query.prepare("Update HintTask Set AnswerPrompt = ? where idHintTask = " + Query.lastInsertId().toByteArray());
+              Query.addBindValue(CC.GetContent(pStep->m_pAnswerPrompt));
+              if (!Query.exec())
+                throw ErrParser("Error; Cant't add Content for AnswerPrompt, topic: " + Parms[prmTopic] + " Step = " + iStep, ParserErr::peNewErr);
+              }
+            }
           else
-            Answer += '#';
-          TStr::sm_Server = true;
-          Answer += AExpr.WriteE();
-          TStr::sm_Server = false;
-          if( Answer.isEmpty() ) Answer = pM->m_Content;
-          }
-        if( Answer.isEmpty() ) throw ErrParser( "Error; Bad task, all content is empty", ParserErr::peNewErr );
-        QByteArray EdFormula( Expr.SWrite() );
-        XPInEdit InEd( EdFormula, *BaseTask::sm_pEditSets, CC.ViewSettings() );
-        if( Expr.HasStr() )
-          {
-          TStr::sm_Server = true;
-          EdFormula = Expr.SWrite();
-          TStr::sm_Server = false;
-          }
-        QByteArray FormulaPic;
-        QBuffer Buffer( &FormulaPic );
-        Buffer.open( QIODevice::WriteOnly );
-        InEd.GetImage()->save( &Buffer, "JPG" );
-        QString LastId = IdValue;
-        if(LastId.isEmpty()) LastId = Query.lastInsertId().toString();
-        QString Q( "Update " + Table + " Set Formula = '" +
-          EdFormula.replace( '\\', "\\\\\\\\" ).replace( '\n', "\\\\n" ).replace( '\'', "\\'" ) + "', Image = '" + FormulaPic.toBase64() + "', Answer='" +
-          Encode( Answer ).replace( '\'', "\\'" ) + "' where " + Id + " = " + LastId );
-        if( !Query.exec( Q ) )
-          throw ErrParser( "Error; Cant't add Formula, Query: " + Q, ParserErr::peNewErr );
-        return LastId;
-        };
-
-      iStep = '1';
-      bool bFirstStep = true;
-      for( PStepMemb pStep = Task.m_pStepsL->m_pFirst; !pStep.isNull(); pStep = pStep->m_pNext, iStep++ )
-        {
-        if( bFirstStep )
-          Query.exec( QString( "Update Task Set CurrentStep =" ) + iStep + " where idTask = " + idTask );
-        bFirstStep = false;
-        QString Q, IdHintValue;
-        if( Parms[prmTaskType] == "wrkExam" )
-          {
-          if( pStep->m_Mark == 0 && !pStep->m_pNext.isNull() )
             {
-            bFirstStep = true;
-            continue;
+            Q = "Insert Into HintTask( idTask,Comment,Template,Step,Track) Values(" + idTask + ",'" +
+              ToLang(pStep->GetComment()) + "','" + Task.GetTemplate(iStep - '0') + "'," + iStep + ',' + TrackId + ')';
+            if (!Query.exec(Q))
+              throw ErrParser("Error; Cant't add HintTask, query: " + Q, ParserErr::peNewErr);
             }
-          Q = "Insert Into HintTask( idTask,Comment,Template,Step,Mark,NoHint) Values(" + idTask + ",'" +
-            ToLang( pStep->GetComment() ) + "','" + Task.GetTemplate( iStep - '0' ) +
-            "'," + iStep + ',' + QString::number( pStep->m_Mark ) + ',' + ('0' + pStep->m_ShowParms.m_NoHint) + ')';
-          if (!Query.exec(Q))
-            throw ErrParser("Error; Cant't add HintTask, query: " + Q, ParserErr::peNewErr);
-          if (!pStep->m_pAnswerPrompt->m_pFirst.isNull())
+          QString idHint = AddFormula( "hinttask", pStep->m_pResultE->m_pFirst, "idHintTask", IdHintValue );
+          if( TaskType != "wrkLearn" )
             {
-            IdHintValue = Query.lastInsertId().toString();
-            Query.prepare("Update HintTask Set AnswerPrompt = ? where idHintTask = " + Query.lastInsertId().toByteArray());
-            Query.addBindValue(CC.GetContent(pStep->m_pAnswerPrompt));
-            if (!Query.exec())
-              throw ErrParser("Error; Cant't add Content for AnswerPrompt, topic: " + Parms[prmTopic] + " Step = " + iStep, ParserErr::peNewErr);
+            PDescrMemb pNext = pStep->m_pF1->m_pFirst->m_pNext;
+            QString FalseComm = pNext.isNull() ? "" : ToLang( pNext->m_Content );
+            Q = "Insert Into SubHint( idHintTask, Comment) Values(" + idHint + ",'" + FalseComm + "')";
+            if( !Query.exec( Q ) )
+              throw ErrParser( "Error; Cant't add SubHint, query: " + Q, ParserErr::peNewErr );
+            AddFormula( "SubHint", pStep->m_pF1->m_pFirst, "idSubHint" );
+            pNext = pStep->m_pF2->m_pFirst->m_pNext;
+            FalseComm = pNext.isNull() ? "" : ToLang( pNext->m_Content );
+            Q = "Insert Into SubHint( idHintTask, Comment) Values(" + idHint + ",'" + FalseComm + "')";
+            if( !Query.exec( Q ) )
+              throw ErrParser( "Error; Cant't add SubHint, query: " + Q, ParserErr::peNewErr );
+            AddFormula( "SubHint", pStep->m_pF2->m_pFirst, "idSubHint" );
+            pNext = pStep->m_pF3->m_pFirst->m_pNext;
+            FalseComm = pNext.isNull() ? "" : ToLang( pNext->m_Content );
+            Q = "Insert Into SubHint( idHintTask, Comment) Values(" + idHint + ",'" + FalseComm + "')";
+            if( !Query.exec( Q ) )
+              throw ErrParser( "Error; Cant't add SubHint, query: " + Q, ParserErr::peNewErr );
+            AddFormula( "SubHint", pStep->m_pF3->m_pFirst, "idSubHint" );
             }
           }
-        else
-          {
-          Q = "Insert Into HintTask( idTask,Comment,Template,Step,Track) Values(" + idTask + ",'" +
-            ToLang(pStep->GetComment()) + "','" + Task.GetTemplate(iStep - '0') + "'," + iStep + ',' + TrackId + ')';
-          if (!Query.exec(Q))
-            throw ErrParser("Error; Cant't add HintTask, query: " + Q, ParserErr::peNewErr);
-          }
-        QString idHint = AddFormula( "hinttask", pStep->m_pResultE->m_pFirst, "idHintTask", IdHintValue );
-        if( Parms[prmTaskType] != "wrkLearn" )
-          {
-          PDescrMemb pNext = pStep->m_pF1->m_pFirst->m_pNext;
-          QString FalseComm = pNext.isNull() ? "" : ToLang( pNext->m_Content );
-          Q = "Insert Into SubHint( idHintTask, Comment) Values(" + idHint + ",'" + FalseComm + "')";
-          if( !Query.exec( Q ) )
-            throw ErrParser( "Error; Cant't add SubHint, query: " + Q, ParserErr::peNewErr );
-          AddFormula( "SubHint", pStep->m_pF1->m_pFirst, "idSubHint" );
-          pNext = pStep->m_pF2->m_pFirst->m_pNext;
-          FalseComm = pNext.isNull() ? "" : ToLang( pNext->m_Content );
-          Q = "Insert Into SubHint( idHintTask, Comment) Values(" + idHint + ",'" + FalseComm + "')";
-          if( !Query.exec( Q ) )
-            throw ErrParser( "Error; Cant't add SubHint, query: " + Q, ParserErr::peNewErr );
-          AddFormula( "SubHint", pStep->m_pF2->m_pFirst, "idSubHint" );
-          pNext = pStep->m_pF3->m_pFirst->m_pNext;
-          FalseComm = pNext.isNull() ? "" : ToLang( pNext->m_Content );
-          Q = "Insert Into SubHint( idHintTask, Comment) Values(" + idHint + ",'" + FalseComm + "')";
-          if( !Query.exec( Q ) )
-            throw ErrParser( "Error; Cant't add SubHint, query: " + Q, ParserErr::peNewErr );
-          AddFormula( "SubHint", pStep->m_pF3->m_pFirst, "idSubHint" );
-          }
+        if( TaskType == "wrkExam" ) break;
         }
-      if( Parms[prmTaskType] == "wrkExam" ) break;
       }
-    m_pSocket->write( idTask + "\n\n" );
+    m_pSocket->write( FirstTask + "\n\n" );
     m_pSocket->flush();
-    if( Parms[prmTaskType] == "wrkExam" )
+    if( TaskType == "wrkExam" )
       {
-      QByteArray Q( "Insert Into BusyTopic( tpc_id, idTask, RndValues ) Values(" + Parms[prmTopic] + ',' + idTask + ",'" + Task.GetBusy() + "')" );
+      QByteArray Q( "Insert Into BusyTopic( tpc_id, idTask, RndValues ) Values(" + Parms[prmTopic] + ',' + FirstTask + ",'" + Task.GetBusy() + "')" );
       Query.exec( Q );
       }
     }

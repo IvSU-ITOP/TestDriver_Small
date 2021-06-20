@@ -38,6 +38,7 @@ QAction* WinTesting::sm_pAddPicture;
 QAction* WinTesting::sm_pEditHeader;
 QAction* WinTesting::sm_pEditCalc;
 QAction* WinTesting::sm_pShowCalcualtor;
+QAction* WinTesting::sm_pPlotGraph;
 TranslateObjects WinTesting::sm_TranslateObjects;
 
 QTextStream CalcWidget::sm_Result(new QFile );
@@ -432,17 +433,15 @@ m_pSWitchCalc( new CalcButton( "MDisplayKeys", "Keys" ) ), m_pCalculator( new QG
   pVLayout->setAlignment( pMainTaskBtn, Qt::AlignHCenter | Qt::AlignCenter );
   pGroupBox->setLayout( pVLayout );
   pGroupBox->setFixedWidth( WinTesting::sm_pPanel->width() );
-  pVLayout = new QVBoxLayout;
+  QVBoxLayout *pEdLayout = new QVBoxLayout;
   m_pTitle->setAlignment( Qt::AlignCenter );
   m_pTitle->setText( X_Str( "EditWindowCaption", "Edit Window   press Enter to save or use calculator to evaluate" ) );
   m_pTitle->setStyleSheet( "QLabel {font-size:16px}" );
-  pVLayout->addWidget( m_pTitle );
-  Panel::sm_pEditor = new XPGedit( this, BaseTask::sm_pEditSets );
+  pEdLayout->addWidget( m_pTitle );
   m_pTitle->adjustSize();
-  pVLayout->addWidget( Panel::sm_pEditor );
   m_pMainLayout->setMargin( 0 );
   m_pMainLayout->addWidget( pGroupBox );
-  m_pMainLayout->addLayout( pVLayout );
+  m_pMainLayout->addLayout( pEdLayout );
   m_pCalculator->setStyleSheet( "QWidget {font-size:16px}" );
   QHBoxLayout *pHLayout = new QHBoxLayout;
   pHLayout->addWidget( m_pAngleMeas );
@@ -466,7 +465,9 @@ m_pSWitchCalc( new CalcButton( "MDisplayKeys", "Keys" ) ), m_pCalculator( new QG
   m_pCalculator->setFixedWidth( WinTesting::sm_pPanel->width() * 2.2 );
   m_pCalculator->hide();
   m_EditorWidth = ScreenSize.width() - pGroupBox->width() - 20, ScreenSize.height() / 4 - m_pTitle->height();
-  Panel::sm_pEditor->setFixedSize(m_EditorWidth, ScreenSize.height() / 4 - m_pTitle->height());
+  Panel::sm_pEditor = new XPGedit( this, BaseTask::sm_pEditSets );
+  QScrollArea *pArea = Panel::sm_pEditor->SetSize(QSize(m_EditorWidth, ScreenSize.height() / 4 - m_pTitle->height()));
+  pEdLayout->addWidget( pArea );
   setLayout(m_pMainLayout);
   ShowPrecision();
   ShowAngleMeas();
@@ -668,6 +669,8 @@ WinTesting::WinTesting() : m_Review(false)
   addDockWidget( Qt::TopDockWidgetArea, new DockWithoutTitle( new QuestWindow( this ) ) );
   addDockWidget( Qt::BottomDockWidgetArea, new DockWithoutTitle( new BottomWindow ) );
   sm_pShowCalcualtor = sm_pToolBar->addAction(QIcon(":/Resources/abacus.png"), "Show &Calculator", sm_pBottomWindow, SLOT(ShowCalculator()));
+  sm_pPlotGraph = sm_pToolBar->addAction( QIcon(":/Resources/plotter.png"), "Plot Graph", this ,SLOT(PlotGraph()));
+
   setCorner( Qt::BottomRightCorner, Qt::BottomDockWidgetArea );
   setCentralWidget( new CentralWindow );
   m_pWaitMessage = new QLabel( WinTesting::sm_pOutWindow );
@@ -1342,6 +1345,14 @@ void WinTesting::Calc()
     return;
     }
   WinTesting::sm_pOutWindow->AddExp( Expr );
+  }
+
+void WinTesting::PlotGraph()
+  {
+     m_pPlotter=new Plotter();
+     m_pPlotter->setFixedSize(m_pPlotter->size());
+     if( m_pPlotter->Plot(Panel::sm_pEditor->Write()) )m_pPlotter->show();
+     else return;
   }
 
 TypeSelector::TypeSelector( QWidget *pParent ) : QDialog( pParent, Qt::WindowSystemMenuHint ), m_pLearn( new QRadioButton( "Learn", this ) ),

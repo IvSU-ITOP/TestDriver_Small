@@ -1,4 +1,5 @@
 QT += widgets axcontainer axserver network
+QT+=charts
 
 TARGET = TestDriver
 TEMPLATE = app
@@ -28,7 +29,8 @@ SOURCES += \
         TaskWork.cpp \
         WinTesting.cpp \
         XPressTests.cpp \
-        main.cpp
+        main.cpp \
+        plotter.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -40,6 +42,7 @@ RESOURCES += \
 
 HEADERS += \
   OutWindow.h \
+  Plotter.h \
   QuestWindow.h \
   SelectTask.h \
   TaskTools.h \
@@ -73,4 +76,7 @@ else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../TaskFileManager/
 
 win32:CONFIG(release, debug|release) : OPENSSL_LIBS += -Lc:/Qt/Tools/OpenSSL/Win_x64/lib/ -llibssl
 win32:CONFIG(release, debug|release) : OPENSSL_LIBS += -Lc:/Qt/Tools/OpenSSL/Win_x64/lib/ -llibcrypto
+
+FORMS += \
+    Plotter.ui
 

@@ -17,7 +17,7 @@ master.commands = $$BIN/archivegen $$PACK/TestDriverInstaller/data/Data.7z \
   $$escape_expand(\n\t) \
   $$BIN/archivegen $$PACK/Qt515MinGWInstaller/data/Data.7z $$FROM/Qt5Widgets.dll $$FROM/Qt5Gui.dll $$FROM/Qt5Core.dll \
     $$FROM/Qt5Network.dll $$FROM/Qt5Multimedia.dll $$FROM/libgcc_s_seh-1.dll $$FROM/libstdc++-6.dll $$FROM/libwinpthread-1.dll \
-    $$FROM/libssl-1_1-x64.dll $$FROM/libcrypto-1_1-x64.dll \
+    $$FROM/libssl-1_1-x64.dll $$FROM/libcrypto-1_1-x64.dll $$FROM/Qt5Charts.dll \
   $$escape_expand(\n\t) \
   $$BIN/repogen -p $$PACK --update repository \
   $$escape_expand(\n\t) \

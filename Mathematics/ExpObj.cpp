@@ -22,6 +22,7 @@ bool TPowr::sm_Factorize = true;
 bool TConstant::sm_ConstToFraction = false;
 TExpr::TrigonomSystem TExpr::sm_TrigonomSystem = tsRad;
 bool TOper::sm_InsideChart = false;
+bool TLexp::sm_Bracketed = true;
 
 double TExpr::TriginomValue( double V ) { return sm_TrigonomSystem == tsRad ? V : DegToRad( V ); }
 double TExpr::AngleValue( double V ) { return sm_TrigonomSystem == tsRad ? V : RadToDeg( V ); }
@@ -371,7 +372,8 @@ MathExpr TLexp::Substitute( const QByteArray& vr, const MathExpr& vl )
 
 QByteArray TLexp::WriteE() const
   {
-  QByteArray S = "(";
+  QByteArray S;
+  if(sm_Bracketed) S = "(";
   for( PExMemb index = m_pFirst; !index.isNull(); index = index->m_pNext )
     {
     S += index->m_Memb->WriteE();
@@ -384,7 +386,8 @@ QByteArray TLexp::WriteE() const
         S += ',';
         }
     }
-  return S + ')';
+  if(sm_Bracketed) S += ')';
+  return S;
   }
 
 QByteArray TLexp::SWrite() const
@@ -605,7 +608,8 @@ MathExpr TL2exp::Perform() const
 
 QByteArray TL2exp::WriteE() const
   {
-  QByteArray S = "(";
+  QByteArray S;
+  if(sm_Bracketed) S = "(";
 
   for( PExMemb index = m_pFirst; !index.isNull(); index = index->m_pNext )
     {
@@ -616,7 +620,7 @@ QByteArray TL2exp::WriteE() const
       else
         S = S + ( char ) msMetaSign + ';';
     }
-  S += ')';
+  if(sm_Bracketed) S += ')';
   return S;
   }
 
@@ -816,7 +820,10 @@ QByteArray TVariable::SWrite() const
     if( C < 128 )
       S.append( C );
     else
-      S += charToTex( C ) + '\n';
+      if(TStr::sm_Server)
+        S += charToTex( C );
+      else
+        S += charToTex( C ) + '\n';
     if( Index ) S += '}';
     }
   return S;
@@ -5885,6 +5892,17 @@ MathExpr TMatr::Transpose() const
   return new TMatr( A );
   }
 
+bool TMatr::IsTemplate()
+  {
+  for( int i = 0; i < m_RowCount; i++ )
+    for( int j = 0; j < m_ColCount; j++ )
+      {
+      TStr *pS = Cast(TStr, m_A[i][j].Ptr());
+      if(pS != nullptr && pS->Value() == " ")  return true;
+      }
+  return false;
+  }
+
 MathExpr TMatr::Determinant() const
   {
   sm_RecursionDepth--;
@@ -6261,7 +6279,7 @@ TTable::TTable(const MathExpr& ex) : m_NoFreeze(false)
         QVector< MathExpr > Row;
         for( ; !f2.isNull(); f2 = f2->m_pNext )
           Row.push_back( f2->m_Memb );
-        if( m_ColCount == 0 )
+        if( m_ColCount == 0 || m_NoFreeze )
           m_ColCount = Row.count();
         else
           if( Row.count() != m_ColCount )
@@ -6313,12 +6331,16 @@ MathExpr TTable::Clone() const
 
 QByteArray TTable::SWrite() const
   {
-  QByteArray Result( "\\table{" + QByteArray::number( m_RowCount ) + ',' + QByteArray::number( m_ColCount ) + ',' +
+  int RCount = m_RowCount;
+  if(m_NoFreeze) RCount--;
+  QByteArray Result( "\\table{" + QByteArray::number( RCount ) + ',' + QByteArray::number( m_ColCount ) + ',' +
     QByteArray::number( m_GridState ) + ',' + QByteArray::number( m_NoFreeze ) + ',' + QByteArray::number( m_UnvisibleColumns.count() ) );
   for( int i = 0; i < m_UnvisibleColumns.count(); i++ )
     Result += ',' + QByteArray::number( m_UnvisibleColumns[i] );
   Result += '}';
-  for( int i = 0; i < m_RowCount; i++ )
+  int i = 0;
+  if(m_NoFreeze) i = 1;
+  for(; i < m_RowCount; i++ )
     for( int j = 0; j < m_ColCount; j++ )
       Result += "\\cell{" + m_A[i][j].SWrite() + '}';
   return Result + "\\endtable";
@@ -6338,7 +6360,52 @@ QByteArray TTable::WriteE() const
   case TGRPartlyVisible: 
     Name = "PartlyVisibleTable";
     }
-  return Name + '(' + m_Exp.WriteE() + ')';
+  TLexp::sm_Bracketed = false;
+  Name += '(' + m_Exp.WriteE() + ')';
+  TLexp::sm_Bracketed = true;
+  return Name;
+  }
+
+bool TTable::IsTemplate()
+  {
+  if(m_NoFreeze) return false;
+  return TMatr::IsTemplate();
+  }
+
+bool TTable::Eq( const MathExpr& E2 ) const
+  {
+  if( !( IsConstType( TTable, E2 ) ) ) return false;
+  const TTable *pTable = CastConstPtr( TTable, E2 );
+  if(pTable->m_NoFreeze == m_NoFreeze) return TMatr::Eq(E2);
+  const TTable *pLeft = pTable, *pRight = this;
+  if(m_NoFreeze)
+    {
+    pLeft = this;
+    pRight = pTable;
+    }
+  if(pLeft->m_RowCount - 1 != pRight->m_RowCount) return false;
+  for( int i = 0; i < pRight->m_RowCount; i++ )
+    for( int j = 0; j < m_ColCount; j++ )
+      if( !pLeft->m_A[i+1][j].Eq( pRight->m_A[i][j] ) ) return false;
+  return true;
+  }
+
+bool TTable::Equal( const MathExpr& E2 ) const
+  {
+  if( !( IsConstType( TTable, E2 ) ) ) return false;
+  const TTable *pTable = CastConstPtr( TTable, E2 );
+  if(pTable->m_NoFreeze == m_NoFreeze) return TMatr::Equal(E2);
+  const TTable *pLeft = pTable, *pRight = this;
+  if(m_NoFreeze)
+    {
+    pLeft = this;
+    pRight = pTable;
+    }
+  if(pLeft->m_RowCount - 1 != pRight->m_RowCount) return false;
+  for( int i = 0; i < pRight->m_RowCount; i++ )
+    for( int j = 0; j < m_ColCount; j++ )
+      if( !pLeft->m_A[i+1][j].Equal( pRight->m_A[i][j] ) ) return false;
+  return true;
   }
 
 TChart::TChart( const MathExpr& ex ) : m_Exp( ex ), m_N( 0 ), m_Scale( 1.0 ), m_FromTemplate( false )

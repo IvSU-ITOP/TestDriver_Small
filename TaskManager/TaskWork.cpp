@@ -430,7 +430,7 @@ void TXPTask::Exam( const MathExpr& exi, OutWindow* pOutWin )
 bool TXPTask::ProcessEnter( const QByteArray& InpStr, OutWindow* pOutWin )
   {
   MathExpr exi = Parser::StrToExpr( InpStr );
-  if( s_GlobalInvalid || s_CheckError ) return false;
+  if( s_GlobalInvalid || s_CheckError || exi.IsTemplate()) return false;
   if( exi.IsEmpty() )
     {
     pOutWin->AddComm( X_Str( "MEmptyInput", "Empty input!" ) );

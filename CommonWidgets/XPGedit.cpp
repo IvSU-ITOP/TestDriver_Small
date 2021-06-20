@@ -1,4 +1,4 @@
-#include "XPGedit.h"
+﻿#include "XPGedit.h"
 #include "../FormulaPainter/InEdit.h"
 #include "../TaskFileManager/taskfilemanager.h";
 #include "../Mathematics/Parser.h"
@@ -24,7 +24,8 @@ void( *XPGedit::sm_ChangeState )( bool ) = nullptr;
 void( *XPGedit::sm_ResetTestMode )( ) = nullptr;
 void( *XPGedit::sm_AutoTest )( ) = nullptr;
 
-XPGedit::XPGedit( QWidget *parent, EditSets *pEditSets ) : QWidget( parent ), m_pCursor( new XPCursor( this ) ), m_VShift( 0 ),
+XPGedit::XPGedit( QWidget *parent, EditSets *pEditSets ) : QWidget( parent ),
+  m_pCursor( new XPCursor( this ) ), m_VShift( 0 ), m_pScrollArea( new QScrollArea ), m_KeyPressed(false),
   m_HShift( 0 ), m_Refreshing( false ), m_IsCopy( false ), m_pImage( NULL ), m_pInEdit( NULL )
   {
   QPalette P;
@@ -149,6 +150,15 @@ void XPGedit::RefreshXPE()
 //  TMult::sm_ShowUnarMinus = true;
 //  TSumm::sm_ShowMinusByAddition = false;
 	m_pInEdit->EditDraw();
+  int dh = m_pInEdit->m_Size.height() - height();
+  bool bScroll = m_KeyPressed && dh > 0;
+  m_KeyPressed = false;
+  SetSize(m_pInEdit->m_Size);
+  if( bScroll )
+    {
+    QScrollBar *pScrollBar = m_pScrollArea->verticalScrollBar();
+    pScrollBar->setValue(pScrollBar->value() + dh);
+    }
 	MoveCursor();
   m_Refreshing = false;
   repaint();
@@ -163,6 +173,7 @@ bool XPGedit::EdKeyPress( QKeyEvent *pMessage )
   A = char( pMessage->key() );
   if ( !_printable( A ) ) exit(1);
   Uact.act = actPrintable;
+  m_KeyPressed = true;
   Uact = A;
   Editor( Uact );
   return true;
@@ -561,6 +572,7 @@ void XPGedit::keyPressEvent( QKeyEvent *pE )
     default:
       Default();
     }
+  m_KeyPressed = true;
   Editor( Uact );
   m_pInEdit->sm_EditKeyPress = false;
   }
@@ -738,6 +750,25 @@ void XPGedit::ResetView( bool ShowFunctions )
     Formula = Expr.SWrite();
   m_pInEdit->Clear();
   RestoreFormula( ShrinkFuncName( Formula ) );
+  }
+
+QScrollArea* XPGedit::SetSize( QSize Size )
+  {
+  if(m_MinSize.isValid())
+    {
+    Size.setHeight(max(m_MinSize.height(), Size.height()));
+    Size.setWidth(max(m_MinSize.width(), Size.width()));
+    }
+  else
+    {
+    m_MinSize = Size;
+    m_pScrollArea->setHorizontalScrollBarPolicy( Qt::ScrollBarAlwaysOff );
+    m_pScrollArea->setFixedSize(Size.width(), Size.height() + 5);
+    m_pScrollArea->setWidget( this );
+    m_pScrollArea->setAlignment( Qt::AlignCenter );
+    }
+  setFixedSize(Size);
+  return m_pScrollArea;
   }
 
 DockWithoutTitle::DockWithoutTitle( QWidget *pWidget )

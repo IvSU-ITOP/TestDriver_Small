@@ -1,4 +1,4 @@
-#ifndef MATH_INEDIT
+п»ї#ifndef MATH_INEDIT
 #define MATH_INEDIT
 #include <QtWidgets>
 #include "XPTypes.h"
@@ -682,7 +682,7 @@ class EdLg : public EdElm
     EdLg (XPInEdit *pOwn, QByteArray Str): EdElm (pOwn), m_pAA(new EdList (m_pOwner) ),
       m_pNN (new EdList (m_pOwner)), m_pB1 (new EdList (m_pOwner)), m_pB2 (new EdList (m_pOwner))
       {
-       for (int i=0; i<Str.length(); i++) //отвечает за появление строки "lg"
+       for (int i=0; i<Str.length(); i++) //РѕС‚РІРµС‡Р°РµС‚ Р·Р° РїРѕСЏРІР»РµРЅРёРµ СЃС‚СЂРѕРєРё "lg"
           {
           m_pNN->Append_Before(new EdChar (Str[i], m_pOwner));
           }
@@ -1084,7 +1084,7 @@ class EdMeas : public EdTwo
       }
     virtual ~EdMeas() { delete m_pOB; delete m_pCB; }
     virtual void CheckDegMin();
-    virtual bool CinMass (); //для проверки принадлежности к массиву
+    virtual bool CinMass (); //РґР»СЏ РїСЂРѕРІРµСЂРєРё РїСЂРёРЅР°РґР»РµР¶РЅРѕСЃС‚Рё Рє РјР°СЃСЃРёРІСѓ
     virtual void PreCalc (TPoint P, QSize &S, int &A);
     virtual void Draw (TPoint P);
     virtual QByteArray Write();

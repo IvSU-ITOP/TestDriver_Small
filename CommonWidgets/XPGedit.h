@@ -10,13 +10,6 @@ COMMONWIDGETS_EXPORT extern int iFontSize;
 COMMONWIDGETS_EXPORT extern int iPowDecrease;
 COMMONWIDGETS_EXPORT extern int iPenWidth;
 
-class EdScroll : public QScrollArea
-  {
-  virtual void	resizeEvent( QResizeEvent *pE );
-  public:
-    EdScroll() {}
-  };
-
 class XPGedit : public QWidget
   {
   static int const
@@ -30,12 +23,15 @@ class XPGedit : public QWidget
   int m_HShift;
   bool m_Refreshing;
   bool m_IsCopy;
+  bool m_KeyPressed;
+  QSize m_MinSize;
   QImage *m_pImage;
   EditSets m_EditSets;
   QPainter m_Painter;
   QByteArray m_FormulaForCopy;
   QByteArray m_FormulaForPaste;
   MathExpr m_ExprForCopy;
+  QScrollArea *m_pScrollArea;
   bool CanCopy();
   bool CanPaste();
   void Copy(bool ToWord = false);
@@ -77,6 +73,7 @@ class XPGedit : public QWidget
     COMMONWIDGETS_EXPORT void Clear( bool SaveTemplate = false );
     COMMONWIDGETS_EXPORT QByteArray Write() { return m_pInEdit->Write(); }
     COMMONWIDGETS_EXPORT void ResetView( bool ShowFunctions );
+    COMMONWIDGETS_EXPORT QScrollArea* SetSize( QSize Size );
   };
 
 class DockWithoutTitle : public QDockWidget

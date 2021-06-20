@@ -2,7 +2,6 @@ QT += gui network widgets sql
 
 CONFIG += c++11
 CONFIG -= app_bundle
-MYSQL_LIBS=-lmysqld
 #MYSQL_LIBS=-lmysql
 DEFINES += COMMONWIDGETS_LIB
 DEFINES += FORMULAPAINTER_LIB

@@ -21,7 +21,7 @@ EditSets* BaseTask::sm_pEditSets = nullptr;
 QString RichTextDocument::sm_TempPath;
 int RichTextDocument::sm_NumTmp = 0;
 QHash<TLanguages, QString > BaseTask::sm_FileExtensions =
-  { { lngHebrew, ".heb" }, { lngEnglish, ".tsk" }, { lngRussian, ".tru" }, { lngBulgarian, ".tbg" } };
+{ { lngHebrew, ".heb" }, { lngEnglish, ".tsk" }, { lngRussian, ".tru" }, { lngBulgarian, ".tbg" }, { lngAll, ".txt"} };
 
 bool GetString( QByteArray& L, QByteArray& LO )
   {
@@ -229,7 +229,9 @@ bool TaskFile::LoadNameFromTaskFile( const QByteArray& LKeyWord, QByteArray& Nam
         Right_b = Expr.toDouble( &Ok );
         if( !Ok ) return;
         }
-    int iRandom = m_pTask->Random( Round( abs( Right_b - Left_b ) / Delta ) );
+    double Arg = abs( Right_b - Left_b ) / Delta;
+    long long R = Round(Arg);
+    int iRandom = m_pTask->Random(R);
     ExpStore::sm_pExpStore->Store_var( Var_name, new TConstant( Left_b + iRandom * Delta ) );
     return;
     }
@@ -1658,8 +1660,11 @@ void RichTextDocument::SetContent( PDescrList Content )
     InsertRow = true;
     pActiveCursor->setBlockFormat( PicBlocFormat );
     QString Fout = Content->GetTask().GetFile().fileName();
+    Fout = Fout.left( Fout.lastIndexOf( '/' ) + 1 ) + PictName;
+    QString PictFile = Fout + ".jpg";
+    if(!QFile::exists(PictFile)) PictFile = Fout + ".bmp";
     QTextImageFormat ExFormat;
-    ExFormat.setName( Fout.left( Fout.lastIndexOf( '/' ) + 1 ) + PictName + ".jpg" );
+    ExFormat.setName( PictFile );
     pActiveCursor->insertImage( ExFormat );
     if( !Content->m_bHasEndLeft ) bToLeft = false;
   };
@@ -2113,7 +2118,10 @@ int BaseTask::Random( int MaxVal )
   for( int i = 0; i < MaxVal; i++ )
     Values[i] = i;
   for( auto pVal = Busy.begin(); pVal != Busy.end(); pVal++ )
-    Values.remove( *pVal );
+    {
+    int Val = Values.indexOf(*pVal);
+    if( Val != -1) Values.remove( Val );
+    }
   if( Values.size() == 1 ) return Values[0];
   int Indx = ::Random( Values.size() - 1 );
   return Values[Indx];

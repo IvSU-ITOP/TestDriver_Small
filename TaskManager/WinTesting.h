@@ -10,11 +10,13 @@
 #include "../CommonWidgets/Panel.h"
 #include "../TaskFileManager/taskfilemanager.h"
 #include "../Mathematics/Algebra.h"
+#include "../Mathematics/ExpOb.h"
 #include "QuestWindow.h"
 #include "OutWindow.h"
 #include <qlistwidget.h>
 #include <QListWidgetItem> 
 //#include <qcheckbox.h>
+#include <Plotter.h>
 
 class TranslateObjects : public QHash<QObject*, bool>
   {
@@ -86,6 +88,8 @@ class WinTesting : public QMainWindow
   QString m_UserId;
   QLabel *m_pWaitMessage;
   QFile m_PictFile;
+  Plotter* m_pPlotter=nullptr;
+
   bool m_Review;
   virtual bool event( QEvent *event );
   void ReturnResult();
@@ -112,6 +116,7 @@ class WinTesting : public QMainWindow
     static QAction *sm_pEditCalc;
     static QAction *sm_pAddPicture;
     static QAction *sm_pShowCalcualtor;
+    static QAction *sm_pPlotGraph;
     static WinTesting* sm_pMainWindow;
     static QNetworkAccessManager sm_NetworkManager;
     static QStringList sm_ApplicationArguments;
@@ -119,11 +124,14 @@ class WinTesting : public QMainWindow
     static QMenu* sm_pEditor;
     QAction *m_pSaveFormula;
     QAction *m_pRestoreFormula;
+    QVector <QPointF>* m_point_graph=nullptr;
     static bool Translation();
     WinTesting();
     static void NewData();
     static void SaveEnable( QObject* );
-    public slots :
+    QVector <QPointF> CalculatePoint();
+    void ReCalculate();
+public slots :
     void slotOpenTaskFile(bool Edit = false);
     void slotChangeLanguage( TLanguages L = lngHebrew );
     void slotSaveTaskFile(bool bNewName = true);
@@ -152,6 +160,7 @@ class WinTesting : public QMainWindow
     void BrowseTask();
     void Calc();
     void Quit();
+    void PlotGraph();
   };
 
 class TypeSelector : public QDialog

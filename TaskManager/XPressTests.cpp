@@ -1,4 +1,4 @@
-#include "XPressTests.h"
+ï»¿#include "XPressTests.h"
 #include <qdebug.h>
 #include "../Mathematics/Parser.h"
 #include "../TaskFileManager/Globa.h"
@@ -62,7 +62,7 @@ void XPressTests()
         continue;
       if( Line.length() == 1 )
         {
-//        Fout << "error. readed: " << Line << " error:  read 1 character" <<endl; // Çàãëóøêà îò íå÷èòàåìîãî ñèìâîëà
+//        Fout << "error. readed: " << Line << " error:  read 1 character" <<endl; // Ð—Ð°Ð³Ð»ÑƒÑˆÐºÐ° Ð¾Ñ‚ Ð½ÐµÑ‡Ð¸Ñ‚Ð°ÐµÐ¼Ð¾Ð³Ð¾ ÑÐ¸Ð¼Ð²Ð¾Ð»Ð°
         continue;
         }
       try

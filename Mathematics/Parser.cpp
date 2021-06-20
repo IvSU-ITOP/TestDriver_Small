@@ -85,7 +85,7 @@ QByteArray ErrParser::Message()
   return FromLang(m_Message);
   }
 
-TNode::TNode( Parser *pOwner, const PNode Parent ) : m_pParent( Parent ), m_IsLeft( false ), m_IsRight( false ), m_pLeft( nullptr ), 
+TNode::TNode( Parser *pOwner, const PNode Parent ) : m_pParent( Parent ), m_IsLeft( false ), m_IsRight( false ), m_pLeft( nullptr ),
 m_pRight(nullptr), m_pOwner(pOwner), m_Priority(0)
   {
   pOwner->m_NodeCreated++; m_pPrev = pOwner->m_pTree; pOwner->m_pTree = this;
@@ -93,7 +93,7 @@ m_pRight(nullptr), m_pOwner(pOwner), m_Priority(0)
 
 
 TNode::~TNode()
-  { 
+  {
   m_pOwner->m_NodeDeleted++;
   }
 
@@ -137,7 +137,7 @@ QByteArray Parser::Number()
 
 QByteArray Parser::GetWord()
   {
-  static SetOfChars SetChar( SetOfChars( "A..Za..z0..9_ë&" ) +
+  static SetOfChars SetChar( SetOfChars( "A..Za..z0..9_?&" ) +
   SetOfChars { msImUnit, msBigAlpha, '.', '.', msOmega, 210, 221, 222, 224, 225, 226, 229, 232, 233, 239, 240 } );
   QByteArray S;
   while( SetChar.contains( m_Char ) )
@@ -163,7 +163,7 @@ void Parser::GetToken()
     case '-': m_Token = toMinus; break;
     case '*':
     case msMultSign2:
-      m_Token = toMultiply; 
+      m_Token = toMultiply;
       break;
     case '|':
     case '/': m_Token = toDivide; break;
@@ -174,7 +174,7 @@ void Parser::GetToken()
     case ']': m_Token = toRightBracket; break;
     case '^':
     case msHighReg:
-      m_Token = toPower; 
+      m_Token = toPower;
       break;
     case '~': m_Token = toRoot; break;
     case '@': m_Token = toMetaSign; break;
@@ -214,7 +214,7 @@ void Parser::GetToken()
     case '.':
       m_Char = GetChar();
       if( m_Char == '.' )
-        m_Token = toTwoPoints; 
+        m_Token = toTwoPoints;
       else
         {
         m_Token = toPoint; // .
@@ -320,9 +320,10 @@ QByteArray Parser::PreProcessor( const QByteArray& Source, const QByteArray& ASe
   bool quotes = false;
   bool isHexa = false;
   bool isHexaValue = false;
-  bool isName = false;
+  int isName = 0;
   bool isMinus = false;
   bool isComma = false;
+  bool wasLasti = false;
   int i = 0, k = 0, j = 0, iBracket = -1;
 
 //  static SetOfChars SetChar( ")*+/(" );
@@ -335,7 +336,7 @@ QByteArray Parser::PreProcessor( const QByteArray& Source, const QByteArray& ASe
   static SetOfChars SetChar4( ")}!" );
   static SetOfChars SetChar5( SetOfChars( "A..Za..z$0..9({" ) + SetOfChars { msBigAlpha, '.', '.', msOmega, 230, 231, 232 } );
   static SetOfChars SetChar6( SetOfChars( "A..Za..z$0..9({" ) + SetOfChars { msBigAlpha, '.', '.', msOmega } );
-  
+
   auto CommonAnalyse = [&]()
     {
     isMinus = false;
@@ -352,7 +353,7 @@ QByteArray Parser::PreProcessor( const QByteArray& Source, const QByteArray& ASe
       Result = Result.left( j + 1) + "func(" + Result.mid( j + 1 ) + ',';
       }
     else
-      Result = Result + '*' + (char) c2;     
+      Result = Result + '*' + (char) c2;
     };
 
   bool bNotEndFor;
@@ -406,6 +407,16 @@ QByteArray Parser::PreProcessor( const QByteArray& Source, const QByteArray& ASe
       }
     bNotEndFor = false;
     c2 = ASource[i];
+    if(wasLasti )
+      {
+      wasLasti = false;
+      if( c2 == ')' || c2 == '-' || c2 == '@' || SetChar1.contains( c2 ))
+        {
+        Result = Result.left( Result.length() - 1 ) + "*i";
+        Result += c2;
+        continue;
+        }
+      }
     if( isdigit( c1 ) )
       {
       if( c1 == '0' && c2 == 'x' && ( Result.length() == 1 || !isdigit( Result[Result.length() - 2] ) ) )
@@ -445,7 +456,8 @@ QByteArray Parser::PreProcessor( const QByteArray& Source, const QByteArray& ASe
         else
           {
           Result += c2;
-          isName = true;
+          isName++;
+          wasLasti = c2 == 'i' && isName > 1;
           }
         }
       else
@@ -454,7 +466,7 @@ QByteArray Parser::PreProcessor( const QByteArray& Source, const QByteArray& ASe
         else
           if( c2 == 230 )
             {
-            Result  = Result + '*' + (char) c2; 
+            Result  = Result + '*' + (char) c2;
             isName = false;
             }
           else
@@ -468,13 +480,15 @@ QByteArray Parser::PreProcessor( const QByteArray& Source, const QByteArray& ASe
               else
                 {
                 Result += c2;
-                isName = true;
+                isName++;
+                wasLasti = c2 == 'i' && isName > 1;
                 }
               }
-          else  
+          else
             {
             Result += c2;
-            isName = true;
+            isName++;
+            wasLasti = c2 == 'i' && isName > 1;
             }
       continue;
       }
@@ -512,7 +526,7 @@ QByteArray Parser::PreProcessor( const QByteArray& Source, const QByteArray& ASe
     if( c1 == 39 )
       {
       if( SetChar6.contains(c2) )
-        {           
+        {
         for( j = i; j < ASource.length() - 1 && ASource[j] != '`'; j++ );
         if( j < ASource.length() - 1 && ( uchar ) ASource[j + 1] != msMinute )
           Result = Result + '*' + ( char ) c2;
@@ -538,7 +552,7 @@ QByteArray Parser::PreProcessor( const QByteArray& Source, const QByteArray& ASe
 QByteArray Parser::FullPreProcessor( const QByteArray& ASource, const QByteArray& ASelectName )
   {
   if( ASource.isEmpty() ) return "";
-  m_DerivativeWithBrackets = false; 
+  m_DerivativeWithBrackets = false;
   m_FixCount = -1;
   QByteArray s, s1;
 
@@ -577,7 +591,10 @@ QByteArray Parser::FullPreProcessor( const QByteArray& ASource, const QByteArray
   int n = 0;
   p = s.indexOf( "UnvisibleTable" );
   if( p >= 0 )
+    {
+    s.replace("UnvisibleTableX", "UnvisibleTable");
     n = p + 15;
+    }
   else
     {
     p = s.indexOf( "PartlyVisibleTable" );
@@ -981,7 +998,7 @@ PNode  Parser::Term( bool &IsName, PNode AParent )
       case toDivide: p->m_OpSign = '/'; break;
       case toColon: p->m_OpSign = ':'; break;
 //      case toDiviEv: p->m_OpSign = '|'; break;
-      case toPercents: p->m_OpSign = '%'; 
+      case toPercents: p->m_OpSign = '%';
       }
     if( m_NewLine )
       p->m_Info = "NL";
@@ -1169,7 +1186,7 @@ PNode  Parser::Power1( PNode AParent )
     pResult->m_pParent = p;
     p->m_pLeft = pResult;
     GetToken();
-    try 
+    try
       {
       p->m_pRight = Constant(p);
       }
@@ -1538,15 +1555,24 @@ PNode  Parser::List2( bool &IsName, PNode AParent )
 
 PNode  Parser::AnyExpr( const QByteArray& ASource, const QByteArray& UncnownName )
   {
+  PNode pResult;
   if( ASource.isEmpty() ) return PNode();
   m_SelectName = UncnownName;
   m_Source = ASource;
   m_Pos = 0;
   m_Char = GetChar();
   bool b;
-  PNode  pResult = List2( b, PNode() );
-  if( m_Token != toEndOfText )
-    throw ErrParser( "Syntactical error", peSyntacs );
+  try
+    {
+    pResult = List2( b, PNode() );
+    if( m_Token != toEndOfText )
+      throw ErrParser( "Syntactical error", peSyntacs );
+    }
+  catch (ErrParser& ErrMsg)
+    {
+    s_GlobalInvalid = true;
+    return PNode();
+    }
   return pResult;
   }
 
@@ -1594,7 +1620,7 @@ MathExpr Parser::OutPut( PNode p ) // The tree of solution will be transformed t
       }
     };
 
-  if( p->m_OpSign == 'F' ) 
+  if( p->m_OpSign == 'F' )
     s_FuncArgListDepth = s_FuncArgListDepth + 1;
   op1 = OutPut( p->m_pLeft );
   op2 = OutPut( p->m_pRight );
@@ -1776,7 +1802,7 @@ MathExpr Parser::OutPut( PNode p ) // The tree of solution will be transformed t
     case  'F':
       s_FuncArgListDepth = std::max( s_FuncArgListDepth - 1, 0 );
       IntegralType = 0;
-      if( p->m_Info == "CurveIntegral" ) 
+      if( p->m_Info == "CurveIntegral" )
         IntegralType = msIntegral;
       else if( p->m_Info == "SurfaceIntegral" )
         IntegralType = msDoubleIntegral;

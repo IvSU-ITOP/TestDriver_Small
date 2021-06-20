@@ -675,9 +675,11 @@ EdAction XPInEdit::EditAction( U_A_T Uact  )
       if( pTable != nullptr && pTable->m_GridState != TGRVisible )
           {
           EdTable& elementT = *pTable;
-          if( elementT.m_GridState == TGRUnvisible && m_pL->m_pSub_L->m_pFirst != nullptr ) elementT.InsertColumn();
-          if( elementT.m_Col < elementT.m_ColCount - 1 && m_pL->m_pSub_L->m_pFirst != nullptr )
-            elementT.MoveToNext( m_pL->m_pSub_L );
+//          if( elementT.m_GridState == TGRUnvisible && m_pL->m_pSub_L->m_pFirst != nullptr ) elementT.InsertColumn();
+//          if( elementT.m_Col < elementT.m_ColCount - 1 && m_pL->m_pSub_L->m_pFirst != nullptr )
+//            elementT.MoveToNext( m_pL->m_pSub_L );
+          if( elementT.m_GridState == TGRUnvisible && m_pL->m_pSub_L->m_pFirst != nullptr )
+            m_pL->m_pSub_L->MemberDelete(m_pL->m_pSub_L->m_pFirst);
           if( m_pL->m_pSub_L->m_pFirst == nullptr )
             {
             uchar S[] = { '+', '-', msMultSign2, ':', '=', '(', ')' };
@@ -3022,7 +3024,7 @@ QByteArray EdChar::Write()
   char S = 0;
   if( m_ind == 1 ) S = msHighReg;
   if( m_ind == -1 ) S = msLowReg;
-  if( m_ind == 2 ) S = msMean;
+  if( m_ind == 2 && m_ch != msCConjugation) S = msMean;
   if( !m_vis && m_ch != msMultSign1 && m_ch != msMultSign2 && m_ch != '1' && m_ch != ';' ) S += msMetaSign;
   char C = m_ch == msLongMinus || m_ch == msLongPlus ? m_Qch.toLatin1() : m_ch;
   if( S == 0 )
@@ -8076,8 +8078,11 @@ void EdStr::SelectFont()
   if( m_pOwner->m_pCurrentTable == nullptr )
     m_pOwner->SetFont( m_pOwner->m_ViewSettings.m_TaskCmFont );
   else
-    if( m_pOwner->m_pCurrentTable->m_GridState == TGRVisible )
+    {
+    TableGrid TGState = m_pOwner->m_pCurrentTable->m_GridState;
+    if( TGState == TGRVisible || TGState == TGRPartlyVisible)
       m_pOwner->SetFont( m_pOwner->m_ViewSettings.m_SimpCmFont );
+    }
   }
 
 void EdStr::PreCalc ( TPoint P, QSize &S, int &A )
@@ -8371,9 +8376,10 @@ void EdTable::Draw( TPoint P )
   {
   auto CanDrawBorder = [] ( EdList* pCell )
     {
-    return pCell->m_pSub_L->m_pFirst == nullptr || !( IsConstEdType( EdStr, pCell->m_pSub_L->m_pFirst->m_pMember.data() ) ) &&
-      ( !( IsConstEdType( EdChar, pCell->m_pSub_L->m_pFirst->m_pMember.data() ) ) ||
-      ( dynamic_cast< EdChar* >( pCell->m_pSub_L->m_pFirst->m_pMember.data() )->c() != '"' ) );
+    EdMemb *pFirst = pCell->m_pSub_L->m_pFirst;
+    if(pFirst == nullptr) return true;
+    EdElm *pData = pFirst->m_pMember.data();
+    return !( IsConstEdType( EdStr, pData ) ) && (!( IsConstEdType( EdChar, pData ) ) || ( dynamic_cast< EdChar* >( pData )->c() != '"' ) );
     };
   SelectRect();
   m_pOwner->m_pCurrentTable = this;
@@ -8427,19 +8433,19 @@ void EdTable::Draw( TPoint P )
         {
         int YNext = y + m_SizeRows[i];
         int x = m_Start.X + m_BorderSize;
-        if( CanDrawBorder( m_Body[i][0]->m_pSub_L ) )
+        if( CanDrawBorder( m_Body[i][0] ) )
           m_pOwner->Line( x, y, x, YNext );
         for( int j = 0; j < m_ColCount; j++ )
           {
           int XNext = x + m_SizeCols[j];
-          if( CanDrawBorder( m_Body[i][j]->m_pSub_L ) )
+          if( CanDrawBorder( m_Body[i][j] ) )
             {
             m_pOwner->Line( x, y, XNext, y );
             m_pOwner->Line( x, YNext, XNext, YNext );
             x = XNext;
             }
           x = XNext;
-          if( j < m_ColCount - 1 && CanDrawBorder( m_Body[i][j + 1]->m_pSub_L ) || CanDrawBorder( m_Body[i][j]->m_pSub_L ) )
+          if( j < m_ColCount - 1 && CanDrawBorder( m_Body[i][j + 1] ) || CanDrawBorder( m_Body[i][j] ) )
             m_pOwner->Line( x, y, x, YNext );
           }
         y = YNext;
@@ -9258,8 +9264,12 @@ void EdTable::Freeze()
   else
     {
     for( int i = 0; i < m_RowCount; i++ )
-      for( int j = 0; j < m_ColCount; j++ )
-        m_FrozenCells[i][j] = dynamic_cast<EdTable*>(&*sm_pTemplate)->m_FrozenCells[i][j];
+      {
+      EdTable *pTmpTable = dynamic_cast<EdTable*>(&*sm_pTemplate);
+      int ColCount = min(m_ColCount, pTmpTable->m_ColCount);
+      for( int j = 0; j < ColCount; j++ )
+        m_FrozenCells[i][j] = pTmpTable->m_FrozenCells[i][j];
+      }
     sm_pTemplate.clear();
     }
   m_Row = 0;

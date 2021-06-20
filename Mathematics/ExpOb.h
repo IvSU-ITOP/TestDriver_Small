@@ -1,4 +1,4 @@
-#ifndef MATH_EXPOBH
+п»ї#ifndef MATH_EXPOBH
 #define MATH_EXPOBH
 
 #define DEBUG_TASK
@@ -76,6 +76,7 @@ class TExpr
 #ifdef DEBUG_TASK
     QByteArray  m_Contents;
 #endif
+    virtual bool IsTemplate() {return false;}
     virtual MathExpr Clone() const;
     virtual MathExpr Reduce() const;
     virtual MathExpr Perform() const;
@@ -231,6 +232,7 @@ class MathExpr
     MATHEMATICS_EXPORT void TestPtr() const;
     MATHEMATICS_EXPORT static bool sm_NoReduceByCompare;
     MATHEMATICS_EXPORT bool IsEmpty() const { return m_pExpr == nullptr; }
+    MATHEMATICS_EXPORT bool IsTemplate() const { return m_pExpr != nullptr && m_pExpr->IsTemplate(); }
     const TExpr* operator ->( ) const { return m_pExpr; }
     const TExpr& operator * ( ) const { return *m_pExpr; }
     const TExpr* operator ()() const { return m_pExpr; }
@@ -360,8 +362,8 @@ class MathExpr
     MathExpr ChainToLCD() { TestPtr(); return m_pExpr->ChainToLCD(); }
     MathExpr RtoDEC() { TestPtr(); return m_pExpr->RtoDEC(); }
     MathExpr ReduceToMultiplicators();
-    MathExpr Simplify() { TestPtr(); return m_pExpr->Reduce(); }
-    MathExpr SimplifyFull();
+    MATHEMATICS_EXPORT MathExpr Simplify() { TestPtr(); return m_pExpr->Reduce(); }
+    MATHEMATICS_EXPORT MathExpr SimplifyFull();
     MathExpr FindGreatestCommDivisor() { TestPtr(); return m_pExpr->FindGreatestCommDivisor(); }
     MathExpr Dividend() { TestPtr(); return m_pExpr->Dividend(); }
     MathExpr Divisor() { TestPtr(); return m_pExpr->Divisor(); }
@@ -465,8 +467,10 @@ class TLexp : public TExpr
   friend class TDeriv;
   friend class TMultIntegral;
   friend class MathExpr;
+  friend class TTable;
   uint m_Count;
   protected:
+    static bool sm_Bracketed;
     PExMemb m_pFirst;
     PExMemb m_pLast;
   public:
@@ -562,7 +566,7 @@ class TVariable : public TExpr
     virtual MathExpr Lim( const QByteArray& v, const MathExpr& lm ) const;
 
     virtual bool Eq( const MathExpr& E2 ) const;
-    virtual bool Equal( const MathExpr& E2 ) const; // не реализована
+    virtual bool Equal( const MathExpr& E2 ) const; // РЅРµ СЂРµР°Р»РёР·РѕРІР°РЅР°
 
     virtual MathExpr Substitute( const QByteArray& vr, const MathExpr& vl );
     virtual QByteArray WriteE() const;
@@ -607,8 +611,8 @@ class TConstant : public TExpr
     MathExpr Integral( const QByteArray& d = "x" );
     MathExpr Lim( const QByteArray& v, const MathExpr lm ) const;
 
-    bool Eq( const MathExpr& E2 ) const;  //проверить завершение сравнений
-    bool Equal( const MathExpr& E2 ) const; //проверить завершение сравнений
+    bool Eq( const MathExpr& E2 ) const;  //РїСЂРѕРІРµСЂРёС‚СЊ Р·Р°РІРµСЂС€РµРЅРёРµ СЃСЂР°РІРЅРµРЅРёР№
+    bool Equal( const MathExpr& E2 ) const; //РїСЂРѕРІРµСЂРёС‚СЊ Р·Р°РІРµСЂС€РµРЅРёРµ СЃСЂР°РІРЅРµРЅРёР№
     QByteArray WriteE() const;
     virtual QByteArray SWrite() const { return WriteE(); }
 
@@ -622,6 +626,7 @@ class TConstant : public TExpr
     bool Positive() const;
     double Value() { return m_Value; }
     double Precision() { return m_Precision; }
+    bool IsLimit() { return m_IsE; }
   };
 
 class TSimpleFrac : public TExpr
@@ -1275,8 +1280,8 @@ class TMatr : public TExpr
     MathExpr Clone() const;
     MathExpr Reduce() const;
     MathExpr Perform() const;
-    bool Eq( const MathExpr& E2 ) const;
-    bool Equal( const MathExpr& E2 ) const;
+    virtual bool Eq( const MathExpr& E2 ) const;
+    virtual bool Equal( const MathExpr& E2 ) const;
     QByteArray WriteE() const;
     QByteArray SWrite() const;
     bool Matr( MathExpr& ex ) const;
@@ -1292,6 +1297,7 @@ class TMatr : public TExpr
     virtual void SetReduced( bool Reduced ) { TExpr::SetReduced( Reduced ); m_Exp.SetReduced( Reduced ); }
     virtual bool ConstExpr() const { return m_IsNumerical; }
     bool HasMatrix() const { return true; }
+    virtual bool IsTemplate();
   };
 
 class TTable : public TMatr
@@ -1307,6 +1313,9 @@ class TTable : public TMatr
     QByteArray WriteE() const;
     bool HasStr() const { return true; }
     void SetGridState( TableGrid State ) { m_GridState = State; }
+    virtual bool IsTemplate();
+    bool Eq( const MathExpr& E2 ) const;
+    bool Equal( const MathExpr& E2 ) const;
   };
 
 class TMeaExpr : public TOper

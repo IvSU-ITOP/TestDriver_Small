@@ -1,4 +1,4 @@
-#include "SelectTask.h"
+ï»¿#include "SelectTask.h"
 #include "WinTesting.h"
 #include "../FormulaPainter/InEdit.h"
 #include <QNetworkRequest>
@@ -124,8 +124,8 @@ MainTestMenu::MainTestMenu( const QByteArray& TstId, const QByteArray& UsrId, Ma
   setColumnCount( 6 );
   setRowCount( ChapterList.count() );
   verticalHeader()->hide();
-  setHorizontalHeaderLabels( QStringList() << ToLang( "öéåï" ) << ToLang( "ùàìåú" ) << ToLang( "îáçï" )
-    << ToLang( "úøâåì" ) << ToLang( "ìéîåã" ) << ToLang( "ðåùà" ) );
+  setHorizontalHeaderLabels( QStringList() << ToLang( "Ñ†Ð¹ÐµÐ¿" ) << ToLang( "Ñ‰Ð°Ð¼ÐµÑŠ" ) << ToLang( "Ð¾Ð±Ð·Ð¿" )
+    << ToLang( "ÑŠÑˆÐ²ÐµÐ¼" ) << ToLang( "Ð¼Ð¹Ð¾ÐµÐ³" ) << ToLang( "Ñ€ÐµÑ‰Ð°" ) );
   for( int iRow = 0; iRow < ChapterList.count(); iRow++ )
     {
     QByteArrayList MenuParms( ChapterList[iRow].split( ';' ) );

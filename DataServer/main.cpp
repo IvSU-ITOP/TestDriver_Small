@@ -3,14 +3,23 @@
 #include <qdir.h>
 #include "../FormulaPainter/InEdit.h"
 #include <QtNetwork>
+//#include <QSqlDatabase>
 
 extern DataTask s_Task;
 extern void MessageOutput( QtMsgType type, const QMessageLogContext &context, const QString &msg );
 extern QFile s_LogFile;
+//QSqlDatabase s_DB;
 
 int main( int argc, char *argv[] )
   {
   QGuiApplication a(argc, argv);
+//  s_DB.setDatabaseName( "production" );
+//  s_DB.setUserName("root");
+//  s_DB.setHostName( "localhost" );
+//  s_DB.setPassword("Jozefa,Niedzw.");
+//  if( !s_DB.open() ) a.exec();
+//  return 0;
+//  s_DB.close();
   if( QFileInfo( s_LogFile.fileName() ).size() > 500000 ) s_LogFile.resize( 0 );
   s_LogFile.open( QIODevice::Append );
 //  qInstallMessageHandler( MessageOutput );
