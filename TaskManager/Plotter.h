@@ -65,7 +65,7 @@ public:
     void on_ymin_valueChanged(const QString &arg1);
     void on_ymax_valueChanged(const QString &arg1);
     void on_cur_val_slider_valueChanged(int value);
-    void on_precision_x_valueChanged(int value);
+    void on_precision_Fx_value_changed(int value);
     void on_ContextMenuCall(QPoint val);
     void on_HideNumbers();
     void on_HideNames();

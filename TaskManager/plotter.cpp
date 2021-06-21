@@ -231,7 +231,7 @@ QVector <QPointF> Plotter::CalculatePoint()
                  return {};
 
                 //Expr = Expr.Reduce();
-                Expr->ResetPrecision(m_Precision);
+               // Expr->ResetPrecision(m_Precision);
                 Expr=Expr.SimplifyFull();
 
                 TConstant *pValue =CastPtr(TConstant, Expr);
@@ -488,8 +488,8 @@ void Plotter::on_precision_x_valueChanged(int value) //FIXME //precision Fx rena
         case 6: {m_Precision=1e-6;m_Prec=6; break;}
         default :m_Precision=1e-1;
     }
-    ReCalculate();
-    ConfigureGraph();
+   // ReCalculate();
+    //ConfigureGraph();
 }
 
 void Plotter::on_ContextMenuCall(QPoint val)
