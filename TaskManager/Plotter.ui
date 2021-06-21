@@ -400,7 +400,7 @@
        <x>0</x>
        <y>220</y>
        <width>141</width>
-       <height>131</height>
+       <height>121</height>
       </rect>
      </property>
      <property name="frameShape">
@@ -413,7 +413,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>100</y>
+        <y>90</y>
         <width>121</width>
         <height>21</height>
        </rect>
@@ -421,18 +421,24 @@
       <property name="autoFillBackground">
        <bool>true</bool>
       </property>
+      <property name="minimum">
+       <number>1</number>
+      </property>
+      <property name="maximum">
+       <number>6</number>
+      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
       <property name="tickPosition">
-       <enum>QSlider::TicksBelow</enum>
+       <enum>QSlider::NoTicks</enum>
       </property>
      </widget>
      <widget class="QLabel" name="prec_x">
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>70</y>
+        <y>60</y>
         <width>141</width>
         <height>21</height>
        </rect>
@@ -441,7 +447,7 @@
        <enum>QFrame::Box</enum>
       </property>
       <property name="text">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;Precision x&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;Precision F(x)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -488,7 +494,7 @@
        <enum>Qt::Horizontal</enum>
       </property>
       <property name="tickPosition">
-       <enum>QSlider::TicksBelow</enum>
+       <enum>QSlider::NoTicks</enum>
       </property>
       <property name="tickInterval">
        <number>0</number>

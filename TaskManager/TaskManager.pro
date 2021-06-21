@@ -21,6 +21,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+        OptionMenuPlotter.cpp \
         OutWindow.cpp \
         QuestWindow.cpp \
         SelectTask.cpp \
@@ -30,7 +31,7 @@ SOURCES += \
         WinTesting.cpp \
         XPressTests.cpp \
         main.cpp \
-        plotter.cpp
+        Plotter.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -41,6 +42,7 @@ RESOURCES += \
   Resorurce.qrc
 
 HEADERS += \
+  OptionMenuPlotter.h \
   OutWindow.h \
   Plotter.h \
   QuestWindow.h \
@@ -78,5 +80,6 @@ win32:CONFIG(release, debug|release) : OPENSSL_LIBS += -Lc:/Qt/Tools/OpenSSL/Win
 win32:CONFIG(release, debug|release) : OPENSSL_LIBS += -Lc:/Qt/Tools/OpenSSL/Win_x64/lib/ -llibcrypto
 
 FORMS += \
+    OptionMenuPlotter.ui \
     Plotter.ui
 

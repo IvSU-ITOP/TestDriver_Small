@@ -1,4 +1,4 @@
-п»ї#ifndef MATH_EXPOBH
+#ifndef MATH_EXPOBH
 #define MATH_EXPOBH
 
 #define DEBUG_TASK
@@ -566,7 +566,7 @@ class TVariable : public TExpr
     virtual MathExpr Lim( const QByteArray& v, const MathExpr& lm ) const;
 
     virtual bool Eq( const MathExpr& E2 ) const;
-    virtual bool Equal( const MathExpr& E2 ) const; // РЅРµ СЂРµР°Р»РёР·РѕРІР°РЅР°
+    virtual bool Equal( const MathExpr& E2 ) const; // не реализована
 
     virtual MathExpr Substitute( const QByteArray& vr, const MathExpr& vl );
     virtual QByteArray WriteE() const;
@@ -611,8 +611,8 @@ class TConstant : public TExpr
     MathExpr Integral( const QByteArray& d = "x" );
     MathExpr Lim( const QByteArray& v, const MathExpr lm ) const;
 
-    bool Eq( const MathExpr& E2 ) const;  //РїСЂРѕРІРµСЂРёС‚СЊ Р·Р°РІРµСЂС€РµРЅРёРµ СЃСЂР°РІРЅРµРЅРёР№
-    bool Equal( const MathExpr& E2 ) const; //РїСЂРѕРІРµСЂРёС‚СЊ Р·Р°РІРµСЂС€РµРЅРёРµ СЃСЂР°РІРЅРµРЅРёР№
+    bool Eq( const MathExpr& E2 ) const;  //проверить завершение сравнений
+    bool Equal( const MathExpr& E2 ) const; //проверить завершение сравнений
     QByteArray WriteE() const;
     virtual QByteArray SWrite() const { return WriteE(); }
 
