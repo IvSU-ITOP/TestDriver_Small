@@ -11,9 +11,11 @@ class OptionMenuPlotter;
 class SettingsChart
 {
 public:
-    QColor Background, Cursor;
-    QPen GraphColor;
+    bool isChange = false;
+    QColor Background,BackgroundGraph, Cursor;
+    QColor GraphColor,GridLine;
     QFont GraphFont;
+    int Thinkness{};
     void clear();
 };
 
@@ -32,10 +34,11 @@ private slots:
     void on_ok_btn_clicked();
     void on_cancel_btn_clicked();
     void on_font_box_currentFontChanged(const QFont &f);
-    void on_graph_rd_btn_clicked();
-    void on_background_rd_btn_clicked();
-    void on_cursor_rd_btn_clicked();
+    void on_thinkness_valueChanged(const QString &arg1);
+    void on_object_to_set_currentIndexChanged(int index);
 
+signals:
+    void sendDataClass(void);
 private:
     Ui::OptionMenuPlotter *ui;
     int m_SelectColorToSet{};

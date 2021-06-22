@@ -39,6 +39,12 @@
     <property name="lineWidth">
      <number>2</number>
     </property>
+    <property name="verticalScrollBarPolicy">
+     <enum>Qt::ScrollBarAlwaysOff</enum>
+    </property>
+    <property name="horizontalScrollBarPolicy">
+     <enum>Qt::ScrollBarAlwaysOff</enum>
+    </property>
    </widget>
    <widget class="QFrame" name="frame_4">
     <property name="geometry">
@@ -409,7 +415,7 @@
      <property name="frameShadow">
       <enum>QFrame::Plain</enum>
      </property>
-     <widget class="QSlider" name="precision_x">
+     <widget class="QSlider" name="precision_Fx">
       <property name="geometry">
        <rect>
         <x>10</x>

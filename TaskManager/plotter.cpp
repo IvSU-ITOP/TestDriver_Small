@@ -23,6 +23,7 @@ Plotter::Plotter(QObject *parent)
       m_pUi->ymax->setMaximum(1000);
 
       connect(m_pUi->PlotterWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(on_ContextMenuCall(QPoint)));
+      connect(m_pPlotterMenu,SIGNAL(sendDataClass(void)),this,SLOT(on_SetChartSettings(void)));
 
       QColor color_pen("black");
       m_Pen.setColor(color_pen);
@@ -231,7 +232,7 @@ QVector <QPointF> Plotter::CalculatePoint()
                  return {};
 
                 //Expr = Expr.Reduce();
-               // Expr->ResetPrecision(m_Precision);
+                Expr->ResetPrecision(m_Precision);
                 Expr=Expr.SimplifyFull();
 
                 TConstant *pValue =CastPtr(TConstant, Expr);
@@ -372,6 +373,7 @@ void Plotter::ReCalculate()
 
 void Plotter::ConfigureGraph()
 {
+
     if(!m_BreakPoints.isEmpty())
     {
     QVector <QPointF> TempResult{};
@@ -407,6 +409,7 @@ void Plotter::ConfigureGraph()
     }
     else
     {
+        m_pSeries0->setPen(m_Pen);
         m_pSeries0->attachAxis(m_pAxisY);
         m_pSeries0->attachAxis(m_pAxisX);
         m_pSeries0->replace(m_Result);
@@ -476,7 +479,7 @@ void Plotter::on_cur_val_slider_valueChanged(int value)
     }
 }
 
-void Plotter::on_precision_x_valueChanged(int value) //FIXME //precision Fx rename
+void Plotter::on_precision_Fx_valueChanged(int value)
 {
     switch(value)
     {
@@ -488,8 +491,7 @@ void Plotter::on_precision_x_valueChanged(int value) //FIXME //precision Fx rena
         case 6: {m_Precision=1e-6;m_Prec=6; break;}
         default :m_Precision=1e-1;
     }
-   // ReCalculate();
-    //ConfigureGraph();
+    ReCalculate();
 }
 
 void Plotter::on_ContextMenuCall(QPoint val)
@@ -500,15 +502,18 @@ void Plotter::on_ContextMenuCall(QPoint val)
        QAction *hide_numbers = new QAction("Hide numbers", this);
        QAction *hide_names = new QAction("Hide names", this);
        QAction *save_graph = new QAction("Save graph", this);
+       QAction *hide_grid = new QAction("Hide gridline", this);
 
        connect(hide_numbers, SIGNAL(triggered()), this, SLOT(on_HideNumbers()));
        connect(hide_names, SIGNAL(triggered()), this, SLOT(on_HideNames()));
        connect(save_graph, SIGNAL(triggered()), this, SLOT(on_SaveGraph()));
        connect(options, SIGNAL(triggered()), this, SLOT(on_Options()));
+       connect(hide_grid, SIGNAL(triggered()), this, SLOT(on_HideGrid()));
 
        menu->addAction(options);
        menu->addAction(hide_numbers);
        menu->addAction(hide_names);
+       menu->addAction(hide_grid);
        menu->addAction(save_graph);
 
        menu->popup(m_pUi->PlotterWidget->mapToGlobal(val));
@@ -571,11 +576,49 @@ void Plotter::on_SaveGraph()
 
 void Plotter::on_Options()
 {
-    OptionMenuPlotter * PlotterMenu=new OptionMenuPlotter();
-    PlotterMenu->setFixedSize(PlotterMenu->size());
-    PlotterMenu->show();
-   // while(PlotterMenu->InProgress);
-  //  m_MainChart=PlotterMenu->ChartToSet;
-  //  PlotterMenu->close();
-   // delete PlotterMenu;
+    m_pPlotterMenu->setFixedSize(m_pPlotterMenu->size());
+    m_pPlotterMenu->show();
+    m_pMainChart=&(m_pPlotterMenu->ChartToSet);
 }
+
+void Plotter::on_HideGrid()
+{
+    if(m_GridAxisIsHidden)
+    {
+        m_pAxisX->setGridLineVisible(false);
+        m_pAxisY->setGridLineVisible(false);
+        m_GridAxisIsHidden=false;
+    }
+    else
+    {
+        m_pAxisX->setGridLineVisible(true);
+        m_pAxisY->setGridLineVisible(true);
+        m_GridAxisIsHidden=true;
+    }
+    m_pScene->update(m_pScene->sceneRect());
+}
+
+void Plotter::on_SetChartSettings()
+{
+    if(m_pMainChart!=nullptr && m_pMainChart->isChange)
+    {
+        m_Pen.setWidth(m_pMainChart->Thinkness);
+        m_Pen.setColor(m_pMainChart->GraphColor);
+
+        m_pSeriesBreakPoint->setColor(m_pMainChart->Cursor);
+        m_pSeriesBreakPoint->setBorderColor(m_pMainChart->Cursor);
+
+        m_pChart->setPlotAreaBackgroundBrush(QBrush(m_pMainChart->BackgroundGraph));
+        m_pChart->setPlotAreaBackgroundVisible(true);
+        m_pChart->setBackgroundBrush(QBrush(m_pMainChart->Background));
+        m_pChart->setTitleFont(m_pMainChart->GraphFont);
+
+        m_pAxisX->setTitleFont(m_pMainChart->GraphFont);
+        m_pAxisY->setTitleFont(m_pMainChart->GraphFont);
+        m_pAxisX->setGridLineColor(m_pMainChart->GridLine);
+        m_pAxisY->setGridLineColor(m_pMainChart->GridLine);
+        ConfigureGraph();
+    }
+}
+
+

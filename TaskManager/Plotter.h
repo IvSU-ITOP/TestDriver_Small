@@ -29,8 +29,9 @@ class Plotter : public QMainWindow
     QGraphicsScene *m_pScene = nullptr;
     QChart *m_pChart = new QChart;
     QChartView *m_pChartView=nullptr;
-    OptionMenuPlotter *m_PlotterMenu=nullptr;
-    SettingsChart m_MainChart;
+    OptionMenuPlotter *m_pPlotterMenu=new OptionMenuPlotter();
+    SettingsChart* m_pMainChart=nullptr;
+
     QVector<QPointF> m_Result{};
     QVector <double> m_BadPoints{};
     QVector <QPointF> m_BreakPoints{};
@@ -39,12 +40,13 @@ class Plotter : public QMainWindow
 
     QByteArray m_Formula;
     QPen m_Pen;
-    double m_YStart = 1.79769e+308, m_YEnd = 2.22507e-308, m_YMaxValue{};
+    double m_YStart = 1.79769e+308, m_YEnd = 2.22507e-308;
     double m_Precision = 1e-10;
     int m_Prec = 1;
     bool m_NeedReCalc = true;
     bool m_NumberAxisIsHidden=true;
     bool m_NamesAxisIsHidden=true;
+    bool m_GridAxisIsHidden=true;
 
     void ConfigureGraph();
     void ReCalculate();
@@ -65,13 +67,16 @@ public:
     void on_ymin_valueChanged(const QString &arg1);
     void on_ymax_valueChanged(const QString &arg1);
     void on_cur_val_slider_valueChanged(int value);
-    void on_precision_Fx_value_changed(int value);
+    void on_precision_Fx_valueChanged(int value);
     void on_ContextMenuCall(QPoint val);
     void on_HideNumbers();
     void on_HideNames();
     void on_SaveGraph();
     void on_Options();
-    //void GraphSettings(SettingsChart chart);
+    void on_HideGrid();
+
+public slots:
+    void on_SetChartSettings();
 };
 
 #endif // PLOTTER_H

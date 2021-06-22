@@ -1,5 +1,5 @@
 #include "OptionMenuPlotter.h"
-#include "ui_optionmenuplotter.h"
+#include "ui_OptionMenuPlotter.h"
 #include <QColorDialog>
 
 OptionMenuPlotter::OptionMenuPlotter(QWidget *parent) :
@@ -7,6 +7,7 @@ OptionMenuPlotter::OptionMenuPlotter(QWidget *parent) :
     ui(new Ui::OptionMenuPlotter)
 {
     ui->setupUi(this);
+    ChartToSet.clear();
 }
 
 OptionMenuPlotter::~OptionMenuPlotter()
@@ -16,29 +17,27 @@ OptionMenuPlotter::~OptionMenuPlotter()
 
 void OptionMenuPlotter::on_select_color_btn_clicked()
 {
-    if(m_SelectColorToSet!=0)
-    {
         QColor color = QColorDialog::getColor();
         if (color.isValid() )
         {
             switch (m_SelectColorToSet)
             {
-                case 1:{ChartToSet.GraphColor=QPen(color);break;}
-                case 2:{ChartToSet.Background=color;break;}
-                case 3:{ChartToSet.Cursor=color;break;}
+                case 0:{ChartToSet.Background=color;break;}
+                case 1:{ChartToSet.BackgroundGraph=color;break;}
+                case 2:{ChartToSet.GraphColor=color;break;}
+                case 3:{ChartToSet.GridLine=color;break;}
+                case 4:{ChartToSet.Cursor=color;break;}
                 default:break;
             }
         }
-    }
 }
 
 
 void OptionMenuPlotter::on_ok_btn_clicked()
 {
-    if(InProgress)
-    {
-    InProgress=false;
-    }
+    ChartToSet.isChange=true;
+    emit sendDataClass();
+    this->hide();
 }
 
 
@@ -54,28 +53,25 @@ void OptionMenuPlotter::on_font_box_currentFontChanged(const QFont &f)
 }
 
 
-void OptionMenuPlotter::on_graph_rd_btn_clicked()
+void OptionMenuPlotter::on_thinkness_valueChanged(const QString &arg1)
 {
-    m_SelectColorToSet=1;
+    ChartToSet.Thinkness=arg1.toInt();
 }
-
-
-void OptionMenuPlotter::on_background_rd_btn_clicked()
-{
-    m_SelectColorToSet=2;
-}
-
-
-void OptionMenuPlotter::on_cursor_rd_btn_clicked()
-{
-    m_SelectColorToSet=3;
-}
-
 
 void SettingsChart::clear()
 {
-    Background=QColor("black");
-    Cursor=QColor("black");
-    GraphColor=QPen("black");
+    isChange=false;
+    Thinkness=3;
+    Background=QColor("white");
+    BackgroundGraph=QColor("white");
+    Cursor=QColor("red");
+    GraphColor=QColor("black");
     GraphFont=QFont("Helvetica");
+    GridLine=QColor("black");
 }
+
+void OptionMenuPlotter::on_object_to_set_currentIndexChanged(int index)
+{
+    m_SelectColorToSet=index;
+}
+
