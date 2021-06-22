@@ -47,6 +47,7 @@ class Plotter : public QMainWindow
     bool m_NumberAxisIsHidden=true;
     bool m_NamesAxisIsHidden=true;
     bool m_GridAxisIsHidden=true;
+    bool m_ChartLegendIsHidden=true;
 
     void ConfigureGraph();
     void ReCalculate();
@@ -74,6 +75,7 @@ public:
     void on_SaveGraph();
     void on_Options();
     void on_HideGrid();
+    void on_HideLegend();
 
 public slots:
     void on_SetChartSettings();

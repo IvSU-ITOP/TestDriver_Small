@@ -501,20 +501,23 @@ void Plotter::on_ContextMenuCall(QPoint val)
 
        QAction *options = new QAction("Options", this);
        QAction *hide_numbers = new QAction("Hide numbers", this);
-       QAction *hide_names = new QAction("Hide names", this);
-       QAction *save_graph = new QAction("Save graph", this);
+       QAction *hide_names = new QAction("Hide names of axis", this);
+       QAction *save_graph = new QAction("Save graph as PNG", this);
        QAction *hide_grid = new QAction("Hide gridline", this);
+       QAction *hide_legend = new QAction("Hide chart legend", this);
 
        connect(hide_numbers, SIGNAL(triggered()), this, SLOT(on_HideNumbers()));
        connect(hide_names, SIGNAL(triggered()), this, SLOT(on_HideNames()));
        connect(save_graph, SIGNAL(triggered()), this, SLOT(on_SaveGraph()));
        connect(options, SIGNAL(triggered()), this, SLOT(on_Options()));
        connect(hide_grid, SIGNAL(triggered()), this, SLOT(on_HideGrid()));
+       connect(hide_legend, SIGNAL(triggered()), this, SLOT(on_HideLegend()));
 
        menu->addAction(options);
        menu->addAction(hide_numbers);
        menu->addAction(hide_names);
        menu->addAction(hide_grid);
+       menu->addAction(hide_legend);
        menu->addAction(save_graph);
 
        menu->popup(m_pUi->PlotterWidget->mapToGlobal(val));
@@ -597,6 +600,20 @@ void Plotter::on_HideGrid()
         m_GridAxisIsHidden=true;
     }
     m_pScene->update(m_pScene->sceneRect());
+}
+
+void Plotter::on_HideLegend()
+{
+    if(m_ChartLegendIsHidden)
+    {
+        m_pChart->legend()->setVisible(false);
+        m_ChartLegendIsHidden=false;
+    }
+    else
+    {
+        m_pChart->legend()->setVisible(true);
+        m_ChartLegendIsHidden=true;
+    }
 }
 
 void Plotter::on_SetChartSettings()
