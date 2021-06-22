@@ -22,8 +22,8 @@ Plotter::Plotter(QObject *parent)
       m_pUi->ymin->setMinimum(-1000);
       m_pUi->ymax->setMaximum(1000);
 
-      connect(m_pUi->PlotterWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(on_ContextMenuCall(QPoint)));
-      connect(m_pPlotterMenu,SIGNAL(sendDataClass(void)),this,SLOT(on_SetChartSettings(void)));
+      connect(m_pUi->PlotterWidget, &QWidget::customContextMenuRequested, this, &Plotter::on_ContextMenuCall);
+      connect(m_pPlotterMenu,&OptionMenuPlotter::sendDataClass,this,&Plotter::on_SetChartSettings);
 
       QColor color_pen("black");
       m_Pen.setColor(color_pen);
@@ -54,30 +54,39 @@ QByteArray Plotter::FindExprScob(int index)
     return ExprScob;
 }
 
-void Plotter::DomainFunction(double *pX_start, double *pX_end, double *pX_step)
+double Plotter::CalculateExprScob(QByteArray ExprScob,double X)
 {
-   if(m_Formula.contains("/"))
+     if(!m_BadPoints.isEmpty() && m_BadPoints.contains(X))
+     {
+         return 1.79769e+308-1;
+     }
+     else
+     {
+      QByteArray TextX(QByteArray::number(X));
+      if(X < 0) TextX = '(' + TextX + ')';
+      if( ExprScob.contains("x") ) ExprScob.replace('x', TextX);
+      if( ExprScob.contains("y") ) ExprScob.replace('y', TextX);
+      MathExpr Expr = MathExpr( Parser::StrToExpr(ExprScob));
+      if( s_GlobalInvalid || Expr.IsEmpty() )m_BadPoints.append(X);
+      Expr=Expr.SimplifyFull();
+      TConstant *pValue =CastPtr(TConstant, Expr);
+      if(pValue == nullptr) return 0;
+      else return pValue->Value();
+    }
+}
+void Plotter::DomainFunction(QByteArray ExprToCheck, double *pX_start, double *pX_end, double *pX_step)
+{
+   if(ExprToCheck.contains("/"))
    {
-       QByteArray ExprScob=FindExprScob(m_Formula.indexOf("/")+1);
-       bool isX = ExprScob.indexOf('x') != -1;
-       bool isY = ExprScob.indexOf('y') != -1;
+       QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("/")+1);
+
        for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
        {
          if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
-         QByteArray CheckExpr(ExprScob);
-         QByteArray TextX(QByteArray::number(X));
-         if(X < 0) TextX = '(' + TextX + ')';
 
-         if(isX)  CheckExpr.replace('x', TextX);
-         if(isY)  CheckExpr.replace('y', TextX);
-         MathExpr Expr = MathExpr( Parser::StrToExpr(CheckExpr));
-         if( s_GlobalInvalid || Expr.IsEmpty() )m_BadPoints.append(X);
-         Expr=Expr.SimplifyFull();
-         Expr->ResetPrecision(m_Precision);
-         TConstant *pValue =CastPtr(TConstant, Expr);
+         double result=CalculateExprScob(ExprScob,X);
 
-         if(pValue == nullptr) break;
-         if(pValue->Value()==0)
+         if(result==0)
          {
             m_BreakPointsX.append(X);
             m_BadPoints.append(X);
@@ -85,101 +94,62 @@ void Plotter::DomainFunction(double *pX_start, double *pX_end, double *pX_step)
         }
     }
 
-   if(m_Formula.contains("exp"))
+   if(ExprToCheck.contains("exp"))
    {
-       QByteArray ExprScob=FindExprScob(m_Formula.indexOf("exp")+4);
-       ExprScob.append(')');
-       bool isX = ExprScob.indexOf('x') != -1;
-       bool isY = ExprScob.indexOf('y') != -1;
-       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
-       {
-         if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
-         QByteArray CheckExpr(ExprScob);
-         QByteArray TextX(QByteArray::number(X));
-         if(X < 0) TextX = '(' + TextX + ')';
-         if(isX) CheckExpr.replace('x', TextX);
-         if(isY)  CheckExpr.replace('y', TextX);
-         CheckExpr.prepend(m_Formula.mid(m_Formula.indexOf("exp"),4));
-         MathExpr Expr = MathExpr( Parser::StrToExpr(CheckExpr));
-         if( s_GlobalInvalid || Expr.IsEmpty() )m_BadPoints.append(X);
-         Expr=Expr.SimplifyFull();
-         Expr->ResetPrecision(m_Precision);
-         TConstant *pValue =CastPtr(TConstant, Expr);
-         if(pValue == nullptr) break;
-         if(X<0)m_BadPoints.append(X);
-       }
-   }
-   if(m_Formula.contains("lg"))
-   {
-       QByteArray ExprScob=FindExprScob(m_Formula.indexOf("lg")+2);
-       bool isX = ExprScob.indexOf('x') != -1;
-       bool isY = ExprScob.indexOf('y') != -1;
-       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
-       {
-         if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
-         QByteArray CheckExpr(ExprScob);
-         QByteArray TextX(QByteArray::number(X));
-         if(X < 0) TextX = '(' + TextX + ')';
-         if(isX)  CheckExpr.replace('x', TextX);
-         if(isY)  CheckExpr.replace('y', TextX);
-         MathExpr Expr = MathExpr( Parser::StrToExpr(CheckExpr));
-         if( s_GlobalInvalid || Expr.IsEmpty() )m_BadPoints.append(X);
-         Expr=Expr.SimplifyFull();
-         Expr->ResetPrecision(m_Precision);
-         TConstant *pValue =CastPtr(TConstant, Expr);
-         if(pValue == nullptr) break;
-         if(pValue->Value()<0+(*pX_step))m_BadPoints.append(X);
-       }
-   }
-   if(m_Formula.contains("log"))
-   {
-       QByteArray ExprScob = FindExprScob(m_Formula.indexOf("log")+3);
-      // QByteArray ExprScob=m_Formula.mid(m_Formula.indexOf("log"),end);
-       bool isX = ExprScob.indexOf('x') != -1;
-       bool isY = ExprScob.indexOf('y') != -1;
-       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
-       {
-         if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
-         QByteArray CheckExpr(ExprScob);
-         QByteArray TextX(QByteArray::number(X));
-         if(X < 0) TextX = '(' + TextX + ')';
-         if(isX)  CheckExpr.replace('x', TextX);
-         if(isY)  CheckExpr.replace('y', TextX);
-         MathExpr Expr = MathExpr( Parser::StrToExpr(CheckExpr));
-         if( s_GlobalInvalid || Expr.IsEmpty() )m_BadPoints.append(X);
-         else
-         {
-         Expr=Expr.SimplifyFull();
-         Expr->ResetPrecision(m_Precision);
-         TConstant *pValue =CastPtr(TConstant, Expr);
-         if(pValue == nullptr) break;
-         if(pValue->Value()<0+(*pX_step))m_BadPoints.append(X);
-         }
-       }
-   }
-   if(m_Formula.contains("ln"))
-   {
-       QByteArray ExprScob=FindExprScob(m_Formula.indexOf("ln")+2);
-       bool isX = ExprScob.indexOf('x') != -1;
-       bool isY = ExprScob.indexOf('y') != -1;
-       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
-       {
-         if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
-         QByteArray CheckExpr(ExprScob);
-         QByteArray TextX(QByteArray::number(X));
-         if(X < 0) TextX = '(' + TextX + ')';
-         if(isX)  CheckExpr.replace('x', TextX);
-         if(isY)  CheckExpr.replace('y', TextX);
-         MathExpr Expr = MathExpr( Parser::StrToExpr(CheckExpr));
-         if( s_GlobalInvalid || Expr.IsEmpty() )m_BadPoints.append(X);
-         Expr=Expr.SimplifyFull();
-         Expr->ResetPrecision(m_Precision);
-         TConstant *pValue =CastPtr(TConstant, Expr);
-         if(pValue == nullptr) break;
+       QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("exp")+3);
 
-         if(pValue->Value()<0+(*pX_step))m_BadPoints.append(X);
+       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
+       {
+         if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
+         double result=CalculateExprScob(ExprScob,X);
+         if(result<0)m_BadPoints.append(X);
        }
    }
+
+   if(ExprToCheck.contains("lg"))
+   {
+       QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("lg")+2);
+
+       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
+       {
+         if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
+         double result=CalculateExprScob(ExprScob,X);
+         if(result<0+(*pX_step))m_BadPoints.append(X);
+       }
+   }
+
+   if(ExprToCheck.contains("log"))
+   {
+       QByteArray ExprScob = FindExprScob(ExprToCheck.indexOf("log")+3);
+       int DotNumber=ExprScob.indexOf(",");
+       QByteArray A{ExprScob.left(DotNumber)},B{ExprScob.right(ExprScob.length()-DotNumber-1)};
+
+       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
+       {
+           if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
+           double result=CalculateExprScob(A,X);
+           if(result<=0 && result==1)m_BadPoints.append(X);
+       }
+
+       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
+       {
+           if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
+           double result=CalculateExprScob(B,X);
+           if(result<=0)m_BadPoints.append(X);
+       }
+   }
+
+   if(ExprToCheck.contains("ln"))
+   {
+       QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("ln")+2);
+       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
+       {
+         if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
+         double result=CalculateExprScob(ExprScob,X);
+         if(result<0+(*pX_step))m_BadPoints.append(X);
+       }
+   }
+
 }
 
 QVector <QPointF> Plotter::CalculatePoint()
@@ -205,7 +175,7 @@ QVector <QPointF> Plotter::CalculatePoint()
     double Y;
     double X_start(m_pUi->xmin->value()), X_end(m_pUi->xmax->value()), X_step(0.05);
 
-    DomainFunction(&X_start,&X_end,&X_step);
+    DomainFunction(m_Formula,&X_start,&X_end,&X_step);
     number_of_breakpoints.clear();
      for( double X = X_start; ceil(X) < X_end; X += X_step)
        {
