@@ -232,7 +232,7 @@ QVector <QPointF> Plotter::CalculatePoint()
                  return {};
 
                 //Expr = Expr.Reduce();
-                Expr->ResetPrecision(m_Precision);
+                //Expr->ResetPrecision(m_Precision);
                 Expr=Expr.SimplifyFull();
 
                 TConstant *pValue =CastPtr(TConstant, Expr);
@@ -253,6 +253,8 @@ QVector <QPointF> Plotter::CalculatePoint()
             m_BreakPoints.append( QPoint(m_BadPoints[i],ceil(Result[number_of_breakpoints[i]].y())) );
          }
      }
+
+     m_pUi->cur_val_slider->setMaximum(Result.length());
 
     return Result;
  }
@@ -367,7 +369,7 @@ void Plotter::ReCalculate()
       m_BreakPoints.clear();
 
       m_Result=CalculatePoint();
-      m_pUi->cur_val_slider->setMaximum(m_Result.length());
+
  }
 
 
@@ -491,7 +493,6 @@ void Plotter::on_precision_Fx_valueChanged(int value)
         case 6: {m_Precision=1e-6;m_Prec=6; break;}
         default :m_Precision=1e-1;
     }
-    ReCalculate();
 }
 
 void Plotter::on_ContextMenuCall(QPoint val)
