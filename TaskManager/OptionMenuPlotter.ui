@@ -250,6 +250,16 @@
      <string>BreakPoint Color</string>
     </property>
    </item>
+   <item>
+    <property name="text">
+     <string>Axis X color</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>Axis Y color</string>
+    </property>
+   </item>
   </widget>
   <widget class="QLabel" name="label_thinkness_2">
    <property name="geometry">

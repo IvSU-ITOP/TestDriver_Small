@@ -13,9 +13,9 @@ class SettingsChart
 public:
     bool isChange = false;
     QColor Background,BackgroundGraph, Cursor;
-    QColor GraphColor,GridLine;
+    QColor GraphColor,GridLine, AxisColorX,AxisColorY;
     QFont GraphFont;
-    int Thinkness{};
+    int ThinknessAxisX{3},ThinknessAxisY{3},Thinkness;
     void clear();
 };
 

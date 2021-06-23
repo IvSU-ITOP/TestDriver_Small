@@ -74,82 +74,79 @@ double Plotter::CalculateExprScob(QByteArray ExprScob,double X)
       else return pValue->Value();
     }
 }
-void Plotter::DomainFunction(QByteArray ExprToCheck, double *pX_start, double *pX_end, double *pX_step)
+void Plotter::DomainFunction(QByteArray ExprToCheck, double pX_start, double pX_end, double pX_step)
 {
-   if(ExprToCheck.contains("/"))
-   {
-       QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("/")+1);
 
-       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
+       if(ExprToCheck.contains("/"))
        {
-         if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
+           QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("/")+1);
+           for( double X = pX_start; ceil(X) < pX_end; X += pX_step)
+           {
+             if(fabs(X) < 0.5 * pX_step ) X = 0;
 
-         double result=CalculateExprScob(ExprScob,X);
+             double result=CalculateExprScob(ExprScob,X);
 
-         if(result==0)
-         {
-            m_BreakPointsX.append(X);
-            m_BadPoints.append(X);
-          }
+             if(result==0)
+             {
+                m_BreakPointsX.append(X);
+                m_BadPoints.append(X);
+              }
+            }
         }
-    }
 
-   if(ExprToCheck.contains("exp"))
-   {
-       QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("exp")+3);
-
-       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
+       if(ExprToCheck.contains("exp"))
        {
-         if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
-         double result=CalculateExprScob(ExprScob,X);
-         if(result<0)m_BadPoints.append(X);
-       }
-   }
-
-   if(ExprToCheck.contains("lg"))
-   {
-       QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("lg")+2);
-
-       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
-       {
-         if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
-         double result=CalculateExprScob(ExprScob,X);
-         if(result<0+(*pX_step))m_BadPoints.append(X);
-       }
-   }
-
-   if(ExprToCheck.contains("log"))
-   {
-       QByteArray ExprScob = FindExprScob(ExprToCheck.indexOf("log")+3);
-       int DotNumber=ExprScob.indexOf(",");
-       QByteArray A{ExprScob.left(DotNumber)},B{ExprScob.right(ExprScob.length()-DotNumber-1)};
-
-       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
-       {
-           if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
-           double result=CalculateExprScob(A,X);
-           if(result<=0 && result==1)m_BadPoints.append(X);
+           QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("exp")+3);
+           for( double X = pX_start; ceil(X) < pX_end; X += pX_step)
+           {
+             if(fabs(X) < 0.5 * pX_step ) X = 0;
+             double result=CalculateExprScob(ExprScob,X);
+             if(result<0)m_BadPoints.append(X);
+           }
        }
 
-       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
+       if(ExprToCheck.contains("lg"))
        {
-           if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
-           double result=CalculateExprScob(B,X);
-           if(result<=0)m_BadPoints.append(X);
+           QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("lg")+2);
+           for( double X = pX_start; ceil(X) < pX_end; X += pX_step)
+           {
+             if(fabs(X) < 0.5 * pX_step ) X = 0;
+             double result=CalculateExprScob(ExprScob,X);
+             if(result<0+pX_step)m_BadPoints.append(X);
+           }
        }
-   }
 
-   if(ExprToCheck.contains("ln"))
-   {
-       QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("ln")+2);
-       for( double X = *pX_start; ceil(X) < *pX_end; X += *pX_step)
+       if(ExprToCheck.contains("log"))
        {
-         if(fabs(X) < 0.5 * (*pX_step) ) X = 0;
-         double result=CalculateExprScob(ExprScob,X);
-         if(result<0+(*pX_step))m_BadPoints.append(X);
-       }
-   }
+           QByteArray ExprScob = FindExprScob(ExprToCheck.indexOf("log")+3);
+           int DotNumber=ExprScob.indexOf(",");
+           QByteArray A{ExprScob.left(DotNumber)},B{ExprScob.right(ExprScob.length()-DotNumber-1)};
+           for( double X = pX_start; ceil(X) < pX_end; X += pX_step)
+           {
+               if(fabs(X) < 0.5 * (pX_step) ) X = 0;
+               double result=CalculateExprScob(A,X);
+               if(result<=0 && result==1)m_BadPoints.append(X);
+           }
 
+           for( double X = pX_start; ceil(X) < pX_end; X += pX_step)
+           {
+               if(fabs(X) < 0.5 * (pX_step) ) X = 0;
+               double result=CalculateExprScob(B,X);
+               if(result<=0)m_BadPoints.append(X);
+           }
+       }
+
+       if(ExprToCheck.contains("ln"))
+       {
+           QByteArray ExprScob=FindExprScob(ExprToCheck.indexOf("ln")+2);
+           DomainFunction(ExprScob,pX_start,pX_end,pX_step);
+           for( double X = pX_start; ceil(X) < pX_end; X += pX_step)
+           {
+             if(fabs(X) < 0.5 * pX_step ) X = 0;
+             double result=CalculateExprScob(ExprScob,X);
+             if(result<0+pX_step)m_BadPoints.append(X);
+           }
+       }
 }
 
 QVector <QPointF> Plotter::CalculatePoint()
@@ -175,7 +172,7 @@ QVector <QPointF> Plotter::CalculatePoint()
     double Y;
     double X_start(m_pUi->xmin->value()), X_end(m_pUi->xmax->value()), X_step(0.05);
 
-    DomainFunction(m_Formula,&X_start,&X_end,&X_step);
+    DomainFunction(m_Formula,X_start,X_end,X_step);
     number_of_breakpoints.clear();
      for( double X = X_start; ceil(X) < X_end; X += X_step)
        {
@@ -603,6 +600,14 @@ void Plotter::on_SetChartSettings()
 
         m_pAxisX->setTitleFont(m_pMainChart->GraphFont);
         m_pAxisY->setTitleFont(m_pMainChart->GraphFont);
+
+        QPen AxisXPen(m_pMainChart->AxisColorX);
+        QPen AxisYPen(m_pMainChart->AxisColorY);
+        AxisXPen.setWidth(m_pMainChart->ThinknessAxisX);
+        AxisYPen.setWidth(m_pMainChart->ThinknessAxisY);
+        m_pAxisX->setLinePen(AxisXPen);
+        m_pAxisY->setLinePen(AxisYPen);
+
         m_pAxisX->setGridLineColor(m_pMainChart->GridLine);
         m_pAxisY->setGridLineColor(m_pMainChart->GridLine);
         ConfigureGraph();

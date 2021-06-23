@@ -27,6 +27,8 @@ void OptionMenuPlotter::on_select_color_btn_clicked()
                 case 2:{ChartToSet.GraphColor=color;break;}
                 case 3:{ChartToSet.GridLine=color;break;}
                 case 4:{ChartToSet.Cursor=color;break;}
+                case 5:{ChartToSet.AxisColorX=color;break;}
+                case 6:{ChartToSet.AxisColorY=color;break;}
                 default:break;
             }
         }
@@ -55,17 +57,26 @@ void OptionMenuPlotter::on_font_box_currentFontChanged(const QFont &f)
 
 void OptionMenuPlotter::on_thinkness_valueChanged(const QString &arg1)
 {
-    ChartToSet.Thinkness=arg1.toInt();
+    switch (m_SelectColorToSet)
+    {
+    case 5:{ChartToSet.ThinknessAxisX=arg1.toInt();break;}
+    case 6:{ChartToSet.ThinknessAxisY=arg1.toInt();break;}
+    default: {ChartToSet.Thinkness=arg1.toInt(); break;}
+    }
 }
 
 void SettingsChart::clear()
 {
     isChange=false;
     Thinkness=3;
+    ThinknessAxisX=3;
+    ThinknessAxisY=3;
     Background=QColor("white");
     BackgroundGraph=QColor("white");
     Cursor=QColor("red");
     GraphColor=QColor("black");
+    AxisColorX=QColor("black");
+    AxisColorY=QColor("black");
     GraphFont=QFont("Helvetica");
     GridLine=QColor("black");
 }

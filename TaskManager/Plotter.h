@@ -53,7 +53,7 @@ class Plotter : public QMainWindow
     void ReCalculate();
     QByteArray FindExprScob(int index);
     int FindIndexLastExprScob(int index);
-    void DomainFunction(QByteArray ExprToCheck,double *pX_start,double *pX_end, double *pX_step);
+    void DomainFunction(QByteArray ExprToCheck,double pX_start,double pX_end, double pX_step);
     QVector <QPointF> CalculatePoint();
     double CalculateExprScob(QByteArray ExprScob,double X);
 
