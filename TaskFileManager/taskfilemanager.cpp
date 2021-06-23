@@ -274,7 +274,7 @@ bool CalcPair::CalcExpress()
   Expression.replace( "@SE(", "@SimplifyEquation(" );
   Expression.replace( "@SF(", "@SimplifyFull(" );
   s_iDogOption = !s_TaskEditorOn;
-  MathExpr VarValue = Parser::PureStrToExpr( Expression );
+  MathExpr VarValue = Parser::PureStrToExpr( Expression ).Perform();
   s_iDogOption = 0;
   if( s_GlobalInvalid || VarValue.IsEmpty() && !m_Variable.isEmpty() ) throw ErrParser( "Task corrupted " + m_Expression, ParserErr::peNewErr );
   if( m_Variable.isEmpty() ) return true;
