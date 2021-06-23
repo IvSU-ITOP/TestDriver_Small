@@ -598,8 +598,7 @@ void Plotter::on_SetChartSettings()
         m_pChart->setBackgroundBrush(QBrush(m_pMainChart->Background));
         m_pChart->setTitleFont(m_pMainChart->GraphFont);
 
-        m_pAxisX->setTitleFont(m_pMainChart->GraphFont);
-        m_pAxisY->setTitleFont(m_pMainChart->GraphFont);
+
 
         QPen AxisXPen(m_pMainChart->AxisColorX);
         QPen AxisYPen(m_pMainChart->AxisColorY);
@@ -607,9 +606,12 @@ void Plotter::on_SetChartSettings()
         AxisYPen.setWidth(m_pMainChart->ThinknessAxisY);
         m_pAxisX->setLinePen(AxisXPen);
         m_pAxisY->setLinePen(AxisYPen);
-
         m_pAxisX->setGridLineColor(m_pMainChart->GridLine);
         m_pAxisY->setGridLineColor(m_pMainChart->GridLine);
+        m_pAxisX->setTitleFont(m_pMainChart->FontAxisX);
+        m_pAxisY->setTitleFont(m_pMainChart->FontAxisY);
+        m_pAxisX->setLabelsFont(m_pMainChart->FontAxisX);
+        m_pAxisY->setLabelsFont(m_pMainChart->FontAxisY);
         ConfigureGraph();
     }
 }

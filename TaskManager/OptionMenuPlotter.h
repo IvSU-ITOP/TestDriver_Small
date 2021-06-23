@@ -14,8 +14,9 @@ public:
     bool isChange = false;
     QColor Background,BackgroundGraph, Cursor;
     QColor GraphColor,GridLine, AxisColorX,AxisColorY;
-    QFont GraphFont;
+    QFont GraphFont,FontAxisX,FontAxisY;
     int ThinknessAxisX{3},ThinknessAxisY{3},Thinkness;
+
     void clear();
 };
 

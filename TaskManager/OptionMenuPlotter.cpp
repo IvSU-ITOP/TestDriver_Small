@@ -51,7 +51,12 @@ void OptionMenuPlotter::on_cancel_btn_clicked()
 
 void OptionMenuPlotter::on_font_box_currentFontChanged(const QFont &f)
 {
-    ChartToSet.GraphFont=f;
+    switch (m_SelectColorToSet)
+    {
+    case 5:{ChartToSet.FontAxisY=f;break;}
+    case 6:{ChartToSet.FontAxisX=f;break;}
+    default:{ChartToSet.GraphFont=f; break;}
+    }
 }
 
 
@@ -78,6 +83,8 @@ void SettingsChart::clear()
     AxisColorX=QColor("black");
     AxisColorY=QColor("black");
     GraphFont=QFont("Helvetica");
+    FontAxisX=QFont("Helvetica");
+    FontAxisY=QFont("Helvetica");
     GridLine=QColor("black");
 }
 
