@@ -23,7 +23,6 @@ Plotter::Plotter(QObject *parent)
       m_pUi->ymax->setMaximum(1000);
 
       connect(m_pUi->PlotterWidget, &QWidget::customContextMenuRequested, this, &Plotter::on_ContextMenuCall);
-      connect(m_pPlotterMenu,&OptionMenuPlotter::sendDataClass,this,&Plotter::on_SetChartSettings);
 
       QColor color_pen("black");
       m_Pen.setColor(color_pen);
@@ -547,6 +546,8 @@ void Plotter::on_SaveGraph()
 
 void Plotter::on_Options()
 {
+    OptionMenuPlotter *m_pPlotterMenu=new OptionMenuPlotter(number_of_breakpoints.length(),nullptr);
+    connect(m_pPlotterMenu,&OptionMenuPlotter::sendDataClass,this,&Plotter::on_SetChartSettings);
     m_pPlotterMenu->setFixedSize(m_pPlotterMenu->size());
     m_pPlotterMenu->show();
     m_pMainChart=&(m_pPlotterMenu->ChartToSet);
@@ -590,8 +591,8 @@ void Plotter::on_SetChartSettings()
         m_Pen.setWidth(m_pMainChart->Thinkness);
         m_Pen.setColor(m_pMainChart->GraphColor);
 
-        m_pSeriesBreakPoint->setColor(m_pMainChart->Cursor);
-        m_pSeriesBreakPoint->setBorderColor(m_pMainChart->Cursor);
+        m_pSeriesBreakPoint->setColor(m_pMainChart->BreakPointColor);
+        m_pSeriesBreakPoint->setBorderColor(m_pMainChart->BreakPointColor);
 
         m_pChart->setPlotAreaBackgroundBrush(QBrush(m_pMainChart->BackgroundGraph));
         m_pChart->setPlotAreaBackgroundVisible(true);

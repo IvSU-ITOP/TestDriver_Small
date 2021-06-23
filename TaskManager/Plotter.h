@@ -29,7 +29,6 @@ class Plotter : public QMainWindow
     QGraphicsScene *m_pScene = nullptr;
     QChart *m_pChart = new QChart;
     QChartView *m_pChartView=nullptr;
-    OptionMenuPlotter *m_pPlotterMenu=new OptionMenuPlotter();
     SettingsChart* m_pMainChart=nullptr;
 
     QVector<QPointF> m_Result{};

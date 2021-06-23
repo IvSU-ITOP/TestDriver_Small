@@ -12,7 +12,7 @@ class SettingsChart
 {
 public:
     bool isChange = false;
-    QColor Background,BackgroundGraph, Cursor;
+    QColor Background,BackgroundGraph,BreakPointColor;
     QColor GraphColor,GridLine, AxisColorX,AxisColorY;
     QFont GraphFont,FontAxisX,FontAxisY;
     int ThinknessAxisX{3},ThinknessAxisY{3},Thinkness;
@@ -25,7 +25,7 @@ class OptionMenuPlotter : public QWidget
     Q_OBJECT
 
 public:
-    explicit OptionMenuPlotter(QWidget *parent = nullptr);
+    explicit OptionMenuPlotter(int FuncNumber,QWidget *parent = nullptr);
     ~OptionMenuPlotter();
     SettingsChart ChartToSet;
     bool InProgress=true;
@@ -41,9 +41,9 @@ private slots:
 signals:
     void sendDataClass(void);
 private:
+    void HideAllSettings();
     Ui::OptionMenuPlotter *ui;
     int m_SelectColorToSet{};
-
 };
 
 

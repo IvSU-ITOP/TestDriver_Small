@@ -1,13 +1,24 @@
 #include "OptionMenuPlotter.h"
 #include "ui_OptionMenuPlotter.h"
 #include <QColorDialog>
+#include <QPainter>
 
-OptionMenuPlotter::OptionMenuPlotter(QWidget *parent) :
+OptionMenuPlotter::OptionMenuPlotter(int FuncNumber,QWidget *parent) :
     QWidget(parent),
     ui(new Ui::OptionMenuPlotter)
 {
     ui->setupUi(this);
     ChartToSet.clear();
+    HideAllSettings();
+    QGraphicsScene* Scene=new QGraphicsScene();
+    ui->graphicsView->setScene(Scene);
+    if(FuncNumber!=0)
+    {
+        for(int i{};i<=FuncNumber;i++)
+        {
+           ui->comboBox->addItem(QString::number(i));
+        }
+    }
 }
 
 OptionMenuPlotter::~OptionMenuPlotter()
@@ -20,17 +31,19 @@ void OptionMenuPlotter::on_select_color_btn_clicked()
         QColor color = QColorDialog::getColor();
         if (color.isValid() )
         {
+
             switch (m_SelectColorToSet)
             {
                 case 0:{ChartToSet.Background=color;break;}
                 case 1:{ChartToSet.BackgroundGraph=color;break;}
                 case 2:{ChartToSet.GraphColor=color;break;}
                 case 3:{ChartToSet.GridLine=color;break;}
-                case 4:{ChartToSet.Cursor=color;break;}
+                case 4:{ChartToSet.BreakPointColor=color;break;}
                 case 5:{ChartToSet.AxisColorX=color;break;}
                 case 6:{ChartToSet.AxisColorY=color;break;}
                 default:break;
             }
+            ui->graphicsView->setBackgroundBrush(QBrush(color));
         }
 }
 
@@ -78,18 +91,61 @@ void SettingsChart::clear()
     ThinknessAxisY=3;
     Background=QColor("white");
     BackgroundGraph=QColor("white");
-    Cursor=QColor("red");
+    BreakPointColor=QColor("red");
     GraphColor=QColor("black");
     AxisColorX=QColor("black");
     AxisColorY=QColor("black");
-    GraphFont=QFont("Helvetica");
-    FontAxisX=QFont("Helvetica");
-    FontAxisY=QFont("Helvetica");
-    GridLine=QColor("black");
+    GraphFont=QFont("Arial",8);
+    FontAxisX=QFont("Arial",8);
+    FontAxisY=QFont("Arial",8);
+    GridLine=QColor();
 }
 
 void OptionMenuPlotter::on_object_to_set_currentIndexChanged(int index)
 {
     m_SelectColorToSet=index;
+    HideAllSettings();
+    switch (m_SelectColorToSet)
+    {
+        case 0:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.Background));break;}
+        case 1:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.BackgroundGraph));break;}
+        case 2:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.GraphColor));break;}
+        case 3:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.GridLine));break;}
+        case 4:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.BreakPointColor));break;}
+        case 5:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.AxisColorX));break;}
+        case 6:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.AxisColorY));break;}
+        default:break;
+    }
+    if(m_SelectColorToSet==5 ||m_SelectColorToSet==6)
+    {
+        ui->thinkness->show();
+        ui->label_thinkness->show();
+        ui->font->show();
+        ui->font_box->show();
+        ui->pixel->show();
+     }
+    if(m_SelectColorToSet==2 || m_SelectColorToSet==4)
+    {
+        ui->fx->show();
+        ui->comboBox->show();
+        ui->thinkness->show();
+        ui->label_thinkness->show();
+        ui->font->show();
+        ui->font_box->show();
+        ui->pixel->show();
+    }
 }
+
+void OptionMenuPlotter::HideAllSettings()
+{
+    ui->thinkness->hide();
+    ui->label_thinkness->hide();
+    ui->font->hide();
+    ui->font_box->hide();
+    ui->pixel->hide();
+    ui->fx->hide();
+    ui->comboBox->hide();
+    ui->retranslateUi(this);
+}
+
 
