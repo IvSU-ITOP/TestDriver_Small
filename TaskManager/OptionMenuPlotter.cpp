@@ -77,6 +77,7 @@ void OptionMenuPlotter::on_thinkness_valueChanged(const QString &arg1)
 {
     switch (m_SelectColorToSet)
     {
+    case 4:{ChartToSet.ThinknessBreakPoint=arg1.toInt();break;}
     case 5:{ChartToSet.ThinknessAxisX=arg1.toInt();break;}
     case 6:{ChartToSet.ThinknessAxisY=arg1.toInt();break;}
     default: {ChartToSet.Thinkness=arg1.toInt(); break;}
@@ -87,18 +88,19 @@ void SettingsChart::clear()
 {
     isChange=false;
     Thinkness=3;
-    ThinknessAxisX=3;
-    ThinknessAxisY=3;
+    ThinknessAxisX=1;
+    ThinknessAxisY=1;
+    ThinknessBreakPoint=5;
     Background=QColor("white");
     BackgroundGraph=QColor("white");
     BreakPointColor=QColor("red");
     GraphColor=QColor("black");
-    AxisColorX=QColor("black");
-    AxisColorY=QColor("black");
+    AxisColorX=QColor("Grey");
+    AxisColorY=QColor("Grey");
     GraphFont=QFont("Arial",8);
-    FontAxisX=QFont("Arial",8);
-    FontAxisY=QFont("Arial",8);
-    GridLine=QColor();
+    FontAxisX=QFont("Arial",8,5);
+    FontAxisY=QFont("Arial",8,5);
+    GridLine=QColor("Grey");
 }
 
 void OptionMenuPlotter::on_object_to_set_currentIndexChanged(int index)
@@ -109,11 +111,32 @@ void OptionMenuPlotter::on_object_to_set_currentIndexChanged(int index)
     {
         case 0:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.Background));break;}
         case 1:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.BackgroundGraph));break;}
-        case 2:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.GraphColor));break;}
+        case 2:
+        {
+        ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.GraphColor));
+        ui->font->setText("Font of title Graph");
+        break;
+        }
         case 3:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.GridLine));break;}
-        case 4:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.BreakPointColor));break;}
-        case 5:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.AxisColorX));break;}
-        case 6:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.AxisColorY));break;}
+        case 4:
+        {
+        ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.BreakPointColor));
+        ui->thinkness->setMinimum(5);
+        ui->thinkness->setMaximum(10);
+        break;
+        }
+        case 5:
+        {
+        ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.AxisColorX));
+        ui->font->setText("Font of title Axis X");
+        break;
+        }
+        case 6:
+        {
+        ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.AxisColorY));
+        ui->font->setText("Font of title Axis Y");
+        break;
+        }
         default:break;
     }
     if(m_SelectColorToSet==5 ||m_SelectColorToSet==6)
@@ -138,6 +161,8 @@ void OptionMenuPlotter::on_object_to_set_currentIndexChanged(int index)
 
 void OptionMenuPlotter::HideAllSettings()
 {
+    ui->thinkness->setMinimum(1);
+    ui->thinkness->setMaximum(5);
     ui->thinkness->hide();
     ui->label_thinkness->hide();
     ui->font->hide();

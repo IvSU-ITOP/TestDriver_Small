@@ -15,7 +15,7 @@ public:
     QColor Background,BackgroundGraph,BreakPointColor;
     QColor GraphColor,GridLine, AxisColorX,AxisColorY;
     QFont GraphFont,FontAxisX,FontAxisY;
-    int ThinknessAxisX{3},ThinknessAxisY{3},Thinkness;
+    int ThinknessAxisX{3},ThinknessAxisY{3},Thinkness{3},ThinknessBreakPoint{5};
 
     void clear();
 };

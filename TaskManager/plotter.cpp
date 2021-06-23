@@ -301,6 +301,11 @@ bool Plotter::Plot(QByteArray Formula)
 
         m_pChart->addSeries(m_pSeriesBreakPoint);
 
+        m_pAxisX->setLinePen(QPen(QColor("Grey")));
+        m_pAxisY->setLinePen(QPen(QColor("Grey")));
+        m_pAxisX->setGridLineColor(QColor("Grey"));
+        m_pAxisY->setGridLineColor(QColor("Grey"));
+
         m_pAxisX->setRange(m_pUi->xmin->value(),m_pUi->xmax->value());
         m_pAxisY->setRange(floor(m_YStart), ceil(m_YEnd) );
 
@@ -593,13 +598,12 @@ void Plotter::on_SetChartSettings()
 
         m_pSeriesBreakPoint->setColor(m_pMainChart->BreakPointColor);
         m_pSeriesBreakPoint->setBorderColor(m_pMainChart->BreakPointColor);
+        m_pSeriesBreakPoint->setMarkerSize(m_pMainChart->ThinknessBreakPoint);
 
         m_pChart->setPlotAreaBackgroundBrush(QBrush(m_pMainChart->BackgroundGraph));
         m_pChart->setPlotAreaBackgroundVisible(true);
         m_pChart->setBackgroundBrush(QBrush(m_pMainChart->Background));
         m_pChart->setTitleFont(m_pMainChart->GraphFont);
-
-
 
         QPen AxisXPen(m_pMainChart->AxisColorX);
         QPen AxisYPen(m_pMainChart->AxisColorY);
