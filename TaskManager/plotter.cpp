@@ -553,7 +553,6 @@ void Plotter::on_SaveGraph()
 
 void Plotter::on_Options()
 {
-    OptionMenuPlotter *m_pPlotterMenu=new OptionMenuPlotter(number_of_breakpoints.length(),nullptr);
     connect(m_pPlotterMenu,&OptionMenuPlotter::sendDataClass,this,&Plotter::on_SetChartSettings);
     m_pPlotterMenu->setFixedSize(m_pPlotterMenu->size());
     m_pPlotterMenu->show();

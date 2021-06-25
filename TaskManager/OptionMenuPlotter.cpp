@@ -58,7 +58,7 @@ void OptionMenuPlotter::on_ok_btn_clicked()
 
 void OptionMenuPlotter::on_cancel_btn_clicked()
 {
-    ChartToSet.clear();
+    this->hide();
 }
 
 

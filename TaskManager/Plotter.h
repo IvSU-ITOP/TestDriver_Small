@@ -30,6 +30,7 @@ class Plotter : public QMainWindow
     QValueAxis *m_pValueAxisY = new QValueAxis;
     QGraphicsScene *m_pScene = nullptr;
     QChart *m_pChart = new QChart;
+    OptionMenuPlotter *m_pPlotterMenu=new OptionMenuPlotter(number_of_breakpoints.length(),nullptr);
     SettingsChart* m_pMainChart=nullptr;
 
     QVector<QPointF> m_Result{};
