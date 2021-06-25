@@ -23,12 +23,13 @@ class Plotter : public QMainWindow
     Ui::Plotter *m_pUi;
     QLineSeries *m_pSeries0=new QLineSeries;
     QVector <QLineSeries *> m_Series={};
+    QLineSeries *m_pAxisX=new QLineSeries;
+    QLineSeries *m_pAxisY=new QLineSeries;
     QScatterSeries *m_pSeriesBreakPoint = new QScatterSeries;
-    QValueAxis *m_pAxisX = new QValueAxis;
-    QValueAxis *m_pAxisY = new QValueAxis;
+    QValueAxis *m_pValueAxisX = new QValueAxis;
+    QValueAxis *m_pValueAxisY = new QValueAxis;
     QGraphicsScene *m_pScene = nullptr;
     QChart *m_pChart = new QChart;
-    QChartView *m_pChartView=nullptr;
     SettingsChart* m_pMainChart=nullptr;
 
     QVector<QPointF> m_Result{};

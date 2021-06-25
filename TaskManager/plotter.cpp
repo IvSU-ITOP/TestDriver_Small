@@ -10,7 +10,6 @@ Plotter::Plotter(QObject *parent)
       m_pUi->setupUi(this);
 
       m_pUi->PlotterWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-      m_pChartView = new QChartView(m_pChart);
       m_pScene=new QGraphicsScene(m_pUi->graphicsView);
       m_pUi->value_x_in_point->setText( QString::number( m_pUi->cur_val_slider->value() ) );
       m_pUi->cur_val_slider->setMinimum(0);
@@ -26,8 +25,7 @@ Plotter::Plotter(QObject *parent)
 
       QColor color_pen("black");
       m_Pen.setColor(color_pen);
-
-      //m_pSeries0->setUseOpenGL(true);// May make some trouble
+      m_pSeries0->setUseOpenGL(true);// May make some trouble
   }
 
 
@@ -173,7 +171,8 @@ QVector <QPointF> Plotter::CalculatePoint()
 
     DomainFunction(m_Formula,X_start,X_end,X_step);
     number_of_breakpoints.clear();
-     for( double X = X_start; ceil(X) < X_end; X += X_step)
+
+    for( double X = X_start; ceil(X) < X_end; X += X_step)
        {
            if(fabs(X) < 0.5 * X_step )
            {
@@ -197,8 +196,6 @@ QVector <QPointF> Plotter::CalculatePoint()
                if( s_GlobalInvalid || Expr.IsEmpty() )
                  return {};
 
-                //Expr = Expr.Reduce();
-                //Expr->ResetPrecision(m_Precision);
                 Expr=Expr.SimplifyFull();
 
                 TConstant *pValue =CastPtr(TConstant, Expr);
@@ -231,10 +228,22 @@ bool Plotter::Plot(QByteArray Formula)
       m_Result=CalculatePoint();
 
       if(m_Result.isEmpty())
-        {
+      {
             this->~Plotter();
             return false;
-        }
+      }
+
+      m_NeedReCalc=false;
+      m_pUi->xmin->setValue( int(m_Result.first().x()) );
+      m_pUi->xmax->setValue( int(m_Result.last().x()) );
+      m_pUi->ymin->setValue( floor(m_YStart) );
+      m_pUi->ymax->setValue( ceil(m_YEnd) );
+      m_NeedReCalc=true;
+
+      m_pAxisX->append(QPointF(m_pUi->xmin->value(),0));
+      m_pAxisX->append(QPointF(m_pUi->xmax->value(),0));
+      m_pAxisY->append(QPointF(0, m_pUi->ymin->value()));
+      m_pAxisY->append(QPointF(0, m_pUi->ymax->value()));
 
       m_Pen.setWidth(3);
       if(!m_BreakPoints.isEmpty())
@@ -261,8 +270,8 @@ bool Plotter::Plot(QByteArray Formula)
                   }
               }
               m_Series[i]->setPen(m_Pen);
-              m_Series[i]->attachAxis(m_pAxisY);
-              m_Series[i]->attachAxis(m_pAxisX);
+              m_Series[i]->attachAxis(m_pValueAxisY);
+              m_Series[i]->attachAxis(m_pValueAxisX);
               m_pChart->addSeries(m_Series[i]);
           }
       }
@@ -273,59 +282,59 @@ bool Plotter::Plot(QByteArray Formula)
               m_pSeries0->append(m_Result[i]);
           }
            m_pSeries0->setPen(m_Pen);
-           m_pSeries0->attachAxis(m_pAxisY);
-           m_pSeries0->attachAxis(m_pAxisX);
+           m_pSeries0->attachAxis(m_pValueAxisY);
+           m_pSeries0->attachAxis(m_pValueAxisX);
            m_pChart->addSeries(m_pSeries0);
       }
+
+
 
         for(int i{};i<m_BreakPoints.length();i++)
         {
         m_pSeriesBreakPoint->append(m_BreakPoints[i]);
         }
-
-        m_NeedReCalc=false;
-        m_pUi->xmin->setValue( int(m_Result.first().x()) );
-        m_pUi->xmax->setValue( int(m_Result.last().x()) );
-
-        m_pUi->ymin->setValue( floor(m_YStart) );
-        m_pUi->ymax->setValue( ceil(m_YEnd) );
-        m_NeedReCalc=true;
-
-        m_pSeriesBreakPoint->attachAxis(m_pAxisY);
+        m_pSeriesBreakPoint->attachAxis(m_pValueAxisY);
         m_pSeriesBreakPoint->setColor("red");
         m_pSeriesBreakPoint->setMarkerShape(QScatterSeries::MarkerShapeCircle);
         m_pSeriesBreakPoint->setMarkerSize(8);
         m_pSeriesBreakPoint->setBorderColor("red");
-        m_pSeriesBreakPoint->attachAxis(m_pAxisY);
-        m_pSeriesBreakPoint->attachAxis(m_pAxisX);
-
+        m_pSeriesBreakPoint->attachAxis(m_pValueAxisY);
+        m_pSeriesBreakPoint->attachAxis(m_pValueAxisX);
         m_pChart->addSeries(m_pSeriesBreakPoint);
 
-        m_pAxisX->setLinePen(QPen(QColor("Grey")));
-        m_pAxisY->setLinePen(QPen(QColor("Grey")));
-        m_pAxisX->setGridLineColor(QColor("Grey"));
-        m_pAxisY->setGridLineColor(QColor("Grey"));
+        m_pAxisX->setPen(m_Pen);
+        m_pAxisY->setPen(m_Pen);
+        m_pAxisX->attachAxis(m_pValueAxisX);
+        m_pAxisY->attachAxis(m_pValueAxisY);
+        m_pChart->addSeries(m_pAxisX);
+        m_pChart->addSeries(m_pAxisY);
 
-        m_pAxisX->setRange(m_pUi->xmin->value(),m_pUi->xmax->value());
-        m_pAxisY->setRange(floor(m_YStart), ceil(m_YEnd) );
+        m_pValueAxisX->setLinePen(QPen(QColor("Grey")));
+        m_pValueAxisY->setLinePen(QPen(QColor("Grey")));
+        m_pValueAxisX->setGridLineColor(QColor("Grey"));
+        m_pValueAxisY->setGridLineColor(QColor("Grey"));
 
-        m_pAxisX->setTitleText("Axis x");
-        m_pAxisX->setLabelsVisible(true);
+        m_pValueAxisX->setRange(m_pUi->xmin->value(),m_pUi->xmax->value());
+        m_pValueAxisY->setRange(floor(m_YStart), ceil(m_YEnd) );
 
-        m_pAxisY->setTitleText("Axis y");
-        m_pAxisY->setLabelsVisible(true);
+        m_pValueAxisX->setTitleText("Axis x");
+        m_pValueAxisX->setLabelsVisible(true);
 
-        m_pAxisX->setTickCount(20);
-        m_pAxisY->setTickCount(20);
-        m_pAxisX->applyNiceNumbers();
-        m_pAxisY->applyNiceNumbers();
+        m_pValueAxisY->setTitleText("Axis y");
+        m_pValueAxisY->setLabelsVisible(true);
+
+        m_pValueAxisX->setTickCount(20);
+        m_pValueAxisY->setTickCount(20);
+        m_pValueAxisX->applyNiceNumbers();
+        m_pValueAxisY->applyNiceNumbers();
 
         m_pChart->setTitle(m_Formula);
-        m_pChart->addAxis(m_pAxisX,Qt::AlignBottom);
-        m_pChart->addAxis(m_pAxisY,Qt::AlignLeft);
-
+        m_pChart->createDefaultAxes();
+        m_pChart->axisX()->hide();
+        m_pChart->axisY()->hide();
+        m_pChart->addAxis(m_pValueAxisX,Qt::AlignBottom);
+        m_pChart->addAxis(m_pValueAxisY,Qt::AlignLeft);
         m_pChart->setGeometry( m_pUi->graphicsView->rect());
-        m_pChartView->setRenderHint(QPainter::Antialiasing,true);
         m_pScene->addItem(m_pChart);
 
         m_pUi->graphicsView->setScene(m_pScene);
@@ -335,17 +344,21 @@ bool Plotter::Plot(QByteArray Formula)
 }
 
 void Plotter::ReCalculate()
-  {
+{
       m_BadPoints.clear();
       m_BreakPoints.clear();
-
       m_Result=CalculatePoint();
-
- }
+}
 
 
 void Plotter::ConfigureGraph()
 {
+    m_pAxisX->clear();
+    m_pAxisY->clear();
+    m_pAxisX->append(QPointF(m_pUi->xmin->value(),0));
+    m_pAxisX->append(QPointF(m_pUi->xmax->value(),0));
+    m_pAxisY->append(QPointF(0, m_pUi->ymin->value()));
+    m_pAxisY->append(QPointF(0, m_pUi->ymax->value()));
 
     if(!m_BreakPoints.isEmpty())
     {
@@ -374,8 +387,8 @@ void Plotter::ConfigureGraph()
             m_Series[i]->replace(TempResult);
             TempResult.clear();
             m_Series[i]->setPen(m_Pen);
-            m_Series[i]->attachAxis(m_pAxisY);
-            m_Series[i]->attachAxis(m_pAxisX);
+            m_Series[i]->attachAxis(m_pValueAxisY);
+            m_Series[i]->attachAxis(m_pValueAxisX);
             m_pChart->addSeries(m_Series[i]);
         }
 
@@ -383,14 +396,15 @@ void Plotter::ConfigureGraph()
     else
     {
         m_pSeries0->setPen(m_Pen);
-        m_pSeries0->attachAxis(m_pAxisY);
-        m_pSeries0->attachAxis(m_pAxisX);
+        m_pSeries0->attachAxis(m_pValueAxisY);
+        m_pSeries0->attachAxis(m_pValueAxisX);
         m_pSeries0->replace(m_Result);
-
     }
-    m_pSeriesBreakPoint->attachAxis(m_pAxisY);
-    m_pSeriesBreakPoint->attachAxis(m_pAxisX);
+
+    m_pSeriesBreakPoint->attachAxis(m_pValueAxisY);
+    m_pSeriesBreakPoint->attachAxis(m_pValueAxisX);
     m_pSeriesBreakPoint->replace(m_BreakPoints);
+
     m_pChart->update(m_pUi->graphicsView->rect());
     m_pScene->update(m_pScene->sceneRect());
 }
@@ -400,7 +414,7 @@ void Plotter::on_xmin_valueChanged(const QString &arg1)
     if(m_NeedReCalc)
     {
         m_pUi->xmax->setMinimum(arg1.toInt());
-        m_pAxisX->setRange(arg1.toDouble(),m_pUi->xmax->value());
+        m_pValueAxisX->setRange(arg1.toDouble(),m_pUi->xmax->value());
         ReCalculate();
         ConfigureGraph();
     }
@@ -412,7 +426,7 @@ void Plotter::on_xmax_valueChanged(const QString &arg1)
     if(m_NeedReCalc)
     {
         m_pUi->xmin->setMaximum(arg1.toInt());
-        m_pAxisX->setRange(m_pUi->xmin->value(),arg1.toDouble());
+        m_pValueAxisX->setRange(m_pUi->xmin->value(),arg1.toDouble());
         ReCalculate();
         ConfigureGraph();
     }
@@ -424,7 +438,7 @@ void Plotter::on_ymin_valueChanged(const QString &arg1)
     if(m_NeedReCalc)
     {
         m_pUi->ymax->setMinimum(arg1.toInt());
-        m_pAxisY->setRange(arg1.toDouble(),m_pUi->ymax->value());
+        m_pValueAxisY->setRange(arg1.toDouble(),m_pUi->ymax->value());
         ReCalculate();
         ConfigureGraph();
     }
@@ -436,7 +450,7 @@ void Plotter::on_ymax_valueChanged(const QString &arg1)
     if(m_NeedReCalc)
     {
         m_pUi->ymin->setMaximum(arg1.toInt());
-        m_pAxisY->setRange(m_pUi->ymin->value(),arg1.toDouble());
+        m_pValueAxisY->setRange(m_pUi->ymin->value(),arg1.toDouble());
         ReCalculate();
         ConfigureGraph();
     }
@@ -498,14 +512,14 @@ void Plotter::on_HideNumbers()
 {
     if(m_NumberAxisIsHidden)
     {
-        m_pAxisX->setLabelsVisible(false);
-        m_pAxisY->setLabelsVisible(false);
+        m_pValueAxisX->setLabelsVisible(false);
+        m_pValueAxisY->setLabelsVisible(false);
         m_NumberAxisIsHidden=false;
     }
     else
     {
-        m_pAxisX->setLabelsVisible(true);
-        m_pAxisY->setLabelsVisible(true);
+        m_pValueAxisX->setLabelsVisible(true);
+        m_pValueAxisY->setLabelsVisible(true);
         m_NumberAxisIsHidden=true;
     }
 }
@@ -514,14 +528,14 @@ void Plotter::on_HideNames()
 {
     if(m_NamesAxisIsHidden)
     {
-        m_pAxisX->setTitleText("");
-        m_pAxisY->setTitleText("");
+        m_pValueAxisX->setTitleText("");
+        m_pValueAxisY->setTitleText("");
         m_NamesAxisIsHidden=false;
     }
     else
     {
-        m_pAxisX->setTitleText("Axis x");
-        m_pAxisY->setTitleText("Axis y");
+        m_pValueAxisX->setTitleText("Axis x");
+        m_pValueAxisY->setTitleText("Axis y");
         m_NamesAxisIsHidden=true;
     }
     m_pScene->update(m_pScene->sceneRect());
@@ -531,18 +545,6 @@ void Plotter::on_SaveGraph()
 {
     QPixmap* picture=new QPixmap;
     *picture=m_pUi->graphicsView->grab();
-
-    /*
-    //if using opengl
-    QOpenGLWidget *glWidget  = m_pChartView->findChild<QOpenGLWidget*>();
-    if(glWidget){
-        QPainter painter(picture);
-        QPoint d = glWidget->mapToGlobal(QPoint())-m_pChartView->mapToGlobal(QPoint());
-        painter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
-        painter.drawImage(d, glWidget->grabFramebuffer());
-        painter.end();
-    }*/
-
     QString filename = QFileDialog::getSaveFileName(this, tr("Save file"), "", tr("Images (*.png)"));
     *picture=picture->copy(0,0,750,560);
     picture->save(filename,"PNG");
@@ -562,14 +564,14 @@ void Plotter::on_HideGrid()
 {
     if(m_GridAxisIsHidden)
     {
-        m_pAxisX->setGridLineVisible(false);
-        m_pAxisY->setGridLineVisible(false);
+        m_pValueAxisX->setGridLineVisible(false);
+        m_pValueAxisY->setGridLineVisible(false);
         m_GridAxisIsHidden=false;
     }
     else
     {
-        m_pAxisX->setGridLineVisible(true);
-        m_pAxisY->setGridLineVisible(true);
+        m_pValueAxisX->setGridLineVisible(true);
+        m_pValueAxisY->setGridLineVisible(true);
         m_GridAxisIsHidden=true;
     }
     m_pScene->update(m_pScene->sceneRect());
@@ -609,14 +611,14 @@ void Plotter::on_SetChartSettings()
         QPen AxisYPen(m_pMainChart->AxisColorY);
         AxisXPen.setWidth(m_pMainChart->ThinknessAxisX);
         AxisYPen.setWidth(m_pMainChart->ThinknessAxisY);
-        m_pAxisX->setLinePen(AxisXPen);
-        m_pAxisY->setLinePen(AxisYPen);
-        m_pAxisX->setGridLineColor(m_pMainChart->GridLine);
-        m_pAxisY->setGridLineColor(m_pMainChart->GridLine);
-        m_pAxisX->setTitleFont(m_pMainChart->FontAxisX);
-        m_pAxisY->setTitleFont(m_pMainChart->FontAxisY);
-        m_pAxisX->setLabelsFont(m_pMainChart->FontAxisX);
-        m_pAxisY->setLabelsFont(m_pMainChart->FontAxisY);
+        m_pValueAxisX->setLinePen(AxisXPen);
+        m_pValueAxisY->setLinePen(AxisYPen);
+        m_pValueAxisX->setGridLineColor(m_pMainChart->GridLine);
+        m_pValueAxisY->setGridLineColor(m_pMainChart->GridLine);
+        m_pValueAxisX->setTitleFont(m_pMainChart->FontAxisX);
+        m_pValueAxisY->setTitleFont(m_pMainChart->FontAxisY);
+        m_pValueAxisX->setLabelsFont(m_pMainChart->FontAxisX);
+        m_pValueAxisY->setLabelsFont(m_pMainChart->FontAxisY);
         ConfigureGraph();
     }
 }
