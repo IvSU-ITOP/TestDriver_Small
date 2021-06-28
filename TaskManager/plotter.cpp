@@ -5,17 +5,17 @@
 
 Plotter::Plotter(QObject *parent)
    : QMainWindow(nullptr)
-   ,m_pUi(new Ui::Plotter)
   {
+      m_pUi=new Ui::Plotter;
       m_pUi->setupUi(this);
-
       m_pUi->PlotterWidget->setContextMenuPolicy(Qt::CustomContextMenu);
       m_pScene=new QGraphicsScene(m_pUi->graphicsView);
       m_pUi->value_x_in_point->setText( QString::number( m_pUi->cur_val_slider->value() ) );
       m_pUi->cur_val_slider->setMinimum(0);
       m_pUi->cur_val_slider->setMaximum(10);
 
-
+      m_pUi->xmin->setValue(-10);
+      m_pUi->xmax->setValue(10);
       m_pUi->xmin->setMinimum(-100);
       m_pUi->xmax->setMaximum(100);
       m_pUi->ymin->setMinimum(-1000);
@@ -245,6 +245,7 @@ bool Plotter::Plot(QByteArray Formula)
       m_pAxisY->append(QPointF(0, m_pUi->ymin->value()));
       m_pAxisY->append(QPointF(0, m_pUi->ymax->value()));
 
+
       m_Pen.setWidth(3);
       if(!m_BreakPoints.isEmpty())
       {
@@ -286,8 +287,6 @@ bool Plotter::Plot(QByteArray Formula)
            m_pSeries0->attachAxis(m_pValueAxisX);
            m_pChart->addSeries(m_pSeries0);
       }
-
-
 
         for(int i{};i<m_BreakPoints.length();i++)
         {
@@ -334,6 +333,8 @@ bool Plotter::Plot(QByteArray Formula)
         m_pChart->axisY()->hide();
         m_pChart->addAxis(m_pValueAxisX,Qt::AlignBottom);
         m_pChart->addAxis(m_pValueAxisY,Qt::AlignLeft);
+        on_HideGrid();
+
         m_pChart->setGeometry( m_pUi->graphicsView->rect());
         m_pScene->addItem(m_pChart);
 
@@ -355,10 +356,17 @@ void Plotter::ConfigureGraph()
 {
     m_pAxisX->clear();
     m_pAxisY->clear();
-    m_pAxisX->append(QPointF(m_pUi->xmin->value(),0));
-    m_pAxisX->append(QPointF(m_pUi->xmax->value(),0));
+
+    int div=15;
+    // int div=ceil( abs(m_pUi->xmax->value())/10 ); IT IS BREAKING
+    for(int LabelPoint{m_pUi->xmin->value()};LabelPoint<m_pUi->xmax->value();LabelPoint+=div)
+    {
+        m_pAxisX->append(QPointF(LabelPoint,0));
+    }
+   // m_pAxisX->append(QPointF(m_pUi->xmax->value(),0));
     m_pAxisY->append(QPointF(0, m_pUi->ymin->value()));
     m_pAxisY->append(QPointF(0, m_pUi->ymax->value()));
+    m_pAxisX->setPointLabelsVisible(true);
 
     if(!m_BreakPoints.isEmpty())
     {
@@ -488,20 +496,20 @@ void Plotter::on_ContextMenuCall(QPoint val)
        QAction *hide_numbers = new QAction("Hide numbers", this);
        QAction *hide_names = new QAction("Hide names of axis", this);
        QAction *save_graph = new QAction("Save graph as PNG", this);
-       QAction *hide_grid = new QAction("Hide gridline", this);
+      // QAction *hide_grid = new QAction("Hide gridline", this);
        QAction *hide_legend = new QAction("Hide chart legend", this);
 
        connect(hide_numbers, SIGNAL(triggered()), this, SLOT(on_HideNumbers()));
        connect(hide_names, SIGNAL(triggered()), this, SLOT(on_HideNames()));
        connect(save_graph, SIGNAL(triggered()), this, SLOT(on_SaveGraph()));
        connect(options, SIGNAL(triggered()), this, SLOT(on_Options()));
-       connect(hide_grid, SIGNAL(triggered()), this, SLOT(on_HideGrid()));
+      // connect(hide_grid, SIGNAL(triggered()), this, SLOT(on_HideGrid()));
        connect(hide_legend, SIGNAL(triggered()), this, SLOT(on_HideLegend()));
 
        menu->addAction(options);
        menu->addAction(hide_numbers);
        menu->addAction(hide_names);
-       menu->addAction(hide_grid);
+       //menu->addAction(hide_grid);
        menu->addAction(hide_legend);
        menu->addAction(save_graph);
 

@@ -1349,7 +1349,7 @@ void WinTesting::Calc()
 
 void WinTesting::PlotGraph()
   {
-     m_pPlotter=new Plotter();
+     m_pPlotter=new Plotter(nullptr);
      m_pPlotter->setFixedSize(m_pPlotter->size());
      if( m_pPlotter->Plot(Panel::sm_pEditor->Write()) )m_pPlotter->show();
      else return;

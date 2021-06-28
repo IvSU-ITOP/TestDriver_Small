@@ -22,7 +22,7 @@ class Plotter : public QMainWindow
   private:
     Ui::Plotter *m_pUi;
     QLineSeries *m_pSeries0=new QLineSeries;
-    QVector <QLineSeries *> m_Series={};
+    QVector <QLineSeries *> m_Series={new QLineSeries};
     QLineSeries *m_pAxisX=new QLineSeries;
     QLineSeries *m_pAxisY=new QLineSeries;
     QScatterSeries *m_pSeriesBreakPoint = new QScatterSeries;
