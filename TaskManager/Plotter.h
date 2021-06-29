@@ -26,6 +26,7 @@ class Plotter : public QMainWindow
     QLineSeries *m_pAxisX=new QLineSeries;
     QLineSeries *m_pAxisY=new QLineSeries;
     QScatterSeries *m_pSeriesBreakPoint = new QScatterSeries;
+    QScatterSeries *m_pCursor = new QScatterSeries;
     QValueAxis *m_pValueAxisX = new QValueAxis;
     QValueAxis *m_pValueAxisY = new QValueAxis;
     QGraphicsScene *m_pScene = nullptr;
@@ -52,6 +53,7 @@ class Plotter : public QMainWindow
 
     void ConfigureGraph();
     void ReCalculate();
+    void SetCursor(QPointF point);
     QByteArray FindExprScob(int index);
     int FindIndexLastExprScob(int index);
     void DomainFunction(QByteArray ExprToCheck,double pX_start,double pX_end, double pX_step);
@@ -63,7 +65,7 @@ public:
      ~Plotter();
      bool Plot(QByteArray Formula);
 
-  private slots:
+private slots:
     void on_xmin_valueChanged(const QString &arg1);
     void on_xmax_valueChanged(const QString &arg1);
     void on_ymin_valueChanged(const QString &arg1);

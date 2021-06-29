@@ -354,16 +354,18 @@ void Plotter::ReCalculate()
 
 void Plotter::ConfigureGraph()
 {
-    m_pAxisX->clear();
+   m_pAxisX->clear();
     m_pAxisY->clear();
 
-    int div=15;
-    // int div=ceil( abs(m_pUi->xmax->value())/10 ); IT IS BREAKING
-    for(int LabelPoint{m_pUi->xmin->value()};LabelPoint<m_pUi->xmax->value();LabelPoint+=div)
+   /* int div=10;
+    //int div=ceil( abs(m_pUi->xmax->value())/10 ); //IT IS BREAKING
+    for(int LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value();LabelPoint+=div)
     {
         m_pAxisX->append(QPointF(LabelPoint,0));
-    }
-   // m_pAxisX->append(QPointF(m_pUi->xmax->value(),0));
+    }*/
+
+    m_pAxisX->append(QPointF(m_pUi->xmin->value(),0));
+    m_pAxisX->append(QPointF(m_pUi->xmax->value(),0));
     m_pAxisY->append(QPointF(0, m_pUi->ymin->value()));
     m_pAxisY->append(QPointF(0, m_pUi->ymax->value()));
     m_pAxisX->setPointLabelsVisible(true);
@@ -464,6 +466,19 @@ void Plotter::on_ymax_valueChanged(const QString &arg1)
     }
 }
 
+void Plotter::SetCursor(QPointF point)
+{
+    m_pCursor->clear();
+    m_pCursor->setColor("red");
+    m_pCursor->setMarkerShape(QScatterSeries::MarkerShapeCircle);
+    m_pCursor->setMarkerSize(8);
+    m_pCursor->setBorderColor("red");
+    m_pCursor->attachAxis(m_pValueAxisY);
+    m_pCursor->attachAxis(m_pValueAxisX);
+    m_pCursor->append(point);
+    m_pChart->update(m_pUi->graphicsView->rect());
+    m_pScene->update(m_pScene->sceneRect());
+}
 
 void Plotter::on_cur_val_slider_valueChanged(int value)
 {
@@ -472,6 +487,7 @@ void Plotter::on_cur_val_slider_valueChanged(int value)
         m_pUi->value_x_in_point->setText(QString::number(m_Result[value].x(),10,2));
         m_pUi->func->setText(QString::number(m_Result[value].y(),10,m_Prec));
     }
+    //SetCursor(m_Result[value]);
 }
 
 void Plotter::on_precision_Fx_valueChanged(int value)
