@@ -352,7 +352,7 @@ void Plotter::ConfigureGraph()
     div=ceil( abs(m_pUi->ymax->value()))/5 ;
     for(int LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
     {
-        m_pAxisY->append(QPointF(LabelPoint,0));
+        m_pAxisY->append(QPointF(0,LabelPoint));
     }
 
     m_pAxisX->append(QPointF(m_pUi->xmin->value(),0));
@@ -468,7 +468,7 @@ void Plotter::SetCursor(QPointF point)
     m_pCursor->attachAxis(m_pValueAxisY);
     m_pCursor->attachAxis(m_pValueAxisX);
     m_pCursor->append(point);
-
+    m_pCursor->show();
     m_pChart->update(m_pUi->graphicsView->rect());
     m_pScene->update(m_pScene->sceneRect());
 }
