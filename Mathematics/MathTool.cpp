@@ -37,7 +37,7 @@ void CancFrac( int &n, int &d )
   if( d == 0 )
     {
     if( !s_CalcOnly )
-      throw ErrParser( X_Str( "INFVAL", "Result is infinity" ), peInfinity );
+    s_LastError="INFVAL";
     s_GlobalInvalid = true;
     s_CheckError = true;
     n = sc_NumError;
@@ -805,7 +805,11 @@ double PowerF( double x, int n, int d )
     pow *= x;
 
   if( abs( d ) % 2 == 0 && pow < 0 )
-    throw  X_Str( "MArgRootLess0", "Negative arg of root!" );
+  {
+      s_LastError="MArgRootLess0";
+      s_GlobalInvalid=true;
+      return 0;
+  }
 
   if( n*d < 0 )
     pow = 1 / pow;

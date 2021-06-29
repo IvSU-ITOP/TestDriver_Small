@@ -13,10 +13,10 @@ class SettingsChart
 public:
     bool isChange = false;
     QColor Background,BackgroundGraph,BreakPointColor;
-    QColor GraphColor,GridLine, AxisColorX,AxisColorY;
+    QColor GraphColor,AxisColorX,AxisColorY;
     QFont GraphFont,FontAxisX,FontAxisY;
-    int ThinknessAxisX{3},ThinknessAxisY{3},Thinkness{3},ThinknessBreakPoint{5};
-
+    int ThinknessAxisX{3},ThinknessAxisY{3},ThinknessGraph{5},ThinknessBreakPoint{8};
+    QPen GraphPen;
     void clear();
 };
 

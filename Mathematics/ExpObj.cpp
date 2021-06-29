@@ -15,6 +15,7 @@
 
 extern ExpStore s_ExpStore;
 
+
 double TExpr::sm_Accuracy = 0.01;
 double TExpr::sm_Precision = 0.0000000001;
 bool TExpr::sm_FullReduce = false;
@@ -1171,14 +1172,14 @@ MathExpr TFunc::Reduce() const
     }
   if( m_Name == "ln" )
     {
-    if( V <= 0 ) throw ErrParser( X_Str( "MArgLgLess0", "Argument <= 0!" ), peNoSolv );
+    if( V <= 0 ){ s_LastError="MArgLnLess0"; return Ethis; }
     if( s_NoLogReduce && arg_Reduced.Cons_int( N ) ) return Ethis;
     return new TConstant( log( V ) );
     }
 
   if( m_Name == "lg" )
     {
-    if( V <= 0 ) throw ErrParser( X_Str( "MArgLgLess0", "Argument <= 0!" ), peNoSolv );
+    if( V <= 0 ){ s_LastError="MArgLgLess0"; return Ethis; }
     if( s_NoLogReduce && arg_Reduced.Cons_int( N ) ) return Ethis;
     return new TConstant( log10( V ) );
     }
@@ -3528,12 +3529,12 @@ MathExpr TSimpleFrac::Reduce() const
   int N = m_Nom;
   int D = m_Denom;
 
-  if( sm_FullReduce )
-    return Constant( (double) N / D ) ;
-
   CancFrac( N, D );
   if( s_CheckError )
     return Ethis;
+
+  if( sm_FullReduce)
+    return Constant( (double) N / D ) ;
 
   if( N == 0 )
     return Constant( 0 );
@@ -3546,7 +3547,8 @@ MathExpr TSimpleFrac::Reduce() const
     N = -N;
     D = -D;
     }
-  return GenerateFraction( N, D );
+
+  return GenerateFraction( N, D );  
   }
 
 MathExpr TSimpleFrac::Diff( const QByteArray& d )

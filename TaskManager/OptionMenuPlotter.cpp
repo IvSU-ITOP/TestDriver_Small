@@ -37,7 +37,6 @@ void OptionMenuPlotter::on_select_color_btn_clicked()
                 case 0:{ChartToSet.Background=color;break;}
                 case 1:{ChartToSet.BackgroundGraph=color;break;}
                 case 2:{ChartToSet.GraphColor=color;break;}
-                case 3:{ChartToSet.GridLine=color;break;}
                 case 4:{ChartToSet.BreakPointColor=color;break;}
                 case 5:{ChartToSet.AxisColorX=color;break;}
                 case 6:{ChartToSet.AxisColorY=color;break;}
@@ -80,17 +79,17 @@ void OptionMenuPlotter::on_thinkness_valueChanged(const QString &arg1)
     case 4:{ChartToSet.ThinknessBreakPoint=arg1.toInt();break;}
     case 5:{ChartToSet.ThinknessAxisX=arg1.toInt();break;}
     case 6:{ChartToSet.ThinknessAxisY=arg1.toInt();break;}
-    default: {ChartToSet.Thinkness=arg1.toInt(); break;}
+    default: {ChartToSet.ThinknessGraph=arg1.toInt(); break;}
     }
 }
 
 void SettingsChart::clear()
 {
     isChange=false;
-    Thinkness=3;
+    ThinknessGraph=3;
     ThinknessAxisX=1;
     ThinknessAxisY=1;
-    ThinknessBreakPoint=5;
+    ThinknessBreakPoint=8;
     Background=QColor("white");
     BackgroundGraph=QColor("white");
     BreakPointColor=QColor("red");
@@ -100,7 +99,8 @@ void SettingsChart::clear()
     GraphFont=QFont("Arial",8);
     FontAxisX=QFont("Arial",8,5);
     FontAxisY=QFont("Arial",8,5);
-    GridLine=QColor("Grey");
+    GraphPen.setColor(GraphColor);
+    GraphPen.setWidth(ThinknessGraph);
 }
 
 void OptionMenuPlotter::on_object_to_set_currentIndexChanged(int index)
@@ -117,7 +117,6 @@ void OptionMenuPlotter::on_object_to_set_currentIndexChanged(int index)
         ui->font->setText("Font of title Graph");
         break;
         }
-        case 3:{ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.GridLine));break;}
         case 4:
         {
         ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.BreakPointColor));

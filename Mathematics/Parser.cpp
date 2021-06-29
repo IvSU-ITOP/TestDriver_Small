@@ -68,16 +68,22 @@ QByteArray Parser::UnpackUnAscii( const QByteArray& ASource )
 
 ErrParser::ErrParser( const QString& Message, ParserErr Error ) : m_ErrStatus( Error ), m_Message( Message )
   {
-  char *MsgErrParserName[] = { "MsyntaxErr", "MIncrctName", "MNullPtr", "MNoOpnBrckt",
+  QVector <QByteArray> MsgErrParserName = { "MsyntaxErr", "MIncrctName", "MNullPtr", "MNoOpnBrckt",
     "MNoClsBrckt", "MIncrctDegree", "MUnknwnMult",
     "MInadmOper", "MInadmFunc", "MNoSolutions", "MNoSolvType", "MUnaptMethod", "MCanNotExpand", "MNewErr" };
   s_TruePolynom = false;
   s_Precision = s_OldPrecision;
   if( s_bSuppressErrorMsg ) return;
-  if( Error < sizeof( MsgErrParserName ) / sizeof( char* ) )
+  if( Error < MsgErrParserName.length() )
+   {
     m_MsgName = MsgErrParserName[Error];
-  else
-    m_MsgName = "MNotDefinePrsrErr";
+    this->Message();
+   }
+    else
+   {
+   m_MsgName = "MNotDefinePrsrErr";
+   this->ShowMessage();
+   }
   }
 
 QByteArray ErrParser::Message()
