@@ -10,18 +10,37 @@ Plotter::Plotter(QObject *parent)
       m_pUi->setupUi(this);
       m_pUi->PlotterWidget->setContextMenuPolicy(Qt::CustomContextMenu);
       m_pScene=new QGraphicsScene(m_pUi->graphicsView);
+
+      connect(m_pUi->PlotterWidget, &QWidget::customContextMenuRequested, this, &Plotter::on_ContextMenuCall);
+
       m_pUi->value_x_in_point->setText( QString::number( m_pUi->cur_val_slider->value() ) );
       m_pUi->cur_val_slider->setMinimum(0);
       m_pUi->cur_val_slider->setMaximum(10);
-
-      m_pUi->xmin->setValue(-10);
-      m_pUi->xmax->setValue(10);
       m_pUi->xmin->setMinimum(-100);
       m_pUi->xmax->setMaximum(100);
       m_pUi->ymin->setMinimum(-1000);
       m_pUi->ymax->setMaximum(1000);
 
-      connect(m_pUi->PlotterWidget, &QWidget::customContextMenuRequested, this, &Plotter::on_ContextMenuCall);
+      m_pValueAxisX->setRange(m_pUi->xmin->value(),m_pUi->xmax->value());
+      m_pValueAxisY->setRange(floor(m_YStart), ceil(m_YEnd) );
+      m_pValueAxisX->setTitleText("Axis x");
+      m_pValueAxisY->setTitleText("Axis y");
+      m_pValueAxisX->setTickCount(20);
+      m_pValueAxisY->setTickCount(20);
+      m_pValueAxisX->applyNiceNumbers();
+      m_pValueAxisY->applyNiceNumbers();
+
+      m_pAxisX->setPen(m_Pen);
+      m_pAxisY->setPen(m_Pen);
+      m_pAxisX->attachAxis(m_pValueAxisX);
+      m_pAxisY->attachAxis(m_pValueAxisY);
+
+      m_pSeriesBreakPoint->setColor("red");
+      m_pSeriesBreakPoint->setMarkerShape(QScatterSeries::MarkerShapeCircle);
+      m_pSeriesBreakPoint->setMarkerSize(8);
+      m_pSeriesBreakPoint->setBorderColor("red");
+      m_pSeriesBreakPoint->attachAxis(m_pValueAxisY);
+      m_pSeriesBreakPoint->attachAxis(m_pValueAxisX);
 
       QColor color_pen("black");
       m_Pen.setColor(color_pen);
@@ -240,12 +259,6 @@ bool Plotter::Plot(QByteArray Formula)
       m_pUi->ymax->setValue( ceil(m_YEnd) );
       m_NeedReCalc=true;
 
-      m_pAxisX->append(QPointF(m_pUi->xmin->value(),0));
-      m_pAxisX->append(QPointF(m_pUi->xmax->value(),0));
-      m_pAxisY->append(QPointF(0, m_pUi->ymin->value()));
-      m_pAxisY->append(QPointF(0, m_pUi->ymax->value()));
-
-
       m_Pen.setWidth(3);
       if(!m_BreakPoints.isEmpty())
       {
@@ -292,52 +305,22 @@ bool Plotter::Plot(QByteArray Formula)
         {
         m_pSeriesBreakPoint->append(m_BreakPoints[i]);
         }
-        m_pSeriesBreakPoint->attachAxis(m_pValueAxisY);
-        m_pSeriesBreakPoint->setColor("red");
-        m_pSeriesBreakPoint->setMarkerShape(QScatterSeries::MarkerShapeCircle);
-        m_pSeriesBreakPoint->setMarkerSize(8);
-        m_pSeriesBreakPoint->setBorderColor("red");
-        m_pSeriesBreakPoint->attachAxis(m_pValueAxisY);
-        m_pSeriesBreakPoint->attachAxis(m_pValueAxisX);
-        m_pChart->addSeries(m_pSeriesBreakPoint);
 
-        m_pAxisX->setPen(m_Pen);
-        m_pAxisY->setPen(m_Pen);
-        m_pAxisX->attachAxis(m_pValueAxisX);
-        m_pAxisY->attachAxis(m_pValueAxisY);
+        m_pChart->addSeries(m_pSeriesBreakPoint);
         m_pChart->addSeries(m_pAxisX);
         m_pChart->addSeries(m_pAxisY);
-
-        m_pValueAxisX->setLinePen(QPen(QColor("Grey")));
-        m_pValueAxisY->setLinePen(QPen(QColor("Grey")));
-        m_pValueAxisX->setGridLineColor(QColor("Grey"));
-        m_pValueAxisY->setGridLineColor(QColor("Grey"));
-
-        m_pValueAxisX->setRange(m_pUi->xmin->value(),m_pUi->xmax->value());
-        m_pValueAxisY->setRange(floor(m_YStart), ceil(m_YEnd) );
-
-        m_pValueAxisX->setTitleText("Axis x");
-        m_pValueAxisX->setLabelsVisible(true);
-
-        m_pValueAxisY->setTitleText("Axis y");
-        m_pValueAxisY->setLabelsVisible(true);
-
-        m_pValueAxisX->setTickCount(20);
-        m_pValueAxisY->setTickCount(20);
-        m_pValueAxisX->applyNiceNumbers();
-        m_pValueAxisY->applyNiceNumbers();
-
+        m_pChart->addSeries(m_pCursor);
         m_pChart->setTitle(m_Formula);
+        m_pChart->setGeometry( m_pUi->graphicsView->rect());
         m_pChart->createDefaultAxes();
         m_pChart->axisX()->hide();
         m_pChart->axisY()->hide();
         m_pChart->addAxis(m_pValueAxisX,Qt::AlignBottom);
         m_pChart->addAxis(m_pValueAxisY,Qt::AlignLeft);
+
         on_HideGrid();
 
-        m_pChart->setGeometry( m_pUi->graphicsView->rect());
         m_pScene->addItem(m_pChart);
-
         m_pUi->graphicsView->setScene(m_pScene);
 
         ConfigureGraph();
@@ -354,21 +337,27 @@ void Plotter::ReCalculate()
 
 void Plotter::ConfigureGraph()
 {
-   m_pAxisX->clear();
+    m_pAxisX->clear();
     m_pAxisY->clear();
 
-   /* int div=10;
-    //int div=ceil( abs(m_pUi->xmax->value())/10 ); //IT IS BREAKING
-    for(int LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value();LabelPoint+=div)
+    int div=ceil( abs(m_pUi->xmax->value()))/5 ;
+    for(int LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value() && div!=0;LabelPoint+=div)
     {
         m_pAxisX->append(QPointF(LabelPoint,0));
-    }*/
+    }
+
+    div=ceil( abs(m_pUi->ymax->value()))/5 ;
+    for(int LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
+    {
+        m_pAxisY->append(QPointF(LabelPoint,0));
+    }
 
     m_pAxisX->append(QPointF(m_pUi->xmin->value(),0));
     m_pAxisX->append(QPointF(m_pUi->xmax->value(),0));
     m_pAxisY->append(QPointF(0, m_pUi->ymin->value()));
     m_pAxisY->append(QPointF(0, m_pUi->ymax->value()));
     m_pAxisX->setPointLabelsVisible(true);
+    m_pAxisY->setPointLabelsVisible(true);
 
     if(!m_BreakPoints.isEmpty())
     {
@@ -469,13 +458,14 @@ void Plotter::on_ymax_valueChanged(const QString &arg1)
 void Plotter::SetCursor(QPointF point)
 {
     m_pCursor->clear();
-    m_pCursor->setColor("red");
-    m_pCursor->setMarkerShape(QScatterSeries::MarkerShapeCircle);
-    m_pCursor->setMarkerSize(8);
-    m_pCursor->setBorderColor("red");
+    m_pCursor->setColor("blue");
+    m_pCursor->setMarkerShape(QScatterSeries::MarkerShapeRectangle);
+    m_pCursor->setMarkerSize(5);
+    m_pCursor->setBorderColor("blue");
     m_pCursor->attachAxis(m_pValueAxisY);
     m_pCursor->attachAxis(m_pValueAxisX);
     m_pCursor->append(point);
+
     m_pChart->update(m_pUi->graphicsView->rect());
     m_pScene->update(m_pScene->sceneRect());
 }
@@ -486,8 +476,8 @@ void Plotter::on_cur_val_slider_valueChanged(int value)
     {
         m_pUi->value_x_in_point->setText(QString::number(m_Result[value].x(),10,2));
         m_pUi->func->setText(QString::number(m_Result[value].y(),10,m_Prec));
+        SetCursor(m_Result[value]);
     }
-    //SetCursor(m_Result[value]);
 }
 
 void Plotter::on_precision_Fx_valueChanged(int value)
@@ -512,20 +502,17 @@ void Plotter::on_ContextMenuCall(QPoint val)
        QAction *hide_numbers = new QAction("Hide numbers", this);
        QAction *hide_names = new QAction("Hide names of axis", this);
        QAction *save_graph = new QAction("Save graph as PNG", this);
-      // QAction *hide_grid = new QAction("Hide gridline", this);
        QAction *hide_legend = new QAction("Hide chart legend", this);
 
        connect(hide_numbers, SIGNAL(triggered()), this, SLOT(on_HideNumbers()));
        connect(hide_names, SIGNAL(triggered()), this, SLOT(on_HideNames()));
        connect(save_graph, SIGNAL(triggered()), this, SLOT(on_SaveGraph()));
        connect(options, SIGNAL(triggered()), this, SLOT(on_Options()));
-      // connect(hide_grid, SIGNAL(triggered()), this, SLOT(on_HideGrid()));
        connect(hide_legend, SIGNAL(triggered()), this, SLOT(on_HideLegend()));
 
        menu->addAction(options);
        menu->addAction(hide_numbers);
        menu->addAction(hide_names);
-       //menu->addAction(hide_grid);
        menu->addAction(hide_legend);
        menu->addAction(save_graph);
 
