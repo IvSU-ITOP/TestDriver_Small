@@ -24,8 +24,8 @@ Plotter::Plotter(QObject *parent)
 
       m_pValueAxisX->setRange(m_pUi->xmin->value(),m_pUi->xmax->value());
       m_pValueAxisY->setRange(floor(m_YStart), ceil(m_YEnd) );
-      m_pValueAxisX->setTitleText("Axis x");
-      m_pValueAxisY->setTitleText("Axis y");
+      m_pValueAxisX->setTitleText("Y");
+      m_pValueAxisY->setTitleText("X");
       m_pValueAxisX->setTickCount(20);
       m_pValueAxisY->setTickCount(20);
       m_pValueAxisX->applyNiceNumbers();
@@ -36,16 +36,33 @@ Plotter::Plotter(QObject *parent)
       m_pAxisX->attachAxis(m_pValueAxisX);
       m_pAxisY->attachAxis(m_pValueAxisY);
 
-      m_pSeriesBreakPoint->setColor("red");
+      m_pSeriesBreakPoint->setColor("white");
       m_pSeriesBreakPoint->setMarkerShape(QScatterSeries::MarkerShapeCircle);
       m_pSeriesBreakPoint->setMarkerSize(8);
       m_pSeriesBreakPoint->setBorderColor("red");
       m_pSeriesBreakPoint->attachAxis(m_pValueAxisY);
       m_pSeriesBreakPoint->attachAxis(m_pValueAxisX);
 
+      QImage star(5, 30, QImage::Format_ARGB32);
+      star.fill(Qt::transparent);
+      QPainter painter(&star);
+      painter.setRenderHint(QPainter::Antialiasing);
+      painter.setPen(QColor("black"));
+      painter.setBrush(painter.pen().color());
+      m_pSeriesLabelPoints->setBrush(star);
+      m_pSeriesLabelPoints->setColor("black");
+      m_pSeriesLabelPoints->setMarkerShape(QScatterSeries::MarkerShapeRectangle);
+      m_pSeriesLabelPoints->setMarkerSize(8);
+      m_pSeriesLabelPoints->setBorderColor("black");
+      m_pSeriesLabelPoints->attachAxis(m_pValueAxisY);
+      m_pSeriesLabelPoints->attachAxis(m_pValueAxisX);
+
       QColor color_pen("black");
       m_Pen.setColor(color_pen);
       m_pSeries0->setUseOpenGL(true);// May make some trouble
+      m_pSeriesBreakPoint->setUseOpenGL(true);
+      m_pSeriesCursor->setUseOpenGL(true);
+      m_pSeriesLabelPoints->setUseOpenGL(true);
   }
 
 
@@ -192,7 +209,7 @@ QVector <QPointF> Plotter::CalculatePoint()
     DomainFunction(m_Formula,X_start,X_end,X_step);
     number_of_breakpoints.clear();
 
-    for( double X = X_start; ceil(X) < X_end; X += X_step)
+    for( double X = X_start; ceil(X) <= X_end; X += X_step)
        {
            if(fabs(X) < 0.5 * X_step )
            {
@@ -284,6 +301,7 @@ bool Plotter::Plot(QByteArray Formula)
                       j++;
                   }
               }
+              m_Series[i]->setUseOpenGL(true);
               m_Series[i]->setPen(m_Pen);
               m_Series[i]->attachAxis(m_pValueAxisY);
               m_Series[i]->attachAxis(m_pValueAxisX);
@@ -310,7 +328,8 @@ bool Plotter::Plot(QByteArray Formula)
         m_pChart->addSeries(m_pSeriesBreakPoint);
         m_pChart->addSeries(m_pAxisX);
         m_pChart->addSeries(m_pAxisY);
-        m_pChart->addSeries(m_pCursor);
+        m_pChart->addSeries(m_pSeriesLabelPoints);
+        m_pChart->addSeries(m_pSeriesCursor);
         m_pChart->setTitle(m_Formula);
         m_pChart->setGeometry( m_pUi->graphicsView->rect());
         m_pChart->createDefaultAxes();
@@ -318,8 +337,11 @@ bool Plotter::Plot(QByteArray Formula)
         m_pChart->axisY()->hide();
         m_pChart->addAxis(m_pValueAxisX,Qt::AlignBottom);
         m_pChart->addAxis(m_pValueAxisY,Qt::AlignLeft);
-
         on_HideGrid();
+        on_HideNumbers();
+        on_HideLegend();
+        m_pValueAxisX->setLabelsVisible(false);
+        m_pValueAxisY->setLabelsVisible(false);
 
         m_pScene->addItem(m_pChart);
         m_pUi->graphicsView->setScene(m_pScene);
@@ -341,26 +363,32 @@ void Plotter::ConfigureGraph()
     m_pAxisX->clear();
     m_pAxisY->clear();
     m_pLabelCursor->hide();
-    m_pCursor->hide();
+    m_pSeriesCursor->hide();
+    m_pSeriesLabelPoints->clear();
 
-    int div=ceil( abs(m_pUi->xmax->value()))/5 ;
+    int div=ceil( abs(m_pUi->xmin->value())+abs(m_pUi->xmax->value()))/10 ;
     for(int LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value() && div!=0;LabelPoint+=div)
     {
         m_pAxisX->append(QPointF(LabelPoint,0));
+        m_pSeriesLabelPoints->append(QPointF(LabelPoint,0));
     }
 
-    div=ceil( abs(m_pUi->ymax->value()))/5 ;
+    div=ceil( abs(m_pUi->ymin->value())+abs(m_pUi->ymax->value()))/10 ;
     for(int LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
     {
         m_pAxisY->append(QPointF(0,LabelPoint));
+        m_pSeriesLabelPoints->append(QPointF(0,LabelPoint));
     }
 
-    m_pAxisX->append(QPointF(m_pUi->xmin->value(),0));
-    m_pAxisX->append(QPointF(m_pUi->xmax->value(),0));
-    m_pAxisY->append(QPointF(0, m_pUi->ymin->value()));
-    m_pAxisY->append(QPointF(0, m_pUi->ymax->value()));
+    m_pAxisX->append(0,0);
+    m_pAxisY->append(0,0);
+
     m_pAxisX->setPointLabelsVisible(true);
+    m_pAxisX->setPointLabelsColor(Qt::black);
+    m_pAxisX->setPointLabelsFormat("@xPoint");
     m_pAxisY->setPointLabelsVisible(true);
+    m_pAxisY->setPointLabelsColor(Qt::black);
+    m_pAxisY->setPointLabelsFormat("@yPoint");
 
     if(!m_BreakPoints.isEmpty())
     {
@@ -386,6 +414,7 @@ void Plotter::ConfigureGraph()
                      j++;
                  }
              }
+             m_Series[i]->setUseOpenGL(true);
             m_Series[i]->replace(TempResult);
             TempResult.clear();
             m_Series[i]->setPen(m_Pen);
@@ -460,15 +489,15 @@ void Plotter::on_ymax_valueChanged(const QString &arg1)
 
 void Plotter::SetCursor(QPointF point)
 {
-    m_pCursor->clear();
-    m_pCursor->setColor("blue");
-    m_pCursor->setMarkerShape(QScatterSeries::MarkerShapeRectangle);
-    m_pCursor->setMarkerSize(5);
-    m_pCursor->setBorderColor("blue");
-    m_pCursor->attachAxis(m_pValueAxisY);
-    m_pCursor->attachAxis(m_pValueAxisX);
-    m_pCursor->append(point);
-    m_pCursor->show();
+    m_pSeriesCursor->clear();
+    m_pSeriesCursor->setColor("blue");
+    m_pSeriesCursor->setMarkerShape(QScatterSeries::MarkerShapeRectangle);
+    m_pSeriesCursor->setMarkerSize(5);
+    m_pSeriesCursor->setBorderColor("blue");
+    m_pSeriesCursor->attachAxis(m_pValueAxisY);
+    m_pSeriesCursor->attachAxis(m_pValueAxisX);
+    m_pSeriesCursor->append(point);
+    m_pSeriesCursor->show();
     m_pChart->update(m_pUi->graphicsView->rect());
     m_pScene->update(m_pScene->sceneRect());
 }
@@ -507,23 +536,17 @@ void Plotter::on_ContextMenuCall(QPoint val)
 {
        QMenu * menu = new QMenu(this);
 
-       QAction *options = new QAction("Options", this);
-       QAction *hide_numbers = new QAction("Hide numbers", this);
-       QAction *hide_names = new QAction("Hide names of axis", this);
-       QAction *save_graph = new QAction("Save graph as PNG", this);
-       QAction *hide_legend = new QAction("Hide chart legend", this);
+       connect(m_pHideNumbers, SIGNAL(triggered()), this, SLOT(on_HideNumbers()));
+       connect(m_pHideNames, SIGNAL(triggered()), this, SLOT(on_HideNames()));
+       connect(m_pSaveGraph, SIGNAL(triggered()), this, SLOT(on_SaveGraph()));
+       connect(m_pOptions, SIGNAL(triggered()), this, SLOT(on_Options()));
+       connect(m_pHideLegend, SIGNAL(triggered()), this, SLOT(on_HideLegend()));
 
-       connect(hide_numbers, SIGNAL(triggered()), this, SLOT(on_HideNumbers()));
-       connect(hide_names, SIGNAL(triggered()), this, SLOT(on_HideNames()));
-       connect(save_graph, SIGNAL(triggered()), this, SLOT(on_SaveGraph()));
-       connect(options, SIGNAL(triggered()), this, SLOT(on_Options()));
-       connect(hide_legend, SIGNAL(triggered()), this, SLOT(on_HideLegend()));
-
-       menu->addAction(options);
-       menu->addAction(hide_numbers);
-       menu->addAction(hide_names);
-       menu->addAction(hide_legend);
-       menu->addAction(save_graph);
+       menu->addAction(m_pOptions);
+       menu->addAction(m_pHideNumbers);
+       menu->addAction(m_pHideNames);
+       menu->addAction(m_pHideLegend);
+       menu->addAction(m_pSaveGraph);
 
        menu->popup(m_pUi->PlotterWidget->mapToGlobal(val));
 }
@@ -532,16 +555,19 @@ void Plotter::on_HideNumbers()
 {
     if(m_NumberAxisIsHidden)
     {
-        m_pValueAxisX->setLabelsVisible(false);
-        m_pValueAxisY->setLabelsVisible(false);
+        m_pAxisX->setPointLabelsVisible(false);
+        m_pAxisY->setPointLabelsVisible(false);
         m_NumberAxisIsHidden=false;
+        m_pHideNumbers->setText("Show numbers");
     }
     else
     {
-        m_pValueAxisX->setLabelsVisible(true);
-        m_pValueAxisY->setLabelsVisible(true);
+        m_pAxisX->setPointLabelsVisible(true);
+        m_pAxisY->setPointLabelsVisible(true);
         m_NumberAxisIsHidden=true;
+        m_pHideNumbers->setText("Hide numbers");
     }
+    m_pScene->update(m_pScene->sceneRect());
 }
 
 void Plotter::on_HideNames()
@@ -551,12 +577,14 @@ void Plotter::on_HideNames()
         m_pValueAxisX->setTitleText("");
         m_pValueAxisY->setTitleText("");
         m_NamesAxisIsHidden=false;
+        m_pHideNames->setText("Show names of Axis");
     }
     else
     {
-        m_pValueAxisX->setTitleText("Axis x");
-        m_pValueAxisY->setTitleText("Axis y");
+        m_pValueAxisX->setTitleText("Y");
+        m_pValueAxisY->setTitleText("X");
         m_NamesAxisIsHidden=true;
+        m_pHideNames->setText("Hide names of Axis");
     }
     m_pScene->update(m_pScene->sceneRect());
 }

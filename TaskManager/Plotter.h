@@ -2,6 +2,7 @@
 #define PLOTTER_H
 
 #include "OptionMenuPlotter.h"
+#include <QAction>
 #include <QMainWindow>
 #include <QtCharts/QChartView>
 #include <QtCharts/QLineSeries>
@@ -27,7 +28,8 @@ class Plotter : public QMainWindow
     QLineSeries *m_pAxisX=new QLineSeries;
     QLineSeries *m_pAxisY=new QLineSeries;
     QScatterSeries *m_pSeriesBreakPoint = new QScatterSeries;
-    QScatterSeries *m_pCursor = new QScatterSeries;
+    QScatterSeries *m_pSeriesCursor = new QScatterSeries;
+    QScatterSeries *m_pSeriesLabelPoints = new QScatterSeries;
     QValueAxis *m_pValueAxisX = new QValueAxis;
     QValueAxis *m_pValueAxisY = new QValueAxis;
     QGraphicsScene *m_pScene = nullptr;
@@ -35,6 +37,12 @@ class Plotter : public QMainWindow
     Callout *m_pLabelCursor = new Callout(m_pChart);
     OptionMenuPlotter *m_pPlotterMenu=new OptionMenuPlotter(10,nullptr);
     SettingsChart* m_pMainChart=nullptr;
+
+    QAction *m_pOptions = new QAction("Options", this);
+    QAction *m_pHideNumbers = new QAction("Hide numbers", this);
+    QAction *m_pHideNames = new QAction("Hide names of axis", this);
+    QAction *m_pSaveGraph = new QAction("Save graph as PNG", this);
+    QAction *m_pHideLegend = new QAction("Hide chart legend", this);
 
     QVector<QPointF> m_Result{};
     QVector <double> m_BadPoints{};
