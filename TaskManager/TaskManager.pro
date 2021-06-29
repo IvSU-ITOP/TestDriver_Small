@@ -30,6 +30,7 @@ SOURCES += \
         TaskWork.cpp \
         WinTesting.cpp \
         XPressTests.cpp \
+        callout.cpp \
         main.cpp \
         Plotter.cpp
 
@@ -50,7 +51,8 @@ HEADERS += \
   TaskTools.h \
   TaskWork.h \
   WinTesting.h \
-  XPressTests.h
+  XPressTests.h \
+  callout.h
 
 INCLUDEPATH += $$PWD/../CommonWidgets
 DEPENDPATH += $$PWD/../CommonWidgets

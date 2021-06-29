@@ -1,4 +1,5 @@
 #include "Plotter.h"
+
 #include <OptionMenuPlotter.h>
 #include <Parser.h>
 #include <ui_Plotter.h>
@@ -339,6 +340,8 @@ void Plotter::ConfigureGraph()
 {
     m_pAxisX->clear();
     m_pAxisY->clear();
+    m_pLabelCursor->hide();
+    m_pCursor->hide();
 
     int div=ceil( abs(m_pUi->xmax->value()))/5 ;
     for(int LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value() && div!=0;LabelPoint+=div)
@@ -477,6 +480,12 @@ void Plotter::on_cur_val_slider_valueChanged(int value)
         m_pUi->value_x_in_point->setText(QString::number(m_Result[value].x(),10,2));
         m_pUi->func->setText(QString::number(m_Result[value].y(),10,m_Prec));
         SetCursor(m_Result[value]);
+
+        m_pLabelCursor->setText(QString("X: %1 \nY: %2 ").arg(m_Result[value].x()).arg(m_Result[value].y()));
+        m_pLabelCursor->setAnchor(m_Result[value]);
+        m_pLabelCursor->setZValue(11);
+        m_pLabelCursor->updateGeometry();
+        m_pLabelCursor->show();
     }
 }
 

@@ -9,6 +9,7 @@
 #include <QtCharts/QScatterSeries>
 #include <QtCharts/QAreaSeries>
 #include <QtCharts/QValueAxis>
+#include "callout.h"
 
 using namespace QtCharts;
 
@@ -31,6 +32,7 @@ class Plotter : public QMainWindow
     QValueAxis *m_pValueAxisY = new QValueAxis;
     QGraphicsScene *m_pScene = nullptr;
     QChart *m_pChart = new QChart;
+    Callout *m_pLabelCursor = new Callout(m_pChart);
     OptionMenuPlotter *m_pPlotterMenu=new OptionMenuPlotter(10,nullptr);
     SettingsChart* m_pMainChart=nullptr;
 
