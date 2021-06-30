@@ -12,6 +12,7 @@ Plotter::Plotter(QObject *parent)
   m_pUi->PlotterWidget->setContextMenuPolicy(Qt::CustomContextMenu);
   m_pScene=new QGraphicsScene(m_pUi->graphicsView);
   connect(m_pUi->PlotterWidget, &QWidget::customContextMenuRequested, this, &Plotter::on_ContextMenuCall);
+  connect(m_pPlotterMenu,&OptionMenuPlotter::sendDataClass,this,&Plotter::on_SetChartSettings);
 
   m_pValueAxisX->setTitleText("X");
   m_pValueAxisY->setTitleText("Y");
@@ -73,7 +74,8 @@ QVector <QPointF> Plotter::CalculatePoint()
 
     Expr=Expr.SimplifyFull();
 
-    if(s_GlobalInvalid && s_LastError=="INFVAL" )m_BreakPoints.append(QPointF(X, Y));
+    if(s_GlobalInvalid && s_LastError=="INFVAL" )
+        m_BreakPoints.append(QPointF(X, Y));
 
     TConstant *pValue =CastPtr(TConstant, Expr);
     if(!(pValue==nullptr) && !s_GlobalInvalid)
@@ -287,8 +289,6 @@ void Plotter::on_SaveGraph()
 
 void Plotter::on_Options()
 {
-    OptionMenuPlotter *m_pPlotterMenu=new OptionMenuPlotter(10,nullptr);
-    connect(m_pPlotterMenu,&OptionMenuPlotter::sendDataClass,this,&Plotter::on_SetChartSettings);
     m_pPlotterMenu->setFixedSize(m_pPlotterMenu->size());
     m_pPlotterMenu->show();
     m_pMainChart=&(m_pPlotterMenu->ChartToSet);
@@ -312,7 +312,7 @@ void Plotter::on_SetChartSettings()
 {
     if(m_pMainChart!=nullptr && m_pMainChart->isChange)
     {
-       m_pSeriesBreakPoints->setColor(m_pMainChart->BreakPointColor);
+       m_pSeriesBreakPoints->setColor(m_pMainChart->BackgroundGraph);
        m_pSeriesBreakPoints->setBorderColor(m_pMainChart->BreakPointColor);
        m_pSeriesBreakPoints->setMarkerSize(m_pMainChart->ThinknessBreakPoint);
 

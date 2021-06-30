@@ -49,6 +49,8 @@ void OptionMenuPlotter::on_select_color_btn_clicked()
 
 void OptionMenuPlotter::on_ok_btn_clicked()
 {
+    ChartToSet.GraphPen.setWidth(ChartToSet.ThinknessGraph);
+    ChartToSet.GraphPen.setColor(ChartToSet.GraphColor);
     ChartToSet.isChange=true;
     emit sendDataClass();
     this->hide();

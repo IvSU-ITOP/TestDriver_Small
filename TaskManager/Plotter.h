@@ -31,8 +31,9 @@ class Plotter : public QMainWindow
     QChart *m_pChart = new QChart;
     QVector<QPointF> m_Result{};
     QVector<QPointF> m_BreakPoints{};
-    QByteArray m_Formula;
+    QByteArray m_Formula{};
     SettingsChart *m_pMainChart=new SettingsChart;
+    OptionMenuPlotter *m_pPlotterMenu=new OptionMenuPlotter(10,nullptr);
     Callout *m_pLabelCursor = new Callout(m_pChart);
     double m_YMin = 1.79769e+308, m_YMax = 2.22507e-308;
     int m_Prec = 1;
@@ -45,12 +46,6 @@ class Plotter : public QMainWindow
     void UpdateGraph();
     void SetCursor(QPointF point);
     QVector <QPointF> CalculatePoint();
-    void on_HideNumbers();
-    void on_HideNames();
-    void on_SaveGraph();
-    void on_Options();
-    void on_HideLegend();
-
 
 public:
      Plotter(QObject* parent=nullptr);
@@ -65,6 +60,11 @@ private slots:
      void on_xmax_valueChanged(const QString &arg1);
      void on_xmin_valueChanged(const QString &arg1);
      void on_ContextMenuCall(QPoint val);
+     void on_HideNumbers();
+     void on_HideNames();
+     void on_SaveGraph();
+     void on_Options();
+     void on_HideLegend();
 
 public slots:
      void on_SetChartSettings();

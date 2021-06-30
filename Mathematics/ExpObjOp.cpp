@@ -429,7 +429,9 @@ MathExpr TSubt::Reduce() const
     }
 
   opr1r = m_Operand1.Reduce();
+  if(s_GlobalInvalid)return Ethis;
   opr2r = m_Operand2.Reduce();
+  if(s_GlobalInvalid)return Ethis;
 
   if( s_IsLogEquation )
     {
@@ -1762,15 +1764,17 @@ MathExpr TDivi::Reduce() const
 
   if( sm_FullReduce && opr1.Constan( Value1 ) && opr2.Constan( Value2 ) )
     {
-    double A2 = fabs(Value2);
-    if( A2 > sm_Precision )
-      return Constant( Value1 / Value2 );
-    double A1 = fabs(Value1);
-    if(A1 < sm_Precision)
-      return MathExpr( new TConstant(1, true) );
-    Error_m( X_Str( "MDivisBy0", "Division by 0!" ) );
-    s_GlobalInvalid = true;
-    return Ethis;
+        double A2 = fabs(Value2);
+        if( A2 > sm_Precision )
+          return Constant( Value1 / Value2 );
+        double A1 = fabs(Value1);
+        if(A1 < sm_Precision)
+        {
+          s_GlobalInvalid = true;
+          s_LastError="INFVAL";
+          return MathExpr( new TConstant(1, true) );
+        }
+        return Ethis;
     }
 
   if( s_FractionToPower )

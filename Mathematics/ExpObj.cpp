@@ -3024,6 +3024,10 @@ MathExpr TPowr::Reduce() const
   if( opr2.Constan( Value1 ) && abs( Value1 ) < 0.0000001 )
     return Constant( 1 );
 
+  //
+  if(this->m_Name == '^' && opr1.Constan( Value1 ) && abs( Value1 )==0 && opr2.Constan( Value2 ) &&  Value2<0)
+  {s_LastError="INFVAL"; s_GlobalInvalid=true; return Ethis;}
+
   if( opr1.Constan( Value1 ) && abs( Value1 ) < 0.0000001 )
     return Constant( 0 );
 
@@ -4726,8 +4730,10 @@ MathExpr TLog::Reduce() const
   if( basis1.Constan( r ) && ( r <= 0 || r == 1 ) )
     {
     s_LastError = X_Str( "MBasisLog", "basis>0 and basis <> 1 " );
-    throw  ErrParser( s_LastError.toLocal8Bit(), peNewErr );
-    }
+    //throw  ErrParser( s_LastError.toLocal8Bit(), peNewErr );
+    s_GlobalInvalid=1;
+    return Ethis;
+  }
 
   if( arg1.Power( op1, op2 ) && !s_IsLogEquation && !s_NoLogSquarReduce )
     {
@@ -4748,8 +4754,8 @@ MathExpr TLog::Reduce() const
     {
     if( a < 0.0000001 || b < 0.0000001 || abs( b - 1 ) < 0.0000001 )
       {
-      s_LastError = X_Str( "MArgLgLess0", "Argument <= 0!" );
-      throw ErrParser( "No Solutions!", peNoSolv );
+      s_GlobalInvalid=1;
+      return Ethis;
       }
     r = log( a ) / log( b );
     return END( GetResult() );
