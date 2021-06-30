@@ -4769,8 +4769,11 @@ MathExpr TLog::Reduce() const
     if( ( abs( b - 1 ) < 0.0000001 ) )
       {
       s_LastError = X_Str( "MArgLgLess0", "Argument <= 0!" );
-      throw ErrParser( "No Solutions!", peNoSolv );
+      s_GlobalInvalid=1;
+      return Ethis;
+      //throw ErrParser( "No Solutions!", peNoSolv );
       }
+    if(s_GlobalInvalid)return Ethis;
     r = ( log( nom2 ) - log( den2 ) ) / log( b );
     return END( GetResult() );
     }
@@ -4779,9 +4782,13 @@ MathExpr TLog::Reduce() const
     {
     if( ( abs( nom1 - den1 ) < 0.0000001 ) )
       {
-      s_LastError = X_Str( "MArgLgLess0", "Argument <= 0!" );
-      throw  ErrParser( "No Solutions!", peNoSolv );
+      //s_LastError = X_Str( "MArgLgLess0", "Argument <= 0!" );
+      //throw  ErrParser( "No Solutions!", peNoSolv );
+        s_LastError = "INFVAL";
+        s_GlobalInvalid=1;
+        return Ethis;
       }
+    if(s_GlobalInvalid)return Ethis;
     r = log( a ) / ( log( nom1 ) - log( den1 ) );
     return END( GetResult() );
     }
@@ -4790,9 +4797,13 @@ MathExpr TLog::Reduce() const
     {
     if( ( abs( nom1 - den1 ) < 0.0000001 ) )
       {
-      s_LastError = X_Str( "MArgLgLess0", "Argument <= 0!" );
-      throw  ErrParser( "No Solutions!", peNoSolv );
+      //s_LastError = X_Str( "MArgLgLess0", "Argument <= 0!" );
+      //throw  ErrParser( "No Solutions!", peNoSolv );
+      s_LastError = "INFVAL";
+      s_GlobalInvalid=1;
+      return Ethis;
       }
+    if(s_GlobalInvalid)return Ethis;
     r = ( log( nom2 ) - log( den2 ) ) / ( log( nom1 ) - log( den1 ) );
     return END( GetResult() );
     }

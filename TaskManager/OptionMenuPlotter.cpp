@@ -88,8 +88,8 @@ void OptionMenuPlotter::on_thinkness_valueChanged(const QString &arg1)
 void SettingsChart::clear()
 {
     isChange=false;
-    ThinknessAxisX=1;
-    ThinknessAxisY=1;
+    ThinknessAxisX=2;
+    ThinknessAxisY=2;
     ThinknessBreakPoint=8;
     ThinknessGraph=3;
     Background=QColor(Qt::white);
@@ -103,6 +103,10 @@ void SettingsChart::clear()
     FontAxisY=QFont("Arial",8,5);
     GraphPen.setColor(GraphColor);
     GraphPen.setWidth(ThinknessGraph);
+    AxisXPen.setColor(AxisColorX);
+    AxisXPen.setWidth(ThinknessAxisX);
+    AxisYPen.setColor(AxisColorY);
+    AxisYPen.setWidth(ThinknessAxisY);
 }
 
 void OptionMenuPlotter::on_object_to_set_currentIndexChanged(int index)

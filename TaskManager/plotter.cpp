@@ -26,16 +26,32 @@ Plotter::Plotter(QObject *parent)
   m_pCursor->setColor(Qt::blue);
   m_pCursor->setBorderColor(Qt::blue);
   m_pCursor->setMarkerSize(8);
+  QPen PenLine(Qt::blue);
+  PenLine.setWidth(1);
+  m_pLinesCursor->setPen(PenLine);
   m_pChart->addSeries(m_pCursor);
+  m_pChart->addSeries(m_pAxisX);
+  m_pChart->addSeries(m_pAxisY);
+  m_pChart->addSeries(m_pLinesCursor);
 
   m_pMainChart->clear();
   m_pSeries0->setPen(m_pMainChart->GraphPen);
   m_pSeriesBreakPoints->setBorderColor(m_pMainChart->BreakPointColor);
   m_pSeriesBreakPoints->setColor(Qt::white);
   m_pSeriesBreakPoints->setMarkerSize(qreal(m_pMainChart->ThinknessBreakPoint));
+
+  m_pAxisX->setPointLabelsFormat("@xPoint");
+  m_pAxisY->setPointLabelsFormat("@yPoint");
+
   m_pChart->setGeometry( m_pUi->graphicsView->rect());
+  m_pChart->createDefaultAxes();
+  m_pChart->axisX()->hide();
+  m_pChart->axisY()->hide();
   m_pChart->addAxis(m_pValueAxisX,Qt::AlignBottom);
   m_pChart->addAxis(m_pValueAxisY,Qt::AlignLeft);
+  m_pChart->legend()->hide();
+  m_pValueAxisX->hide();
+  m_pValueAxisY->hide();
 }
 
 
@@ -50,11 +66,11 @@ QVector <QPointF> Plotter::CalculatePoint()
 
   m_Formula=m_Formula.toLower();
 
- if(m_Formula.contains("y")&&m_Formula[m_Formula.indexOf('y')+1]=='=') m_Formula.remove(m_Formula.indexOf('y'),2);
+ if(m_Formula.contains("y") && m_Formula[m_Formula.indexOf('y')+1]=='=') m_Formula.remove(m_Formula.indexOf('y'),2);
  if(!m_Formula.contains('x') && !m_Formula.contains('y')) return {};
 
  QVector <QPointF> Result;
- double Y;
+ double Y{};
  double X_start(m_pUi->xmin->value()), X_end(m_pUi->xmax->value()), X_step(0.01);
 
   for( double X = X_start; ceil(X) <= X_end; X += X_step)
@@ -74,7 +90,7 @@ QVector <QPointF> Plotter::CalculatePoint()
 
     Expr=Expr.SimplifyFull();
 
-    if(s_GlobalInvalid && s_LastError=="INFVAL" )
+    if(s_GlobalInvalid && s_LastError=="INFVAL" && !Result.isEmpty())
         m_BreakPoints.append(QPointF(X, Y));
 
     TConstant *pValue =CastPtr(TConstant, Expr);
@@ -100,6 +116,7 @@ bool Plotter::Plot(QByteArray Formula)
  m_Result=CalculatePoint();
 
  m_pValueAxisX->setRange(m_pUi->xmin->value(),m_pUi->xmax->value());
+ if(m_YMin==m_YMax){m_YMax++;m_YMin--;}
  m_pValueAxisY->setRange(floor(m_YMin), ceil(m_YMax) );
 
  m_pUi->ymin->blockSignals(true);
@@ -114,10 +131,10 @@ bool Plotter::Plot(QByteArray Formula)
    this->~Plotter();
    return false;
  }
- m_pChart->addSeries(m_pSeries0);
  m_pChart->addSeries(m_pSeriesBreakPoints);
- m_pChart->setTitle(m_Formula);
+ m_pChart->addSeries(m_pSeries0);
 
+ m_pChart->setTitle("Y");
  QChartView *chartView = new QChartView(m_pChart);
  chartView->setRenderHint(QPainter::Antialiasing);
  m_pScene->addItem(m_pChart);
@@ -130,22 +147,55 @@ void Plotter::ReCalculateAndUpdate()
 {
   m_Result.clear();
   m_BreakPoints.clear();
+  s_LastError="";
   m_Result=CalculatePoint();
   UpdateGraph();
 }
 
 void Plotter::UpdateGraph()
 {
+  m_pAxisX->clear();
+  m_pAxisY->clear();
   m_pCursor->clear();
+  m_pLinesCursor->clear();
   m_pLabelCursor->hide();
+
+  m_pAxisX->attachAxis(m_pValueAxisX);
+  m_pAxisY->attachAxis(m_pValueAxisY);
+  m_pAxisX->setPen(m_pMainChart->AxisXPen);
+  m_pAxisY->setPen(m_pMainChart->AxisYPen);
+  m_pAxisX->setPointLabelsFont((m_pMainChart->FontAxisX));
+  m_pAxisY->setPointLabelsFont((m_pMainChart->FontAxisY));
+
+
+  int div=ceil( abs(m_pUi->xmax->value()))/5 ;
+  for(int LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value() && div!=0;LabelPoint+=div)
+  {
+    m_pAxisX->append(QPointF(LabelPoint,0));
+  }
+  div=ceil( abs(m_pUi->ymax->value()))/5 ;
+  for(int LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
+  {
+    m_pAxisY->append(QPointF(0,LabelPoint));
+  }
+  m_pAxisX->append(QPointF(m_pUi->xmin->value(),0));
+  m_pAxisX->append(QPointF(m_pUi->xmax->value(),0));
+  m_pAxisY->append(QPointF(0, m_pUi->ymin->value()));
+  m_pAxisY->append(QPointF(0, m_pUi->ymax->value()));
+
+  m_pAxisX->setPointLabelsVisible(true);
+  m_pAxisY->setPointLabelsVisible(true);
 
   m_pSeries0->attachAxis(m_pValueAxisY);
   m_pSeries0->attachAxis(m_pValueAxisX);
   m_pSeries0->replace(m_Result);
 
-  m_pSeriesBreakPoints->attachAxis(m_pValueAxisY);
-  m_pSeriesBreakPoints->attachAxis(m_pValueAxisX);
-  m_pSeriesBreakPoints->replace(m_BreakPoints);
+  if(!m_BreakPoints.isEmpty())
+  {
+    m_pSeriesBreakPoints->attachAxis(m_pValueAxisY);
+    m_pSeriesBreakPoints->attachAxis(m_pValueAxisX);
+    m_pSeriesBreakPoints->replace(m_BreakPoints);
+  }
 
   m_pChart->update(m_pUi->graphicsView->rect());
   m_pScene->update(m_pScene->sceneRect());
@@ -183,7 +233,13 @@ void Plotter::on_ymax_valueChanged(const QString &arg1)
 
 void Plotter::SetCursor(QPointF point)
 {
+    m_pLinesCursor->clear();
     m_pCursor->clear();
+    m_pLinesCursor->attachAxis(m_pValueAxisY);
+    m_pLinesCursor->attachAxis(m_pValueAxisX);
+    m_pLinesCursor->append(point.x(),0); //dont replace
+    m_pLinesCursor->append(point);
+    m_pLinesCursor->append(0,point.y());//
     m_pCursor->attachAxis(m_pValueAxisY);
     m_pCursor->attachAxis(m_pValueAxisX);
     m_pCursor->append(point);
@@ -323,16 +379,6 @@ void Plotter::on_SetChartSettings()
 
        m_pSeries0->setPen(m_pMainChart->GraphPen);
 
-       QPen AxisXPen(m_pMainChart->AxisColorX);
-       QPen AxisYPen(m_pMainChart->AxisColorY);
-       AxisXPen.setWidth(m_pMainChart->ThinknessAxisX);
-       AxisYPen.setWidth(m_pMainChart->ThinknessAxisY);
-       m_pValueAxisX->setLinePen(AxisXPen);
-       m_pValueAxisY->setLinePen(AxisYPen);
-       m_pValueAxisX->setTitleFont(m_pMainChart->FontAxisX);
-       m_pValueAxisY->setTitleFont(m_pMainChart->FontAxisY);
-       m_pValueAxisX->setLabelsFont(m_pMainChart->FontAxisX);
-       m_pValueAxisY->setLabelsFont(m_pMainChart->FontAxisY);
        UpdateGraph();
     }
 }

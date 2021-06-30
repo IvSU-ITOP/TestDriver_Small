@@ -16,7 +16,7 @@ public:
     QColor GraphColor,AxisColorX,AxisColorY;
     QFont GraphFont,FontAxisX,FontAxisY;
     int ThinknessAxisX{3},ThinknessAxisY{3},ThinknessGraph{5},ThinknessBreakPoint{8};
-    QPen GraphPen;
+    QPen GraphPen,AxisXPen,AxisYPen;
     void clear();
 };
 

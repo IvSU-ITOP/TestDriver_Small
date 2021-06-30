@@ -23,6 +23,9 @@ class Plotter : public QMainWindow
   private:
     Ui::Plotter *m_pUi;
     QLineSeries *m_pSeries0=new QLineSeries;
+    QLineSeries *m_pAxisX=new QLineSeries;
+    QLineSeries *m_pAxisY=new QLineSeries;
+    QLineSeries *m_pLinesCursor=new QLineSeries;
     QScatterSeries *m_pSeriesBreakPoints=new QScatterSeries;
     QScatterSeries *m_pCursor=new QScatterSeries;
     QValueAxis *m_pValueAxisX = new QValueAxis;
