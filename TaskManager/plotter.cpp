@@ -3,6 +3,7 @@
 #include <OptionMenuPlotter.h>
 #include <Parser.h>
 #include <ui_Plotter.h>
+#include <QPainter>
 
 Plotter::Plotter(QObject *parent)
    : QMainWindow(nullptr)
@@ -160,6 +161,7 @@ void Plotter::UpdateGraph()
   m_pLinesCursor->clear();
   m_pLabelCursor->hide();
 
+
   m_pAxisX->attachAxis(m_pValueAxisX);
   m_pAxisY->attachAxis(m_pValueAxisY);
   m_pAxisX->setPen(m_pMainChart->AxisXPen);
@@ -168,12 +170,12 @@ void Plotter::UpdateGraph()
   m_pAxisY->setPointLabelsFont((m_pMainChart->FontAxisY));
 
 
-  int div=ceil( abs(m_pUi->xmax->value()))/5 ;
+  int div=ceil( (abs(m_pUi->xmax->value())+abs(m_pUi->xmin->value()))/10);
   for(int LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value() && div!=0;LabelPoint+=div)
   {
     m_pAxisX->append(QPointF(LabelPoint,0));
   }
-  div=ceil( abs(m_pUi->ymax->value()))/5 ;
+  div=ceil( (abs(m_pUi->ymax->value())+abs(m_pUi->ymin->value())) /10) ;
   for(int LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
   {
     m_pAxisY->append(QPointF(0,LabelPoint));
