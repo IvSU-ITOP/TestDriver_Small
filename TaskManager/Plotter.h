@@ -31,7 +31,10 @@ class Plotter : public QMainWindow
     QValueAxis *m_pValueAxisX = new QValueAxis;
     QValueAxis *m_pValueAxisY = new QValueAxis;
     QGraphicsScene *m_pScene = nullptr;
+    QGraphicsPathItem* m_pPathItem = nullptr;
     QChart *m_pChart = new QChart;
+    QChartView *chartView = new QChartView(m_pChart);
+    QPainterPath m_Path;
     QVector<QPointF> m_Result{};
     QVector<QPointF> m_BreakPoints{};
     QByteArray m_Formula{};
@@ -49,6 +52,7 @@ class Plotter : public QMainWindow
     void UpdateGraph();
     void SetCursor(QPointF point);
     QVector <QPointF> CalculatePoint();
+    void PaintAxis();
 
 public:
      Plotter(QObject* parent=nullptr);

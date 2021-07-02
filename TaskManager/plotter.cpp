@@ -12,11 +12,10 @@ Plotter::Plotter(QObject *parent)
   m_pUi->setupUi(this);
   m_pUi->PlotterWidget->setContextMenuPolicy(Qt::CustomContextMenu);
   m_pScene=new QGraphicsScene(m_pUi->graphicsView);
+
   connect(m_pUi->PlotterWidget, &QWidget::customContextMenuRequested, this, &Plotter::on_ContextMenuCall);
   connect(m_pPlotterMenu,&OptionMenuPlotter::sendDataClass,this,&Plotter::on_SetChartSettings);
 
-  m_pValueAxisX->setTitleText("X");
-  m_pValueAxisY->setTitleText("Y");
   m_pValueAxisX->setTickCount(20);
   m_pValueAxisY->setTickCount(20);
   m_pValueAxisX->setGridLineVisible(false);
@@ -30,9 +29,8 @@ Plotter::Plotter(QObject *parent)
   QPen PenLine(Qt::blue);
   PenLine.setWidth(1);
   m_pLinesCursor->setPen(PenLine);
+
   m_pChart->addSeries(m_pCursor);
-  m_pChart->addSeries(m_pAxisX);
-  m_pChart->addSeries(m_pAxisY);
   m_pChart->addSeries(m_pLinesCursor);
 
   m_pMainChart->clear();
@@ -41,18 +39,11 @@ Plotter::Plotter(QObject *parent)
   m_pSeriesBreakPoints->setColor(Qt::white);
   m_pSeriesBreakPoints->setMarkerSize(qreal(m_pMainChart->ThinknessBreakPoint));
 
-  m_pAxisX->setPointLabelsFormat("@xPoint");
-  m_pAxisY->setPointLabelsFormat("@yPoint");
-
   m_pChart->setGeometry( m_pUi->graphicsView->rect());
-  m_pChart->createDefaultAxes();
-  m_pChart->axisX()->hide();
-  m_pChart->axisY()->hide();
+
   m_pChart->addAxis(m_pValueAxisX,Qt::AlignBottom);
   m_pChart->addAxis(m_pValueAxisY,Qt::AlignLeft);
   m_pChart->legend()->hide();
-  m_pValueAxisX->hide();
-  m_pValueAxisY->hide();
 }
 
 
@@ -74,6 +65,15 @@ QVector <QPointF> Plotter::CalculatePoint()
  double Y{};
  double X_start(m_pUi->xmin->value()), X_end(m_pUi->xmax->value()), X_step(0.01);
 
+ int NumberX=abs(X_start)+abs(X_end);
+ if(NumberX<=20)X_step=0.01;
+ else if(NumberX<=40)X_step=0.05;
+ else if(NumberX<=80)X_step=0.1;
+ else if(NumberX<=250)X_step=1;
+ else if(NumberX<=500)X_step=5;
+ else if(NumberX<=5000)X_step=10;
+ else X_step=50;
+
   for( double X = X_start; ceil(X) <= X_end; X += X_step)
   {
    if(fabs(X) < 0.5 * X_step ) X = 0;
@@ -83,7 +83,7 @@ QVector <QPointF> Plotter::CalculatePoint()
     if(X < 0) TextX = '(' + TextX + ')';
     Formula_copy.remove(m_Formula.indexOf("exp"),3);
     if(m_Formula.contains('x')) Formula_copy.replace('x', TextX);
-    if(m_Formula.contains('y')) Formula_copy.replace('y', TextX);
+    //if(m_Formula.contains('y')) Formula_copy.replace('y', TextX);
     Formula_copy.insert(m_Formula.indexOf("exp"),m_Formula.mid(m_Formula.indexOf("exp"),3));
     MathExpr Expr = MathExpr( Parser::StrToExpr( Formula_copy));
 
@@ -124,6 +124,10 @@ bool Plotter::Plot(QByteArray Formula)
  m_pUi->ymax->blockSignals(true);
  m_pUi->ymin->setValue( floor(m_YMin) );
  m_pUi->ymax->setValue( ceil(m_YMax) );
+ m_pUi->ymin->setMinimum(-10000000);
+ m_pUi->ymax->setMaximum(10000000);
+ m_pUi->xmin->setMinimum(-100000);
+ m_pUi->xmax->setMaximum(100000);
  m_pUi->ymin->blockSignals(false);
  m_pUi->ymax->blockSignals(false);
 
@@ -132,11 +136,10 @@ bool Plotter::Plot(QByteArray Formula)
    this->~Plotter();
    return false;
  }
- m_pChart->addSeries(m_pSeriesBreakPoints);
+ if(!m_BreakPoints.isEmpty()) m_pChart->addSeries(m_pSeriesBreakPoints);
  m_pChart->addSeries(m_pSeries0);
+ m_pChart->setTitle(m_Formula);
 
- m_pChart->setTitle("Y");
- QChartView *chartView = new QChartView(m_pChart);
  chartView->setRenderHint(QPainter::Antialiasing);
  m_pScene->addItem(m_pChart);
  m_pUi->graphicsView->setScene(m_pScene);
@@ -153,40 +156,121 @@ void Plotter::ReCalculateAndUpdate()
   UpdateGraph();
 }
 
+void Plotter::PaintAxis()
+{
+    m_pScene->removeItem(m_pPathItem);
+    m_Path.clear();
+    auto const ymin =
+    chartView->mapFromParent(
+   QPoint(
+          static_cast<int>(m_pChart->mapToPosition(QPointF(0,m_pUi->ymin->value())).x()),
+          static_cast<int>(m_pChart->mapToPosition(QPointF(0,m_pUi->ymin->value())).y())
+         )
+         );
+    auto const ymax =
+    chartView->mapFromParent(
+   QPoint(
+          static_cast<int>(m_pChart->mapToPosition(QPointF(0,m_pUi->ymax->value())).x()),
+          static_cast<int>(m_pChart->mapToPosition(QPointF(0,m_pUi->ymax->value())).y())
+         )
+         );
+
+    auto const xmin =
+    chartView->mapFromParent(
+    QPoint(
+           static_cast<int>(m_pChart->mapToPosition(QPointF(m_pUi->xmin->value(),0)).x()),
+           static_cast<int>(m_pChart->mapToPosition(QPointF(m_pUi->xmin->value(),0)).y())
+          )
+          );
+    auto const xmax =
+    chartView->mapFromParent(
+   QPoint(
+          static_cast<int>(m_pChart->mapToPosition(QPointF(m_pUi->xmax->value(),0)).x()),
+          static_cast<int>(m_pChart->mapToPosition(QPointF(m_pUi->xmax->value(),0)).y())
+          )
+          );
+    m_Path.moveTo(ymax);
+    m_Path.lineTo(ymin);
+    m_Path.moveTo(ymax);
+    m_Path.lineTo(ymax.x()+5,ymax.y()+10);
+    m_Path.moveTo(ymax);
+    m_Path.lineTo(ymax.x()-5,ymax.y()+10);
+    m_Path.addText(ymax.x()+10,ymax.y(),m_pMainChart->FontAxisY,"Y");
+    m_Path.moveTo(xmin);
+    m_Path.lineTo(xmax);
+    m_Path.lineTo(xmax.x()-10,xmax.y()-5);
+    m_Path.moveTo(xmax);
+    m_Path.lineTo(xmax.x()-10,xmax.y()+5);
+    m_Path.addText(xmax.x(),xmax.y()-10,m_pMainChart->FontAxisX,"X");
+
+    double div=(abs(m_pUi->xmax->value())+abs(m_pUi->xmin->value()))/10;if(div==0) div=0.3;
+    double LabelPoint{};QPointF val{};
+    for(LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value() && div!=0;LabelPoint+=div)
+    {
+       val=chartView->mapFromParent(
+       QPoint(
+              static_cast<int>(m_pChart->mapToPosition(QPointF(LabelPoint,0)).x()),
+              static_cast<int>(m_pChart->mapToPosition(QPointF(LabelPoint,0)).y())
+              )
+              );
+       m_Path.moveTo(val.x(),val.y()+10);
+       m_Path.lineTo(val.x(),val.y()-10);
+       m_Path.moveTo(val.x(),val.y());
+      m_Path.addText(val.x()-1,val.y()-10,m_pMainChart->FontAxisX,QString::number(LabelPoint,10,0));
+    }
+
+    div/=2;if(div==0) div=0.15;
+    for(LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value() && div!=0;LabelPoint+=div)
+    {
+       val=chartView->mapFromParent(
+       QPoint(
+              static_cast<int>(m_pChart->mapToPosition(QPointF(LabelPoint,0)).x()),
+              static_cast<int>(m_pChart->mapToPosition(QPointF(LabelPoint,0)).y())
+              )
+              );
+       m_Path.moveTo(val.x(),val.y()+7);
+       m_Path.lineTo(val.x(),val.y()-7);
+       m_Path.moveTo(val.x(),val.y());
+    }
+
+    div=(abs(m_pUi->ymax->value())+abs(m_pUi->ymin->value()))/10;
+    if(div==0) div=0.3;
+    for(LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
+    {
+        val=chartView->mapFromParent(
+        QPoint(
+               static_cast<int>(m_pChart->mapToPosition(QPointF(0,LabelPoint)).x()),
+               static_cast<int>(m_pChart->mapToPosition(QPointF(0,LabelPoint)).y())
+               )
+               );
+        m_Path.moveTo(val.x()+10,val.y());
+        m_Path.lineTo(val.x()-10,val.y());
+        m_Path.moveTo(val.x(),val.y());
+       m_Path.addText(val.x()+7,val.y()-2,m_pMainChart->FontAxisY,tr(QByteArray::number(LabelPoint,10,0)));
+    }
+    div/=2;if(div==0) div=0.15;
+    for(LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
+    {
+       val=chartView->mapFromParent(
+       QPoint(
+              static_cast<int>(m_pChart->mapToPosition(QPointF(LabelPoint,0)).x()),
+              static_cast<int>(m_pChart->mapToPosition(QPointF(LabelPoint,0)).y())
+              )
+              );
+       m_Path.moveTo(val.x()+7,val.y());
+       m_Path.lineTo(val.x()-7,val.y());
+       m_Path.moveTo(val.x(),val.y());
+    }
+    m_pPathItem = m_pScene->addPath(m_Path,m_pMainChart->AxisXPen);
+    m_pScene->update(m_pScene->sceneRect());
+}
+
 void Plotter::UpdateGraph()
 {
-  m_pAxisX->clear();
-  m_pAxisY->clear();
+  SetCursor(m_Result[0]);
   m_pCursor->clear();
   m_pLinesCursor->clear();
   m_pLabelCursor->hide();
-
-
-  m_pAxisX->attachAxis(m_pValueAxisX);
-  m_pAxisY->attachAxis(m_pValueAxisY);
-  m_pAxisX->setPen(m_pMainChart->AxisXPen);
-  m_pAxisY->setPen(m_pMainChart->AxisYPen);
-  m_pAxisX->setPointLabelsFont((m_pMainChart->FontAxisX));
-  m_pAxisY->setPointLabelsFont((m_pMainChart->FontAxisY));
-
-
-  int div=ceil( (abs(m_pUi->xmax->value())+abs(m_pUi->xmin->value()))/10);
-  for(int LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value() && div!=0;LabelPoint+=div)
-  {
-    m_pAxisX->append(QPointF(LabelPoint,0));
-  }
-  div=ceil( (abs(m_pUi->ymax->value())+abs(m_pUi->ymin->value())) /10) ;
-  for(int LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
-  {
-    m_pAxisY->append(QPointF(0,LabelPoint));
-  }
-  m_pAxisX->append(QPointF(m_pUi->xmin->value(),0));
-  m_pAxisX->append(QPointF(m_pUi->xmax->value(),0));
-  m_pAxisY->append(QPointF(0, m_pUi->ymin->value()));
-  m_pAxisY->append(QPointF(0, m_pUi->ymax->value()));
-
-  m_pAxisX->setPointLabelsVisible(true);
-  m_pAxisY->setPointLabelsVisible(true);
 
   m_pSeries0->attachAxis(m_pValueAxisY);
   m_pSeries0->attachAxis(m_pValueAxisX);
@@ -194,10 +278,13 @@ void Plotter::UpdateGraph()
 
   if(!m_BreakPoints.isEmpty())
   {
+    m_pChart->addSeries(m_pSeriesBreakPoints);
     m_pSeriesBreakPoints->attachAxis(m_pValueAxisY);
     m_pSeriesBreakPoints->attachAxis(m_pValueAxisX);
     m_pSeriesBreakPoints->replace(m_BreakPoints);
   }
+
+  PaintAxis();
 
   m_pChart->update(m_pUi->graphicsView->rect());
   m_pScene->update(m_pScene->sceneRect());
@@ -380,7 +467,6 @@ void Plotter::on_SetChartSettings()
        m_pChart->setTitleFont(m_pMainChart->GraphFont);
 
        m_pSeries0->setPen(m_pMainChart->GraphPen);
-
        UpdateGraph();
     }
 }

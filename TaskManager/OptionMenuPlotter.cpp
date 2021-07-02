@@ -51,6 +51,10 @@ void OptionMenuPlotter::on_ok_btn_clicked()
 {
     ChartToSet.GraphPen.setWidth(ChartToSet.ThinknessGraph);
     ChartToSet.GraphPen.setColor(ChartToSet.GraphColor);
+    ChartToSet.AxisXPen.setWidth(ChartToSet.ThinknessAxisX);
+    ChartToSet.AxisXPen.setColor(ChartToSet.AxisColorX);
+    ChartToSet.AxisYPen.setWidth(ChartToSet.ThinknessAxisY);
+    ChartToSet.AxisYPen.setColor(ChartToSet.AxisColorY);
     ChartToSet.isChange=true;
     emit sendDataClass();
     this->hide();
@@ -88,19 +92,19 @@ void OptionMenuPlotter::on_thinkness_valueChanged(const QString &arg1)
 void SettingsChart::clear()
 {
     isChange=false;
-    ThinknessAxisX=2;
-    ThinknessAxisY=2;
+    ThinknessAxisX=1;
+    ThinknessAxisY=1;
     ThinknessBreakPoint=8;
-    ThinknessGraph=3;
+    ThinknessGraph=1;
     Background=QColor(Qt::white);
     BackgroundGraph=QColor(Qt::white);
     BreakPointColor=QColor(Qt::red);
     GraphColor=QColor(Qt::black);
     AxisColorX=QColor(Qt::black);
     AxisColorY=QColor(Qt::black);
-    GraphFont=QFont("Arial",8);
-    FontAxisX=QFont("Arial",8,5);
-    FontAxisY=QFont("Arial",8,5);
+    GraphFont=QFont("Arial",10);
+    FontAxisX=QFont("Arial",10);
+    FontAxisY=QFont("Arial",10);
     GraphPen.setColor(GraphColor);
     GraphPen.setWidth(ThinknessGraph);
     AxisXPen.setColor(AxisColorX);
@@ -121,24 +125,34 @@ void OptionMenuPlotter::on_object_to_set_currentIndexChanged(int index)
         {
         ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.GraphColor));
         ui->font->setText("Font of title Graph");
+        ui->thinkness->setMinimum(1);
+        ui->thinkness->setValue(ChartToSet.ThinknessGraph);
+        ui->thinkness->setMaximum(5);
         break;
         }
         case 4:
         {
         ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.BreakPointColor));
         ui->thinkness->setMinimum(5);
+        ui->thinkness->setValue(ChartToSet.ThinknessBreakPoint);
         ui->thinkness->setMaximum(10);
         break;
         }
         case 5:
         {
         ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.AxisColorX));
+        ui->thinkness->setMinimum(1);
+        ui->thinkness->setValue(ChartToSet.ThinknessAxisX);
+        ui->thinkness->setMaximum(5);
         ui->font->setText("Font of title Axis X");
         break;
         }
         case 6:
         {
         ui->graphicsView->setBackgroundBrush(QBrush(ChartToSet.AxisColorY));
+        ui->thinkness->setMinimum(1);
+        ui->thinkness->setValue(ChartToSet.ThinknessAxisY);
+        ui->thinkness->setMaximum(5);
         ui->font->setText("Font of title Axis Y");
         break;
         }
