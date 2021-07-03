@@ -25,7 +25,7 @@ class OptionMenuPlotter : public QWidget
     Q_OBJECT
 
 public:
-    explicit OptionMenuPlotter(int FuncNumber,QWidget *parent = nullptr);
+    explicit OptionMenuPlotter(QWidget *parent = nullptr);
     ~OptionMenuPlotter();
     SettingsChart ChartToSet;
     bool InProgress=true;

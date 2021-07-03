@@ -22,7 +22,6 @@ class Plotter : public QMainWindow
   Q_OBJECT
   private:
     Ui::Plotter *m_pUi;
-    QLineSeries *m_pSeries0=new QLineSeries;
     QLineSeries *m_pLinesCursor=new QLineSeries;
     QScatterSeries *m_pSeriesBreakPoints=new QScatterSeries;
     QScatterSeries *m_pCursor=new QScatterSeries;
@@ -30,14 +29,16 @@ class Plotter : public QMainWindow
     QValueAxis *m_pValueAxisY = new QValueAxis;
     QGraphicsScene *m_pScene = nullptr;
     QGraphicsPathItem* m_pPathItem = nullptr;
+    QGraphicsPathItem* m_pPathItemGraph = nullptr;
+    QVector <QGraphicsTextItem *>TextAxisY={nullptr},TextAxisX={nullptr};
     QChart *m_pChart = new QChart;
     QChartView *chartView = new QChartView(m_pChart);
-    QPainterPath m_Path;
+    QPainterPath m_Path,m_PathGraph;
     QVector<QPointF> m_Result{};
     QVector<QPointF> m_BreakPoints{};
     QByteArray m_Formula{};
     SettingsChart *m_pMainChart=new SettingsChart;
-    OptionMenuPlotter *m_pPlotterMenu=new OptionMenuPlotter(10,nullptr);
+    OptionMenuPlotter *m_pPlotterMenu=new OptionMenuPlotter(nullptr);
     Callout *m_pLabelCursor = new Callout(m_pChart);
     double m_YMin = 1.79769e+308, m_YMax = 2.22507e-308;
     int m_Prec = 1;
@@ -51,6 +52,7 @@ class Plotter : public QMainWindow
     void SetCursor(QPointF point);
     QVector <QPointF> CalculatePoint();
     void PaintAxis();
+    void PaintGraph();
 
 public:
      Plotter(QObject* parent=nullptr);

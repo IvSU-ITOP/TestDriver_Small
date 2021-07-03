@@ -3,7 +3,7 @@
 #include <QColorDialog>
 #include <QPainter>
 
-OptionMenuPlotter::OptionMenuPlotter(int FuncNumber,QWidget *parent) :
+OptionMenuPlotter::OptionMenuPlotter(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::OptionMenuPlotter)
 {
@@ -12,13 +12,6 @@ OptionMenuPlotter::OptionMenuPlotter(int FuncNumber,QWidget *parent) :
     HideAllSettings();
     QGraphicsScene* Scene=new QGraphicsScene();
     ui->graphicsView->setScene(Scene);
-    if(FuncNumber!=0)
-    {
-        for(int i{};i<=FuncNumber;i++)
-        {
-           ui->comboBox->addItem(QString::number(i));
-        }
-    }
 }
 
 OptionMenuPlotter::~OptionMenuPlotter()
@@ -102,8 +95,8 @@ void SettingsChart::clear()
     GraphColor=QColor(Qt::black);
     AxisColorX=QColor(Qt::black);
     AxisColorY=QColor(Qt::black);
-    GraphFont=QFont("Arial",7);
-    FontAxisX=QFont("Arial",7);
+    GraphFont=QFont("Verdana",7);
+    FontAxisX=QFont("Verdana",7);
     FontAxisY=QFont("Arial",7);
     GraphPen.setColor(GraphColor);
     GraphPen.setWidth(ThinknessGraph);
@@ -168,8 +161,6 @@ void OptionMenuPlotter::on_object_to_set_currentIndexChanged(int index)
      }
     if(m_SelectColorToSet==2 || m_SelectColorToSet==4)
     {
-        ui->fx->show();
-        ui->comboBox->show();
         ui->thinkness->show();
         ui->label_thinkness->show();
         ui->font->show();
@@ -187,8 +178,6 @@ void OptionMenuPlotter::HideAllSettings()
     ui->font->hide();
     ui->font_box->hide();
     ui->pixel->hide();
-    ui->fx->hide();
-    ui->comboBox->hide();
     ui->retranslateUi(this);
 }
 

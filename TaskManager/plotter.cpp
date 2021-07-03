@@ -11,17 +11,14 @@ Plotter::Plotter(QObject *parent)
   m_pUi=new Ui::Plotter;
   m_pUi->setupUi(this);
   m_pUi->PlotterWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+  m_pUi->xmin->setMinimum(-100000);
+  m_pUi->xmax->setMaximum(100000);
+  m_pUi->ymax->setMaximum(10000000);
+  m_pUi->ymin->setMinimum(-10000000);
   m_pScene=new QGraphicsScene(m_pUi->graphicsView);
 
   connect(m_pUi->PlotterWidget, &QWidget::customContextMenuRequested, this, &Plotter::on_ContextMenuCall);
   connect(m_pPlotterMenu,&OptionMenuPlotter::sendDataClass,this,&Plotter::on_SetChartSettings);
-
-  m_pValueAxisX->setTickCount(20);
-  m_pValueAxisY->setTickCount(20);
-  m_pValueAxisX->setGridLineVisible(false);
-  m_pValueAxisY->setGridLineVisible(false);
-  m_pValueAxisX->applyNiceNumbers();
-  m_pValueAxisY->applyNiceNumbers();
 
   m_pCursor->setColor(Qt::blue);
   m_pCursor->setBorderColor(Qt::blue);
@@ -34,7 +31,6 @@ Plotter::Plotter(QObject *parent)
   m_pChart->addSeries(m_pLinesCursor);
 
   m_pMainChart->clear();
-  m_pSeries0->setPen(m_pMainChart->GraphPen);
   m_pSeriesBreakPoints->setBorderColor(m_pMainChart->BreakPointColor);
   m_pSeriesBreakPoints->setColor(Qt::white);
   m_pSeriesBreakPoints->setMarkerSize(qreal(m_pMainChart->ThinknessBreakPoint));
@@ -43,6 +39,8 @@ Plotter::Plotter(QObject *parent)
 
   m_pChart->addAxis(m_pValueAxisX,Qt::AlignBottom);
   m_pChart->addAxis(m_pValueAxisY,Qt::AlignLeft);
+  m_pValueAxisX->hide();
+  m_pValueAxisY->hide();
   m_pChart->legend()->hide();
 }
 
@@ -116,33 +114,27 @@ bool Plotter::Plot(QByteArray Formula)
  m_Formula=Formula;
  m_Result=CalculatePoint();
 
- m_pValueAxisX->setRange(m_pUi->xmin->value(),m_pUi->xmax->value());
- if(m_YMin==m_YMax){m_YMax++;m_YMin--;}
- m_pValueAxisY->setRange(floor(m_YMin), ceil(m_YMax) );
+ m_pScene->addItem(m_pChart);
+ chartView->setRenderHint(QPainter::Antialiasing);
+ m_pUi->graphicsView->setScene(m_pScene);
 
  m_pUi->ymin->blockSignals(true);
  m_pUi->ymax->blockSignals(true);
  m_pUi->ymin->setValue( floor(m_YMin) );
  m_pUi->ymax->setValue( ceil(m_YMax) );
- m_pUi->ymin->setMinimum(-10000000);
- m_pUi->ymax->setMaximum(10000000);
- m_pUi->xmin->setMinimum(-100000);
- m_pUi->xmax->setMaximum(100000);
  m_pUi->ymin->blockSignals(false);
  m_pUi->ymax->blockSignals(false);
+
+ m_pValueAxisX->setRange(m_pUi->xmin->value(),m_pUi->xmax->value());
+ if(m_YMin==m_YMax){m_YMax++;m_YMin--;}
+ m_pValueAxisY->setRange(floor(m_YMin), ceil(m_YMax) );
 
  if(m_Result.isEmpty())
  {
    this->~Plotter();
    return false;
  }
- if(!m_BreakPoints.isEmpty()) m_pChart->addSeries(m_pSeriesBreakPoints);
- m_pChart->addSeries(m_pSeries0);
- m_pChart->setTitle(m_Formula);
-
- chartView->setRenderHint(QPainter::Antialiasing);
- m_pScene->addItem(m_pChart);
- m_pUi->graphicsView->setScene(m_pScene);
+ SetCursor(m_Result[0]);
  UpdateGraph();
  return true;
 }
@@ -156,9 +148,45 @@ void Plotter::ReCalculateAndUpdate()
   UpdateGraph();
 }
 
+void Plotter::PaintGraph()
+{
+    m_pScene->removeItem(m_pPathItemGraph);
+    m_PathGraph.clear();
+
+    auto const p1 =
+    chartView->mapFromParent(
+   QPoint(
+          static_cast<int>(m_pChart->mapToPosition(m_Result[0]).x()),
+          static_cast<int>(m_pChart->mapToPosition(m_Result[0]).y())
+         )
+         );
+    m_PathGraph.moveTo(p1);
+
+    for(int i{1};i<m_Result.length();i++)
+    {
+        auto const p2 =
+       chartView->mapFromParent(
+       QPoint(
+              static_cast<int>(m_pChart->mapToPosition(m_Result[i]).x()),
+              static_cast<int>(m_pChart->mapToPosition(m_Result[i]).y())
+             )
+             );
+       m_PathGraph.lineTo(p2);
+    }
+    m_pPathItemGraph = m_pScene->addPath(m_PathGraph,m_pMainChart->GraphPen);
+}
+
 void Plotter::PaintAxis()
 {
     m_pScene->removeItem(m_pPathItem);
+    for(int i{};i<TextAxisY.length();i++)
+    {
+    m_pScene->removeItem(TextAxisY[i]);
+    }
+    for(int i{};i<TextAxisX.length();i++)
+    {
+    m_pScene->removeItem(TextAxisX[i]);
+    }
     m_Path.clear();
     auto const ymin =
     chartView->mapFromParent(
@@ -195,16 +223,20 @@ void Plotter::PaintAxis()
     m_Path.lineTo(ymax.x()+5,ymax.y()+10);
     m_Path.moveTo(ymax);
     m_Path.lineTo(ymax.x()-5,ymax.y()+10);
-    m_Path.addText(ymax.x()+10,ymax.y(),m_pMainChart->FontAxisY,"Y");
+    TextAxisY.append(m_pScene->addText("Y",m_pMainChart->FontAxisY));
+    TextAxisY.last()->setPos(ymax.x()+10,ymax.y());
     m_Path.moveTo(xmin);
     m_Path.lineTo(xmax);
     m_Path.lineTo(xmax.x()-10,xmax.y()-5);
     m_Path.moveTo(xmax);
     m_Path.lineTo(xmax.x()-10,xmax.y()+5);
-    m_Path.addText(xmax.x(),xmax.y()-10,m_pMainChart->FontAxisX,"X");
+    TextAxisX.append(m_pScene->addText("X",m_pMainChart->FontAxisX));
+    TextAxisX.last()->setPos(xmax.x()-10,xmax.y()+5);
 
-    double div=ceil((abs(m_pUi->xmax->value())+abs(m_pUi->xmin->value()))/20);if(div==0) div=0.3;
+    int PrecAxis{};
+    double div=double(abs(m_pUi->xmax->value())+abs(m_pUi->xmin->value()))/20;
     double LabelPoint{};QPointF val{};
+    PrecAxis=1;
     for(LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value() && div!=0;LabelPoint+=div)
     {
        val=chartView->mapFromParent(
@@ -216,10 +248,11 @@ void Plotter::PaintAxis()
        m_Path.moveTo(val.x(),val.y()+10);
        m_Path.lineTo(val.x(),val.y()-10);
        m_Path.moveTo(val.x(),val.y());
-       m_Path.addText(val.x()-1,val.y()-10,m_pMainChart->FontAxisX,QString::number(LabelPoint,10,0));
+       TextAxisY.append(m_pScene->addText(QByteArray::number(LabelPoint,10,PrecAxis),m_pMainChart->FontAxisX));
+       TextAxisY.last()->setPos(val.x()-2,val.y()-25);
     }
 
-    div/=2;if(div==0) div=0.15;
+    div/=2.0;
     for(LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value() && div!=0;LabelPoint+=div)
     {
        val=chartView->mapFromParent(
@@ -233,8 +266,7 @@ void Plotter::PaintAxis()
        m_Path.moveTo(val.x(),val.y());
     }
 
-    div=ceil((abs(m_pUi->ymax->value())+abs(m_pUi->ymin->value()))/20);
-    if(div==0) div=0.3;
+    div=double((abs(m_pUi->ymax->value())+abs(m_pUi->ymin->value())))/20; PrecAxis=1;
     for(LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
     {
         val=chartView->mapFromParent(
@@ -246,9 +278,11 @@ void Plotter::PaintAxis()
         m_Path.moveTo(val.x()+10,val.y());
         m_Path.lineTo(val.x()-10,val.y());
         m_Path.moveTo(val.x(),val.y());
-        m_Path.addText(val.x()+7,val.y()-2,m_pMainChart->FontAxisY,tr(QByteArray::number(LabelPoint,10,0)));
+        TextAxisY.append(m_pScene->addText(QByteArray::number(LabelPoint,10,PrecAxis),m_pMainChart->FontAxisY));
+        TextAxisY.last()->setPos(val.x()+7,val.y()-15);
     }
-    div/=2;if(div==0) div=0.15;
+
+     div/=2.0;
     for(LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
     {
        val=chartView->mapFromParent(
@@ -261,21 +295,14 @@ void Plotter::PaintAxis()
        m_Path.lineTo(val.x()-7,val.y());
        m_Path.moveTo(val.x(),val.y());
     }
-
     m_pPathItem = m_pScene->addPath(m_Path,m_pMainChart->AxisXPen);
-    m_pScene->update(m_pScene->sceneRect());
 }
 
 void Plotter::UpdateGraph()
 {
-  SetCursor(m_Result[0]);
   m_pCursor->clear();
   m_pLinesCursor->clear();
   m_pLabelCursor->hide();
-
-  m_pSeries0->attachAxis(m_pValueAxisY);
-  m_pSeries0->attachAxis(m_pValueAxisX);
-  m_pSeries0->replace(m_Result);
 
   if(!m_BreakPoints.isEmpty())
   {
@@ -286,6 +313,7 @@ void Plotter::UpdateGraph()
   }
 
   PaintAxis();
+  PaintGraph();
 
   m_pChart->update(m_pUi->graphicsView->rect());
   m_pScene->update(m_pScene->sceneRect());
@@ -373,18 +401,15 @@ void Plotter::on_ContextMenuCall(QPoint val)
        QAction *hide_numbers = new QAction("Hide numbers", this);
        QAction *hide_names = new QAction("Hide names of axis", this);
        QAction *save_graph = new QAction("Save graph as PNG", this);
-       QAction *hide_legend = new QAction("Hide chart legend", this);
 
        connect(hide_numbers, SIGNAL(triggered()), this, SLOT(on_HideNumbers()));
        connect(hide_names, SIGNAL(triggered()), this, SLOT(on_HideNames()));
        connect(save_graph, SIGNAL(triggered()), this, SLOT(on_SaveGraph()));
        connect(options, SIGNAL(triggered()), this, SLOT(on_Options()));
-       connect(hide_legend, SIGNAL(triggered()), this, SLOT(on_HideLegend()));
 
        menu->addAction(options);
        menu->addAction(hide_numbers);
        menu->addAction(hide_names);
-       menu->addAction(hide_legend);
        menu->addAction(save_graph);
 
        menu->popup(m_pUi->PlotterWidget->mapToGlobal(val));
@@ -394,14 +419,26 @@ void Plotter::on_HideNumbers()
 {
     if(m_NumberAxisIsHidden)
     {
-        m_pValueAxisX->setLabelsVisible(false);
-        m_pValueAxisY->setLabelsVisible(false);
+        for(int i{};i<TextAxisY.length();i++)
+        {
+        m_pScene->removeItem(TextAxisY[i]);
+        }
+        for(int i{};i<TextAxisX.length();i++)
+        {
+        m_pScene->removeItem(TextAxisX[i]);
+        }
         m_NumberAxisIsHidden=false;
     }
     else
     {
-        m_pValueAxisX->setLabelsVisible(true);
-        m_pValueAxisY->setLabelsVisible(true);
+        for(int i{};i<TextAxisY.length();i++)
+        {
+        m_pScene->addItem(TextAxisY[i]);
+        }
+        for(int i{};i<TextAxisX.length();i++)
+        {
+        m_pScene->addItem(TextAxisX[i]);
+        }
         m_NumberAxisIsHidden=true;
     }
 }
@@ -467,7 +504,6 @@ void Plotter::on_SetChartSettings()
        m_pChart->setBackgroundBrush(QBrush(m_pMainChart->Background));
        m_pChart->setTitleFont(m_pMainChart->GraphFont);
 
-       m_pSeries0->setPen(m_pMainChart->GraphPen);
        UpdateGraph();
     }
 }
