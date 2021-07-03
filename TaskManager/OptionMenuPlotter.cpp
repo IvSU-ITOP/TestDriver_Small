@@ -102,9 +102,9 @@ void SettingsChart::clear()
     GraphColor=QColor(Qt::black);
     AxisColorX=QColor(Qt::black);
     AxisColorY=QColor(Qt::black);
-    GraphFont=QFont("Arial",10);
-    FontAxisX=QFont("Arial",10);
-    FontAxisY=QFont("Arial",10);
+    GraphFont=QFont("Arial",7);
+    FontAxisX=QFont("Arial",7);
+    FontAxisY=QFont("Arial",7);
     GraphPen.setColor(GraphColor);
     GraphPen.setWidth(ThinknessGraph);
     AxisXPen.setColor(AxisColorX);

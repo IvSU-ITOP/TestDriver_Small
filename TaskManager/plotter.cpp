@@ -203,7 +203,7 @@ void Plotter::PaintAxis()
     m_Path.lineTo(xmax.x()-10,xmax.y()+5);
     m_Path.addText(xmax.x(),xmax.y()-10,m_pMainChart->FontAxisX,"X");
 
-    double div=(abs(m_pUi->xmax->value())+abs(m_pUi->xmin->value()))/10;if(div==0) div=0.3;
+    double div=ceil((abs(m_pUi->xmax->value())+abs(m_pUi->xmin->value()))/20);if(div==0) div=0.3;
     double LabelPoint{};QPointF val{};
     for(LabelPoint=m_pUi->xmin->value();LabelPoint<m_pUi->xmax->value() && div!=0;LabelPoint+=div)
     {
@@ -216,7 +216,7 @@ void Plotter::PaintAxis()
        m_Path.moveTo(val.x(),val.y()+10);
        m_Path.lineTo(val.x(),val.y()-10);
        m_Path.moveTo(val.x(),val.y());
-      m_Path.addText(val.x()-1,val.y()-10,m_pMainChart->FontAxisX,QString::number(LabelPoint,10,0));
+       m_Path.addText(val.x()-1,val.y()-10,m_pMainChart->FontAxisX,QString::number(LabelPoint,10,0));
     }
 
     div/=2;if(div==0) div=0.15;
@@ -233,7 +233,7 @@ void Plotter::PaintAxis()
        m_Path.moveTo(val.x(),val.y());
     }
 
-    div=(abs(m_pUi->ymax->value())+abs(m_pUi->ymin->value()))/10;
+    div=ceil((abs(m_pUi->ymax->value())+abs(m_pUi->ymin->value()))/20);
     if(div==0) div=0.3;
     for(LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
     {
@@ -246,21 +246,22 @@ void Plotter::PaintAxis()
         m_Path.moveTo(val.x()+10,val.y());
         m_Path.lineTo(val.x()-10,val.y());
         m_Path.moveTo(val.x(),val.y());
-       m_Path.addText(val.x()+7,val.y()-2,m_pMainChart->FontAxisY,tr(QByteArray::number(LabelPoint,10,0)));
+        m_Path.addText(val.x()+7,val.y()-2,m_pMainChart->FontAxisY,tr(QByteArray::number(LabelPoint,10,0)));
     }
     div/=2;if(div==0) div=0.15;
     for(LabelPoint=m_pUi->ymin->value();LabelPoint<m_pUi->ymax->value() && div!=0;LabelPoint+=div)
     {
        val=chartView->mapFromParent(
        QPoint(
-              static_cast<int>(m_pChart->mapToPosition(QPointF(LabelPoint,0)).x()),
-              static_cast<int>(m_pChart->mapToPosition(QPointF(LabelPoint,0)).y())
+              static_cast<int>(m_pChart->mapToPosition(QPointF(0,LabelPoint)).x()),
+              static_cast<int>(m_pChart->mapToPosition(QPointF(0,LabelPoint)).y())
               )
               );
        m_Path.moveTo(val.x()+7,val.y());
        m_Path.lineTo(val.x()-7,val.y());
        m_Path.moveTo(val.x(),val.y());
     }
+
     m_pPathItem = m_pScene->addPath(m_Path,m_pMainChart->AxisXPen);
     m_pScene->update(m_pScene->sceneRect());
 }
