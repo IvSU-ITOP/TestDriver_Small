@@ -22,20 +22,20 @@ MathExpr RightExpr( const MathExpr& E );
 MathExpr RemDenominator( MathExpr ex, Lexp& );
 MathExpr RemDenominator( MathExpr ex );
 MathExpr Transfer( MathExpr exp );
-TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& Name = "x", bool CalcBiQ = true );
-TL2exp* CalcDetQuEqu( const QByteArray& Source, QByteArray VarName = "" );
+Lexp FractRatEq( const QByteArray& Source, const QByteArray& Name = "x", bool CalcBiQ = true );
+Lexp CalcDetQuEqu( const QByteArray& Source, QByteArray VarName = "" );
 bool IsFuncEqu( PNode Expr, const QByteArray& Excepted = "" );
 bool TestFrac( PNode Expr );
 bool IsExpEqu( PNode Expr );
-TL2exp* CalcDetLinEqu( const QByteArray& Source, const QByteArray& Name = "x" );
+Lexp CalcDetLinEqu( const QByteArray& Source, const QByteArray& Name = "x" );
 MathExpr DelSplitted( const MathExpr& ex );
-TL2exp* SolutionSimpleEquaion( PNode equation, const QByteArray& SelectName );
+Lexp SolutionSimpleEquaion( PNode equation, const QByteArray& SelectName );
 void FracToMult( PNode Expr );
 PNode UnMinus( PNode Expr );
 PNode Sub( PNode Reduced, PNode Subtracted );
 PNode Add( PNode Addend1, PNode Addend2 );
 bool EquationsSolving( const QByteArray& UserTask, const QByteArray& Name = "x" );
-TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName = "x" );
+Lexp CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName = "x" );
 bool ReduceEquation( MathExpr& ex, const QByteArray& SelName = "x" );
 bool Div2( PNode eq );
 bool OpenBrackets( PNode eq );
@@ -57,7 +57,7 @@ bool CalcExchange( const QByteArray& Equation );
 bool CalcRootsQuEqu( const QByteArray& Source );
 bool CalcDiscrim( const QByteArray& Source );
 MathExpr DetVieEqu( const MathExpr& exi );
-TL2exp* CalcPolinomEqu( const QByteArray& Source, const QByteArray&& VarName = "x" );
+Lexp CalcPolinomEqu( const QByteArray& Source, const QByteArray&& VarName = "x" );
 bool CalcEquation( const QByteArray& Source );
 MathExpr CalcAnyEquation( const QByteArray& Source );
 
@@ -83,7 +83,7 @@ struct TDivExpr
   MathExpr m_DenEx;
   TDivExpr() {}
   TDivExpr( const MathExpr& NomEx ) : m_NomEx( NomEx ) {}
-  TDivExpr( const TDivExpr& D ) : m_NomEx( D.m_NomEx ) {}
+  TDivExpr( const TDivExpr& D ) : m_NomEx( D.m_NomEx ), m_DenEx(D.m_DenEx) {}
   };
 
 typedef QVector<TDiv> TDivis;
@@ -192,7 +192,6 @@ class Solver
   protected:
     MathExpr m_Expr;
     virtual void Solve(){};
-    MathExpr m_OldExpr;
     QByteArray m_Name;
     QByteArray m_DefaultName;
     int m_Code;
@@ -202,10 +201,11 @@ class Solver
       ESysInEq, ESysInEqXY, ERatInEq, EExpEq, EMakeSubstitution, ESolveLinear, EMakeExchange, ESolvDetLinEqu , ESolvQuaEqu, ESolvDetQuaEqu, ESolvDisQuaEqu,
       ESolvDetVieEqu, ESolvCalcDetBiQuEqu, ESolvFractRatEq, ESolvCalcIrratEq, ESolvCalcPolinomEqu, ESolvCalcSimpleTrigoEq, ESolvCalcSinCosEqu,
       ESolvCalcTrigoEqu, ESolvCalcHomogenTrigoEqu, ESolvCalcEquation, ESin, ECos, ETan, ELn, EDegRad, ERadDeg, ESciCalc };
+    MATHEMATICS_EXPORT static MathExpr m_OldExpr;
     MATHEMATICS_EXPORT static Solver* sm_TestSolvers;
     MATHEMATICS_EXPORT static bool sm_TestMode;
     Solver() : m_Code( -1 ), m_OldPrecision( s_Precision ) { s_MemorySwitch = SWcalculator; }
-    Solver( const MathExpr Expr ) : m_Expr( Expr ), m_OldExpr( Expr ), m_OldPrecision( s_Precision ) { s_MemorySwitch = SWcalculator; Solve(); }
+    Solver( const MathExpr Expr ) : m_Expr( Expr ), m_OldPrecision( s_Precision ) { m_OldExpr = Expr; s_MemorySwitch = SWcalculator; Solve(); }
     virtual ~Solver() { s_MemorySwitch = SWtask; s_Precision = m_OldPrecision; }
     MATHEMATICS_EXPORT void SetExpression( const QByteArray& Expr ) { m_OldExpr = m_Expr = Parser::StringToExpr( Expr ); Solve(); }
     MATHEMATICS_EXPORT MathExpr Result() { return m_Expr; }

@@ -13,6 +13,8 @@ class QuestWindow : public QWidget
   friend class TXRestrList;
   friend class WinTesting;
   RichTextWindow *m_pRTWindow;
+  int m_ContentsWidth;
+  void SetContentsWidth();
   public:
     static bool sm_ShowUnarm;
     static bool sm_ShowMinusByAdd;

@@ -1228,6 +1228,7 @@ LangSwitch_HelpStepCaption=עזרה בשלבים
 LangSwitch_mnmHelp_Caption=תוכן
 LangSwitch_About_Caption=אודות....
 LangSwitch_Graphic_Edit=עריכה גרפית
+LangSwitch_Stack_Question=בחירת שיח קובץ STACK
 LangSwitch_Title=בחירת התרגיל
 LangSwitch_Filter=Task Files    *.tsk|*.tsk;|All Files          *.*|*.*
 LangSwitch_AboutBoxOKButtonCaption=המשך

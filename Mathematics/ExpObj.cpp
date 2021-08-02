@@ -33,6 +33,7 @@ ResultReceiver* TExpr::sm_pResultReceiver = nullptr;
 QList<TExpr*> TExpr::sm_CreatedList;
 
 bool MathExpr::sm_NoReduceByCompare = true;
+bool MathExpr::sm_NewReduce = false;
 
 int TExMemb::sm_ExMembCreated = 0;
 int TExMemb::sm_ExMembDeleted = 0;
@@ -103,7 +104,13 @@ MathExpr& MathExpr::operator = ( const MathExpr& E )
   {
   if( m_pExpr != nullptr && --m_pExpr->m_Counter == 0 ) delete m_pExpr;
   m_pExpr = E.m_pExpr;
-  if( m_pExpr != nullptr ) m_pExpr->m_Counter++;
+  if( m_pExpr != nullptr )
+    {
+    m_pExpr->m_Counter++;
+#ifdef DEBUG_TASK
+    m_Contents = m_pExpr->WriteE();
+#endif
+    }
   return *this;
   }
 
@@ -121,9 +128,25 @@ bool MathExpr::operator == ( int Value ) const
 
 void MathExpr::TestPtr() const
   { 
-  if( m_pExpr == nullptr ) throw ErrParser( X_Str( "MNullPtr", "Was null pointer of expression!" ), peNullptr);
+  if( m_pExpr == nullptr )
+    throw ErrParser( X_Str( "MNullPtr", "Was null pointer of expression!" ), peNullptr);
   }
 
+/*
+#ifdef DEBUG_TASK
+MathExpr::MathExpr( const MathExpr& E ) : m_pExpr( E.m_pExpr )
+  {
+  if( m_pExpr != nullptr ) m_pExpr->m_Counter++;
+  m_Contents = m_pExpr->WriteE();
+  }
+
+MathExpr::MathExpr( TExpr* pE ) : m_pExpr( pE )
+  {
+  if( m_pExpr != nullptr ) m_pExpr->m_Counter++;
+  m_Contents = m_pExpr->WriteE();
+  }
+#endif
+*/
 bool MathExpr::SimpleFrac_( double& N, double& D ) const
   {
   TestPtr();
@@ -175,11 +198,13 @@ bool MathExpr::IsNumerical() const
   return IsConstType( TConstant, Ex );
   }
 
-MathExpr MathExpr::Reduce() const
+MathExpr MathExpr::Reduce(bool NewReduce) const
   {
   if( m_pExpr == nullptr ) return nullptr;
-  if( m_pExpr->m_WasReduced ) return m_pExpr;
+  if(NewReduce) sm_NewReduce = true;
+  if( m_pExpr->m_WasReduced && !sm_NewReduce) return m_pExpr;
   MathExpr Result = m_pExpr->Reduce();
+  if(NewReduce) sm_NewReduce = false;
   if( Result.IsEmpty() ) return Result;
   Result.m_pExpr->m_WasReduced = true;
   return Result;
@@ -512,6 +537,54 @@ MathExpr Lexp::CreateObject()
   return Result;
   }
   */
+
+PExMemb& Lexp::First()
+  {
+  TestPtr();
+  return Cast( TLexp, m_pExpr )->m_pFirst;
+  }
+
+PExMemb& Lexp::Last()
+  {
+  TestPtr();
+  return Cast( TLexp, m_pExpr )->m_pLast;
+  }
+
+bool Lexp::FindEq( const MathExpr& E, PExMemb& F )
+  {
+  TestPtr();
+  return Cast( TLexp, m_pExpr )->FindEq( E, F );
+  }
+
+bool Lexp::FindEqual( const MathExpr& E, PExMemb& F )
+  {
+  TestPtr();
+  return Cast( TLexp, m_pExpr )->FindEqual( E, F );
+  }
+
+void Lexp::Addexp( const MathExpr& A )
+  {
+  TestPtr();
+  return Cast( TLexp, m_pExpr )->Addexp( A );
+  }
+
+void Lexp::Appendz( const MathExpr& A )
+  {
+  TestPtr();
+  return Cast( TLexp, m_pExpr )->Appendz( A );
+  }
+
+void Lexp::DeleteMemb( PExMemb& M )
+  {
+  TestPtr();
+  return Cast( TLexp, m_pExpr )->DeleteMemb( M );
+  }
+
+int Lexp::Count()
+  {
+  TestPtr();
+  return Cast( TLexp, m_pExpr )->Count();
+  }
 
 MathExpr TLord::Clone() const
   {
@@ -1057,7 +1130,7 @@ MathExpr TFunc::Reduce() const
     {
     bool OldFullReduce = TExpr::sm_FullReduce;
     TExpr::sm_FullReduce = true;
-    MathExpr arg_Reduced = m_Arg.Reduce();
+    arg_Reduced = m_Arg.Reduce();
     TExpr::sm_FullReduce = OldFullReduce;
     }
   int N, K;
@@ -1135,6 +1208,25 @@ MathExpr TFunc::Reduce() const
     MathExpr ex = arg_Reduced.EVar2EConst().Reduce();
     if( ex.Constan( V ) && V > 1E-6 &&  abs( Frac( log( V ) ) ) < Precision() )
       return new TConstant( Trunc( log( V ) ) );
+    }
+
+  if( m_Name == "rand_with_prohib" )
+    {
+    first = CastConst( TLexp, m_Arg )->m_pFirst;
+    qint32 A, B, C;
+    if( !first->m_Memb.Cons_int( A ) ) throw ErrParser( "Invalid argment rand_with_prohib", peNoSolv );
+    first = first->m_pNext;
+    if( !first->m_Memb.Cons_int( B ) ) throw ErrParser( "Invalid argment rand_with_prohib", peNoSolv );
+    QVector<int> Exclude;
+    for(; !first.isNull(); first = first->m_pNext)
+      if( first->m_Memb.Cons_int( C ) )
+        Exclude.append(C);
+    std::seed_seq SQ( &A, &B);
+    QRandomGenerator RG(SQ);
+    int Result = RG.generate();
+    while( Exclude.indexOf(Result) != -1 )
+      Result = RG.generate();
+    return new TConstant(Result);
     }
 
   MathExpr ext, e;
@@ -1681,7 +1773,41 @@ MathExpr TFunc::Reduce() const
     return MathExpr(new TFunc( m_Meta_sign, m_Name, arg_Performed ) ).Reduce();
     }
 
-    bool TFunc::Eq( const MathExpr& E2 ) const
+   MathExpr TFunc::Diff( const QByteArray& d  )
+     {
+     MathExpr Result;
+     if( m_Name == "exp" )
+       Result = this;
+     if( m_Name == "sin" )
+       Result = new TFunc( false, "cos", m_Arg );
+     if( m_Name == "cos" )
+       Result = Function( "sin", m_Arg ).Negative();
+     if( m_Name == "ln"  )
+       Result = Constant(1) / m_Arg;
+     if( m_Name == "lg"  )
+       Result = Constant ( 0.4342944 )/m_Arg;
+     if( m_Name == "tan" )
+       Result = Constant ( 1 )/Function("cos", m_Arg )^2;
+     if( m_Name == "cot" )
+       Result = Constant ( 1 )/Function("sin", m_Arg )^2;
+     if( m_Name == "arccot" )
+       Result = Constant ( -1 )/(Constant ( 1 ) + m_Arg^2);
+     if( m_Name == "arctan" )
+       Result = Constant ( 1 )/( Constant ( 1 ) + m_Arg^2);
+     if( m_Name == "arccos" )
+       Result = Constant ( -1 )/( Constant ( 1 ) - m_Arg^2 ).Root(2);
+     if( m_Name == "arcsin" )
+       Result = Constant ( 1 )/( Constant ( 1 ) - m_Arg^2 ).Root(2);
+     if( m_Name == "sec" )
+       Result = Function( "tan", m_Arg ) / Function( "cos", m_Arg );
+     if( m_Name == "cosec" )
+       Result = Function( "cot", m_Arg ) / Function( "sin", m_Arg ).Negative();
+     if( Result.IsEmpty() )
+       return Clone();
+     return Result * m_Arg.Diff(d);
+     }
+
+  bool TFunc::Eq( const MathExpr& E2 ) const
     {
     MathExpr  Ar1, Ar2;
     QByteArray _eqName;
@@ -5323,7 +5449,7 @@ MathExpr TComplexExpr::Clone() const
 MathExpr CreateComplex( const MathExpr& Re, const MathExpr& Im ) 
   {
   if (Im == 0) return Re;
-  if( Re.Reduce() == 0 && !( IsConstType( TConstant, Im ) ) && !( IsConstType( TVariable, Im ) ) )
+  if( !MathExpr::sm_NoReduceByCompare && Re.Reduce() == 0 && !( IsConstType( TConstant, Im ) ) && !( IsConstType( TVariable, Im ) ) )
     {
     TMult *pMult = new TMult( Im, CreateComplex( 0, 1 ) );
     pMult->SetReduced( Im.WasReduced() );
@@ -6100,7 +6226,7 @@ bool TFunc::Log( MathExpr& op1, MathExpr& op2 ) const
     LogBase = new TConstant( 10 );
   if( m_Name == "ln" && m_LogBase.IsEmpty() )
     LogBase = new TConstant( M_E );
-  if( !m_LogBase.IsEmpty() )
+  if( !LogBase.IsEmpty() )
     {
     op1 = LogBase;
     op2 = m_Arg;

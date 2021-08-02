@@ -9,7 +9,7 @@ bool QuestWindow::sm_ShowUnarm = true;
 bool QuestWindow::sm_ShowRad = false;
 bool QuestWindow::sm_ShowMinusByAdd = false;
 
-QuestWindow::QuestWindow(QWidget *pParent) : QWidget(pParent)
+QuestWindow::QuestWindow(QWidget *pParent) : QWidget(pParent), m_ContentsWidth(0)
   {
   setWindowFlags( Qt::FramelessWindowHint );
   WinTesting::sm_pQuestWindow = this;
@@ -21,6 +21,11 @@ QuestWindow::QuestWindow(QWidget *pParent) : QWidget(pParent)
   pLayout->setMargin( 0 );
   }
 
+void QuestWindow::SetContentsWidth()
+  {
+  if(m_ContentsWidth == 0) m_ContentsWidth = contentsRect().width();
+  }
+
 void QuestWindow::SetContent( PDescrList List ) 
   {
   bool ShowUnarm = BaseTask::sm_GlobalShowUnarMinus;
@@ -29,7 +34,7 @@ void QuestWindow::SetContent( PDescrList List )
   BaseTask::sm_GlobalShowUnarMinus = sm_ShowUnarm;
   BaseTask::sm_GlobalShowMinusByAddition = sm_ShowMinusByAdd;
   BaseTask::sm_GlobalShowRad = sm_ShowRad;
-  m_pRTWindow->SetFixedWidth( contentsRect().width() - m_pRTWindow->verticalScrollBar()->width() );
+  m_pRTWindow->SetFixedWidth( m_ContentsWidth - m_pRTWindow->verticalScrollBar()->width() );
   m_pRTWindow->SetContent( List );
   BaseTask::sm_GlobalShowUnarMinus = ShowUnarm;
   BaseTask::sm_GlobalShowMinusByAddition = ShowMinusByAdd;

@@ -214,15 +214,34 @@ class Lexp;
 class MathExpr
   {
   friend Lexp;
+  static bool sm_NewReduce;
   protected:
   TExpr *m_pExpr;
+#ifdef DEBUG_TASK
+    QByteArray  m_Contents;
+#endif
   public:
     MathExpr() : m_pExpr( nullptr ) {}
+#ifndef DEBUG_TASK
     MathExpr( const MathExpr& E ) : m_pExpr( E.m_pExpr ) { if( m_pExpr != nullptr ) m_pExpr->m_Counter++; }
     MathExpr( TExpr* pE ) : m_pExpr( pE ) 
       { 
       if( m_pExpr != nullptr ) m_pExpr->m_Counter++; 
       }
+#else
+    MathExpr( const MathExpr& E ) : m_pExpr( E.m_pExpr )
+      {
+      if( m_pExpr == nullptr ) return;
+      m_pExpr->m_Counter++;
+      m_Contents = m_pExpr->WriteE();
+      }
+    MathExpr( TExpr* pE ) : m_pExpr( pE )
+      {
+      if( m_pExpr == nullptr ) return;
+      m_pExpr->m_Counter++;
+      m_Contents = m_pExpr->WriteE();
+      }
+#endif
     MATHEMATICS_EXPORT MathExpr(const QString&);
     virtual ~MathExpr()   
       { 
@@ -245,7 +264,7 @@ class MathExpr
       m_pExpr = nullptr;
       }
     MathExpr Clone() const { TestPtr(); return m_pExpr->Clone(); }
-    MATHEMATICS_EXPORT MathExpr Reduce() const;
+    MATHEMATICS_EXPORT MathExpr Reduce( bool NewReduce = false ) const;
     MathExpr Perform() const { TestPtr(); return m_pExpr->Perform(); }
     MathExpr Diff( const QByteArray& d = "x" ) { TestPtr(); return m_pExpr->Diff( d ); }
     MathExpr Integral( QByteArray d = "x" ) { TestPtr(); return m_pExpr->Integral( d ); }
@@ -393,7 +412,7 @@ class MathExpr
     MathExpr operator / ( const MathExpr& E ) const;
     MathExpr operator / ( double V ) const;
     MathExpr operator + ( double V ) const;
-    MathExpr operator + ( const MathExpr& E ) const;
+    MATHEMATICS_EXPORT MathExpr operator + ( const MathExpr& E ) const;
     MathExpr operator - ( const MathExpr& E ) const;
     MathExpr operator - ( double V ) const;
     MathExpr operator ^ ( const MathExpr& P ) const;
@@ -502,6 +521,7 @@ class TLexp : public TExpr
     bool AcceptMinus();
     MathExpr SortList( bool Order ) const;
     virtual bool ConstExpr() const;
+    bool Syst_(MathExpr& ex ) const { ex = MathExpr( (TExpr*) this); return false; }
   };
 
 class Lexp : public MathExpr
@@ -509,17 +529,17 @@ class Lexp : public MathExpr
   friend class Parser;
   public:
     Lexp() : MathExpr() {}
-    PExMemb& First() { return Cast( TLexp, m_pExpr )->m_pFirst; }
-    PExMemb& Last() { return Cast( TLexp, m_pExpr )->m_pLast; }
+    PExMemb& First();
+    PExMemb& Last();
     Lexp( const MathExpr& E ) : MathExpr( E ) {}
     Lexp( TExpr *pE ) : MathExpr( pE ) {}
-    bool FindEq( const MathExpr& E, PExMemb& F ) { return Cast( TLexp, m_pExpr )->FindEq( E, F ); }
-    bool FindEqual( const MathExpr& E, PExMemb& F ) const { return Cast( TLexp, m_pExpr )->FindEqual( E, F ); }
-    void Addexp( const MathExpr& A ) { return Cast( TLexp, m_pExpr )->Addexp( A ); }
-    void Appendz( const MathExpr& A ) { return Cast( TLexp, m_pExpr )->Appendz( A ); }
-    void DeleteMemb( PExMemb& M ) { return Cast( TLexp, m_pExpr )->DeleteMemb( M ); }
+    bool FindEq( const MathExpr& E, PExMemb& F );
+    bool FindEqual( const MathExpr& E, PExMemb& F );
+    void Addexp( const MathExpr& A );
+    void Appendz( const MathExpr& A );
+    void DeleteMemb( PExMemb& M );
     Lexp LeastCommonDenominator( bool bReduce );
-    int Count() { return Cast( TLexp, m_pExpr )->Count(); }
+    int Count();
 //    MathExpr CreateObject();
   };
 
@@ -668,7 +688,7 @@ class TFunc : public TExpr
     MathExpr Clone() const;
     MathExpr Reduce() const;
     MathExpr Perform() const;
-    MathExpr Diff( const QByteArray& d = "x" ) { return nullptr; }
+    MathExpr Diff( const QByteArray& d = "x" );
     MathExpr Integral( const QByteArray& d = "x" ) { return nullptr; }
     MathExpr Lim( const QByteArray& v, const MathExpr lm ) const { return nullptr; }
     bool Eq( const MathExpr& E2 ) const;

@@ -593,6 +593,7 @@ MathExpr TExpr::CalcFunc( const QByteArray& fname )
       sm_TrigonomSystem = tsDeg;
       exo = ex.Reduce();
       }
+    exo = exo.SimplifyFull();
     }
 
   int Nom, Den;

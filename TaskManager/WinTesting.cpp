@@ -66,12 +66,9 @@ void ResetTestMode() { CalcWidget::ResetTestMode(); }
 void AutoTest() { CalcWidget::AutoTest(); }
 
 DetailedCalculator::DetailedCalculator() : m_pCalculators( new ListCalculators ), 
-  m_pCalcsLayout( new QStackedLayout ),
-  m_pCalcTitle( new QLabel )
+  m_pCalcsLayout( new QStackedLayout )
   {
   QVBoxLayout *pVCalcLayout = new QVBoxLayout;
-  m_pCalcTitle->setAlignment( Qt::AlignCenter );
-  pVCalcLayout->addWidget( m_pCalcTitle );
   Algebra1 *pAl1 = new Algebra1;
   Algebra2 *pAl2 = new Algebra2;
   Equations1 *pE1 = new Equations1;
@@ -106,7 +103,6 @@ void DetailedCalculator::LangSwitch()
   m_pCalculators->LangSwitch();
   for( int Widget = 0; Widget < m_pCalcsLayout->count(); Widget++ )
     dynamic_cast< CalcWidget* >( m_pCalcsLayout->widget( Widget ) )->LangSwitch();
-  m_pCalcTitle->setText( X_Str( "MCalculator", "Calculator" ) );
   }
 
 CalcWidget* DetailedCalculator::GetCalcWidget( int Index )
@@ -118,10 +114,11 @@ DoubleButton::DoubleButton() : m_pBaseButton( nullptr )
   {
   setEnabled( false );
   QPixmap Pixmap( ":/Resources/Calculator/BtnCalcCalc.jpg" );
-  QPixmap NewPix( Pixmap.scaledToHeight( CalcButton::sm_ButtonHeight - 4 ).size() );
+  QPixmap NewPix( Pixmap.scaledToHeight( CalcButton::sm_ButtonHeight - 10 ).size() );
   NewPix.fill( palette().button().color() );
   setIcon( NewPix );
   setIconSize( NewPix.size() );
+  setFixedWidth(NewPix.width());
   setFlat( true );
   connect( this, SIGNAL( clicked() ), SLOT( ClickBase() ) );
   }
@@ -132,6 +129,7 @@ void DoubleButton::SetButton( QPushButton* pButton )
   setIcon( pButton->icon() );
   setEnabled( true );
   setToolTip( pButton->toolTip() );
+  setGeometry(pButton->geometry());
   }
 
 void DoubleButton::ClearButton()
@@ -148,7 +146,8 @@ void DoubleButton::ClickBase()
   m_pBaseButton->click();
   }
 
-ButtonBox::ButtonBox() : m_pGrid(new QGridLayout), m_ButtonCount(0), m_pPrompt(new QLabel("  ") )
+ButtonBox::ButtonBox(QWidget *pParent) : QWidget(pParent), m_pGrid(new QGridLayout),
+  m_ButtonCount(0), m_pPrompt(new QLabel(" ") )
   {
   QVBoxLayout *pMainLayout = new QVBoxLayout;
   pMainLayout->addWidget( m_pPrompt );
@@ -199,30 +198,67 @@ bool ButtonBox::SolveDefault()
   return true;
   }
 
-SolverWidget::SolverWidget() : m_pSolve( new QPushButton(this) ), m_pButtonBox( new ButtonBox )
+SolverWidget::SolverWidget() : m_pSolve( new QPushButton(this) ), m_pButtonBox( new ButtonBox(this) ),
+  m_pMoveToWorkSheet(new QPushButton(this))
   {
-  QPixmap Pixmap = QPixmap( ":/Resources/Calculator.jpg" ).scaledToHeight( CalcButton::sm_ButtonHeight * 3 );
+  QPixmap Pixmap = QPixmap( ":/Resources/Calculator.jpg" ).scaledToHeight( CalcButton::sm_ButtonHeight * 2.5 );
   m_pSolve->setIcon( Pixmap );
   m_pSolve->setIconSize( Pixmap.size() );
   m_pSolve->setFlat( true );
   connect( m_pSolve, SIGNAL( clicked() ), SLOT( SearchSolve() ) );
   m_pSolve->adjustSize();
-  m_pButtonBox->setFixedWidth( m_pSolve->width() * 1.7 );
-  m_pButtonBox->setStyleSheet( "QWidget {margin-right:20px}" );
+  Pixmap = QPixmap( ":/Resources/MoveToWorksheet.png" );
+  m_pMoveToWorkSheet->setIcon(Pixmap);
+  m_pMoveToWorkSheet->setIconSize( Pixmap.size() );
+  m_pMoveToWorkSheet->setFixedWidth(Pixmap.width());
+  m_pMoveToWorkSheet->setFlat( true );
+  connect( m_pMoveToWorkSheet, SIGNAL( clicked() ), SLOT( MoveToWorkSheet() ) );
+  m_pMoveToWorkSheet->adjustSize();
   }
 
 void SolverWidget::resizeEvent( QResizeEvent *event )
   {
-  QRect R = m_pButtonBox->geometry();
-  R.moveLeft( m_pSolve->width() + 10 );
-  m_pButtonBox->setParent( this );
-  m_pButtonBox->setGeometry( R );
+  int Wthis = width(), WSolve = m_pSolve->width(), WBox = m_pButtonBox->width(), WMove = m_pMoveToWorkSheet->width();
+  int HThis = height(), HSolve = max(m_pSolve->height(), m_pButtonBox->height()), HTitle = m_pMoveToWorkSheet->height();
+  int HSP = (HThis - HSolve - HTitle) / 4;
+  int WSp = (Wthis - WSolve - WBox) / 15;
+  QRect RMove = m_pMoveToWorkSheet->geometry();
+  RMove.moveTopLeft(QPoint((Wthis - WMove) /3, HSP ) );
+  m_pMoveToWorkSheet->setGeometry(RMove);
+  HSP += HSP + HTitle;
+  QRect RSolve = m_pSolve->geometry();
+  RSolve.moveTopLeft(QPoint(WSp, HSP));
+  m_pSolve->setGeometry(RSolve);
+  QRect RBox = m_pButtonBox->geometry();
+  RBox.moveTopLeft(QPoint(WSp + WSolve + WSp, HSP) );
+  m_pButtonBox->setGeometry(RBox);
   }
 
 void SolverWidget::LangSwitch()
   {
   m_pSolve->setToolTip( X_Str( "MSolveAllTasks", "Solve" ) );
   m_pButtonBox->setToolTip( X_Str( "MPossibleTasks", "Possible tasks" ) );
+  m_pMoveToWorkSheet->setToolTip( X_Str( "MBtnEnterHint", "Move expression to output window" ) );
+  }
+
+void SolverWidget::MoveToWorkSheet()
+  {
+  MainTab::sm_Enter();
+  }
+
+void SolverWidget::SelfTest()
+  {
+
+  }
+
+void SolverWidget::InpAnswer()
+  {
+
+  }
+
+void SolverWidget::UndoSelfTest()
+  {
+
   }
 
 void SolverWidget::Solve( Solver *pS, QPushButton* pBtn)
@@ -413,18 +449,17 @@ void SolverWidget::SearchSolve()
   }
 
 BottomWindow::BottomWindow() : m_pTitle(new QLabel), m_pPrecision(new QLabel), m_pDetailedCalc( new DetailedCalculator), 
-m_pPrecisionIncr( new CalcButton( "MPrecPlusBtnHint", "Increase precision", ":/Resources/Extras-Forward-icon.png" ) ),
-m_pPrecisionDecr( new CalcButton( "MPrecMinusBtnHint", "Decrease precision", ":/Resources/Extras-Backward-icon.png" ) ),
-m_pAngleMeas( new CalcButton( "MRadDegHint", "Angle Measure" ) ), m_pSolverWidet( new SolverWidget ), m_pVCalcLayout( new QVBoxLayout ),
-m_pSWitchCalc( new CalcButton( "MDisplayKeys", "Keys" ) ), m_pCalculator( new QGroupBox), m_pMainLayout( new QHBoxLayout)
-
+  m_pPrecisionIncr( new CalcButton( "MPrecPlusBtnHint", "Increase precision", ":/Resources/Extras-Forward-icon.png" ) ),
+  m_pPrecisionDecr( new CalcButton( "MPrecMinusBtnHint", "Decrease precision", ":/Resources/Extras-Backward-icon.png" ) ),
+  m_pAngleMeas( new CalcButton( "MRadDegHint", "Angle Measure" ) ), m_pSolverWidet( new SolverWidget ), m_pVCalcLayout( new QVBoxLayout ),
+  m_pSWitchCalc( new CalcButton( "MDisplayKeys", "Keys" ) ), m_pCalculator( new QGroupBox), m_pMainLayout( new QHBoxLayout),
+  m_pCalcTitle( new QLabel ), m_TrigonomSystem(TExpr::tsRad)
   {
   WinTesting::sm_pBottomWindow = this;
   setSizePolicy( QSizePolicy::Fixed, QSizePolicy::Fixed );
   XPGedit::sm_ResetTestMode = ResetTestMode;
   XPGedit::sm_AutoTest = AutoTest;
   QGroupBox *pGroupBox = new QGroupBox();
-  int OldHeight = PanelButton::sm_ButtonHeight;
   PanelButton::sm_ButtonHeight = WinTesting::sm_pPanel->width() / 3;
   QPushButton *pMainTaskBtn = new PanelButton( ":/Resources/MainHelp.png" );
   connect( pMainTaskBtn, SIGNAL( clicked() ), SLOT( MainTaskClick() ) );
@@ -433,6 +468,7 @@ m_pSWitchCalc( new CalcButton( "MDisplayKeys", "Keys" ) ), m_pCalculator( new QG
   pVLayout->setAlignment( pMainTaskBtn, Qt::AlignHCenter | Qt::AlignCenter );
   pGroupBox->setLayout( pVLayout );
   pGroupBox->setFixedWidth( WinTesting::sm_pPanel->width() );
+  QHBoxLayout *pCalcLayout = new QHBoxLayout;
   QVBoxLayout *pEdLayout = new QVBoxLayout;
   m_pTitle->setAlignment( Qt::AlignCenter );
   m_pTitle->setText( X_Str( "EditWindowCaption", "Edit Window   press Enter to save or use calculator to evaluate" ) );
@@ -441,7 +477,7 @@ m_pSWitchCalc( new CalcButton( "MDisplayKeys", "Keys" ) ), m_pCalculator( new QG
   m_pTitle->adjustSize();
   m_pMainLayout->setMargin( 0 );
   m_pMainLayout->addWidget( pGroupBox );
-  m_pMainLayout->addLayout( pEdLayout );
+  m_pMainLayout->addLayout( pCalcLayout );
   m_pCalculator->setStyleSheet( "QWidget {font-size:16px}" );
   QHBoxLayout *pHLayout = new QHBoxLayout;
   pHLayout->addWidget( m_pAngleMeas );
@@ -455,25 +491,32 @@ m_pSWitchCalc( new CalcButton( "MDisplayKeys", "Keys" ) ), m_pCalculator( new QG
   connect( m_pPrecisionIncr, SIGNAL( clicked() ), SLOT( PrecIncr() ) );
   m_pPrecision->setStyleSheet( "QWidget {margin-right:10px}" );
   pHLayout->addWidget( m_pPrecision );
+  m_pCalcTitle->setAlignment( Qt::AlignCenter );
+  m_pVCalcLayout->addWidget( m_pCalcTitle );
   m_pVCalcLayout->addLayout( pHLayout );
   m_pVCalcLayout->setMargin( 0 );
   m_pDetailedCalc->adjustSize();
+  QSize G = m_pSolverWidet->size();
   m_pSolverWidet->setFixedSize( m_pDetailedCalc->size() );
-  m_pDetailedCalc->hide();
+  G = m_pSolverWidet->size();
   m_pVCalcLayout->addWidget( m_pSolverWidet );
   m_pCalculator->setLayout( m_pVCalcLayout );
   m_pCalculator->setFixedWidth( WinTesting::sm_pPanel->width() * 2.2 );
-  m_pCalculator->hide();
-  m_EditorWidth = ScreenSize.width() - pGroupBox->width() - 20, ScreenSize.height() / 4 - m_pTitle->height();
+  m_FullEditorWidth = ScreenSize.width() - pGroupBox->width() - 20;
+  m_EditorWidth = m_FullEditorWidth - m_pCalculator->width();
+  m_pCalculator->show();
   Panel::sm_pEditor = new XPGedit( this, BaseTask::sm_pEditSets );
   QScrollArea *pArea = Panel::sm_pEditor->SetSize(QSize(m_EditorWidth, ScreenSize.height() / 4 - m_pTitle->height()));
   pEdLayout->addWidget( pArea );
+  pCalcLayout->addLayout(pEdLayout);
+  pCalcLayout->addWidget(m_pCalculator);
   setLayout(m_pMainLayout);
   ShowPrecision();
   ShowAngleMeas();
   LangSwitch();
   m_pAngleMeas->adjustSize();
   m_pSWitchCalc->setFixedHeight( m_pAngleMeas->height() );
+  G = m_pSolverWidet->size();
   }
 
 QPushButton* BottomWindow::GetCalcButton( int Widget, int row, int col )
@@ -481,23 +524,25 @@ QPushButton* BottomWindow::GetCalcButton( int Widget, int row, int col )
   return m_pDetailedCalc->GetCalcWidget( Widget )->GetButton( row, col );
   }
 
-void BottomWindow::ShowCalculator()
+void BottomWindow::ShowCalculator(bool Show)
   {
-  if (m_pCalculator->isVisible())
-    {
-    m_pCalculator->hide();
-    m_pMainLayout->removeWidget(m_pCalculator);
-    m_EditorWidth += m_pCalculator->width();
-    WinTesting::sm_pShowCalcualtor->setText("Show &Calculator");
-    }
-  else
+  if( Show )
     {
     m_pCalculator->show();
-    m_pMainLayout->addWidget(m_pCalculator);
-    m_EditorWidth -= m_pCalculator->width();
+    Panel::sm_pEditor->SetSize(QSize(m_EditorWidth, Panel::sm_pEditor->height()) );
+    Panel::sm_pEditor->setFixedWidth(m_EditorWidth);
     WinTesting::sm_pShowCalcualtor->setText("Hide &Calculator");
+    return;
     }
-  Panel::sm_pEditor->setFixedWidth(m_EditorWidth);
+  m_pCalculator->hide();
+  WinTesting::sm_pShowCalcualtor->setText("Show &Calculator");
+  Panel::sm_pEditor->SetSize(QSize(m_FullEditorWidth, Panel::sm_pEditor->height()) );
+  Panel::sm_pEditor->setFixedWidth(m_FullEditorWidth);
+  }
+
+void BottomWindow::ShowCalculator()
+  {
+  ShowCalculator( !m_pCalculator->isVisible() );
   }
 
 void BottomWindow::SwitchCalc()
@@ -508,11 +553,13 @@ void BottomWindow::SwitchCalc()
     m_pSolverWidet->show();
     m_pVCalcLayout->replaceWidget( m_pDetailedCalc, m_pSolverWidet );
     m_pDetailedCalc->hide();
+    m_pSWitchCalc->setToolTip( X_Str( "MDisplayCalculatorKeys", "Display Calculator Keys" ) );
     return;
     }
   m_pDetailedCalc->show();
   m_pVCalcLayout->replaceWidget( m_pSolverWidet, m_pDetailedCalc );
   m_pSolverWidet->hide();
+  m_pSWitchCalc->setToolTip( X_Str( "MHideCalculatorKeys", "Hide Calculator Key" ) );
   }
 
 void BottomWindow::MainTaskClick()
@@ -524,6 +571,7 @@ void BottomWindow::MainTaskClick()
 void BottomWindow::LangSwitch()
   {
   m_pTitle->setText( X_Str( "EditWindowCaption", "Edit Window   press Enter to save or use calculator to evaluate" ) );
+  m_pCalcTitle->setText( X_Str( "MCalculator", "Calculator" ) );
   m_pPrecision->setToolTip( X_Str( "MPanelPrecHint", "Precision of Calculations" ) );
   m_pAngleMeas->setToolTip( X_Str( "MRadDegHint", "Angle Measure" ) );
   ShowAngleMeas();
@@ -550,6 +598,7 @@ void BottomWindow::ShowAngleMeas()
     m_pAngleMeas->setText( X_Str( "MRad", "Rad" ) );
   else
     m_pAngleMeas->setText( X_Str( "MDeg", "Deg" ) );
+  m_TrigonomSystem = TExpr::sm_TrigonomSystem;
   Panel::sm_pEditor->setFocus();
   }
 
@@ -557,6 +606,7 @@ void BottomWindow::PrecIncr()
   {
   if( s_Precision < 1e-8 ) return;
   s_OldPrecision = s_Precision /= 10.0;
+  TExpr::sm_Accuracy = s_Precision;
   ShowPrecision();
   }
 
@@ -564,6 +614,7 @@ void BottomWindow::PrecDecr()
   {
   if( s_Precision > 0.1 ) return;
   s_OldPrecision = s_Precision *= 10.0;
+  TExpr::sm_Accuracy = s_Precision;
   ShowPrecision();
   }
 
@@ -619,6 +670,7 @@ WinTesting::WinTesting() : m_Review(false)
   m_pOpenTask = m_pFile->addAction( QIcon( ":/Resources/fileopen.png" ), "&Open Task File", this, SLOT( slotOpenTaskFile() ), QKeySequence( "CTRL+O" ) );
   m_pEditTask = m_pFile->addAction( QIcon( ":/Resources/fileopen.png" ), "&Edit Task File", this, SLOT( slotEditTaskFile() ), QKeySequence( "CTRL+E" ) );
   m_pCreateTask = m_pFile->addAction( QIcon( ":/Resources/NewTask.jpg" ), "&Create Task", this, SLOT( slotCreateTask() ), QKeySequence( "CTRL+N" ) );
+  m_pOpenStack = m_pFile->addAction( QIcon( ":/Resources/NewTask.jpg" ), "&Create Task from Stack", this, SLOT( slotOpenStack() ), QKeySequence( "CTRL+M" ) );
   sm_pSaveTaskFile = m_pFile->addAction( QIcon( ":/Resources/filesave.png" ), "&Save Task File", this, SLOT( slotSaveTaskFile() ), QKeySequence( "CTRL+S" ) );
   m_pWebTask = m_pFile->addAction( QIcon( ":/Resources/WebOpen.png" ), "Open Task from &Web", this, SLOT( BrowseTask() ), QKeySequence( "CTRL+W" ) );
   sm_pSaveTaskFile->setEnabled( false );
@@ -846,6 +898,7 @@ void WinTesting::NewXPRESSTask( const QString& TaskFileName, bool Edit )
   s_Task.Clear();
   s_Task.sm_EditTask = Edit;
   sm_pSaveTaskFile->setEnabled( false );
+  sm_pBottomWindow->ShowCalculator(false);
   StartXPRESSTask( TaskFileName, Edit );
   //      if( Assigned( GraphEdit ) && ( ( GraphEdit.TrainingType == LinInEq ) || GeoActivate ) )
   //        ActivateForm( GraphEdit );
@@ -992,6 +1045,37 @@ void WinTesting::slotSaveTaskFile( bool bNewName )
   sm_pSaveTaskFile->setEnabled( false );
   }
 
+void WinTesting::slotOpenStack()
+  {
+  QString FileName = QFileDialog::getOpenFileName( nullptr, X_Str( "LangSwitch_Stack_Question", "Selecting STACK File Dialog" ),
+    sm_TaskPath, "*.xml", nullptr, QFileDialog::ReadOnly );
+  if( FileName.isEmpty() ) return;
+  try
+    {
+    HideHelps();
+    s_Task.sm_EditTask = true;
+    ClearXPWindows();
+    sm_pEditor->setEnabled( false );
+    TaskHeaderEditor HE( this, &s_Task );
+    if(HE.Cancelled() || HE.exec() == QDialog::Rejected )
+      {
+      sm_pEditor->setEnabled( true );
+      return;
+      }
+    s_TaskEditorOn = true;
+    sm_pQuestWindow->SetContent( s_Task.m_pQuestion );
+    s_Task.LoadFromStack(FileName);
+    EditTaskCalc();
+    EditTracks();
+    sm_pEditor->setEnabled( true );
+    ExpStore::sm_pExpStore->Init_var();
+    }
+  catch( ErrParser& ErrMsg )
+    {
+    QMessageBox::critical( nullptr, "Error", ErrMsg.Message() );
+    }
+  }
+
 bool WinTesting::event( QEvent *event )
   {
   if( event->type() == QEvent::ActivationChange )
@@ -1026,10 +1110,19 @@ bool WinTesting::event( QEvent *event )
       }
     SplitOutWindow = false;
     }
+  if( event->type() == QEvent::KeyboardLayoutChange)
+    {
+    m_Review = true;
+    }
   if( event->type() == QEvent::Show )
     {
 //    s_Task.SetWorkMode("wrkExam");
-    if( m_Review || sm_ApplicationArguments.count() != 7 ) return true;
+    if( m_Review || sm_ApplicationArguments.count() != 7 )
+      {
+      sm_pQuestWindow->SetContentsWidth();
+      sm_pBottomWindow->ShowCalculator(false);
+      return true;
+      }
     m_Review = true;
     m_TasksUrl = sm_ApplicationArguments[2];
     m_RootAppUrl = m_TasksUrl.left( m_TasksUrl.lastIndexOf( '/' ) + 1 );
@@ -1811,7 +1904,12 @@ void CellEditor::mouseDoubleClickEvent( QMouseEvent *event )
   MathExpr Expr = MathExpr( Parser::StrToExpr( XPGedit::ExpandFuncName(BaseChar) ) );
   s_iDogOption = 0;
   if( s_GlobalInvalid || Expr.IsEmpty() ) return;
-  Panel::sm_pEditor->RestoreFormula( Expr.SWrite() );
+  QByteArray Formula;
+  if(Expr->Variab(Formula))
+    Formula = "@" + Formula;
+  else
+    Formula = Expr.SWrite();
+  Panel::sm_pEditor->RestoreFormula( Formula );
   Panel::sm_pEditor->activateWindow();
   }
 
@@ -2720,7 +2818,7 @@ void CalcWidget::Solve( Solver *pSolver )
     delete pSolver;
     Panel::sm_pEditor->setFocus();
     };
-
+  WinTesting::sm_pBottomWindow->RestoreTrigonomSystem();
   QByteArray Formula( Panel::sm_pEditor->Write() );
   if( Formula.isEmpty() ) return Final();
   bool TestMode = Solver::sm_TestMode && sm_Result.device()->isOpen();
@@ -2763,6 +2861,9 @@ void CalcWidget::Solve( Solver *pSolver )
     return Final();
     }
   MathExpr Result = pSolver->Result();
+  QString Comment = TSolutionChain::sm_SolutionChain.GetLastComment();
+  if(!Comment.isEmpty())
+    WinTesting::sm_pOutWindow->AddComm( Comment );
   if( Result.IsEmpty() )
     {
     WinTesting::sm_pOutWindow->AddComm( s_LastError );

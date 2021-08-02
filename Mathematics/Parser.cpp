@@ -1717,11 +1717,11 @@ MathExpr Parser::OutPut( PNode p ) // The tree of solution will be transformed t
         Result = new TMult( new TMult( op1, new TNewLin, p->m_OpSign ), op2, p->m_OpSign );
       else
         if( op2.Complex( op11, op22 ) && op11.Cons_int( Int ) && ( Int == 0 ) && op22.Cons_int( Int ) && ( Int == 1 ) &&
-          ( IsType( TConstant, op1 ) || IsType( TVariable, op1 ) ) )
+          ( IsType( TConstant, op1 ) || IsType( TVariable, op1 ) || IsType( TSimpleFrac, op1 ) ) )
           Result = new TComplexExpr( op11, op1 );
         else
           if( op1.Complex( op11, op22 ) && op11.Cons_int( Int ) && ( Int == 0 ) && op22.Cons_int( Int ) && ( Int == 1 ) &&
-            ( IsType( TConstant, op2 ) || IsType( TVariable, op2 ) ) )
+            ( IsType( TConstant, op2 ) || IsType( TVariable, op2 ) || IsType( TSimpleFrac, op2 ) ) )
             Result = new TComplexExpr( op11, op2 );
           else
             Result = new TMult( op1, op2, p->m_OpSign );

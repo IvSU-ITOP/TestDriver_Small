@@ -42,7 +42,7 @@ bool XPInEdit::sm_EditString = false;
 bool EdStr::sm_PureText = false;
 int XPInEdit::sm_AddHeight = 10;
 int EdIntegr::sm_SignSize = 0;
-int EdIntervals::sm_Width = 300;
+int EdIntervals::sm_Width = 400;
 int EdIntervals::sm_Height = 25;
 QString XPInEdit::sm_BasePath;
 bool EdList::sm_PartlySelected = false;
@@ -2033,7 +2033,7 @@ void EdList::PreCalc(TPoint P, QSize &S, int &A)
   if (m_pMother == NULL)
     {
     m_pOwner->SetPowerSize(0, true);
-    if (m_Hebrew && m_pFirst != nullptr )
+    if (m_Hebrew && m_pFirst != nullptr  )
       {
       int H = 0;
       for (EdMemb *pIndex = m_pLast; pIndex != NULL; pIndex = pIndex->m_pPrev)
@@ -2425,7 +2425,7 @@ EdMemb* EdList::Append_Before( const PEdElm& pE )
     return Result;
     }
   if (m_pMother != nullptr && m_pLast != nullptr && m_pMother->m_pMember->m_pParent != nullptr ) return m_pMother->m_pMember->m_pParent->ReplaceParentMemb(this, pE);
-  if( sm_EditKeyPress && pC != nullptr && IsHebChar( pC->c() ) )
+  if( !sm_EditKeyPress && pC != nullptr && IsHebChar( pC->c() ) )
     if( m_pFirst == nullptr )
       {
       m_Hebrew = true;
@@ -3318,7 +3318,8 @@ void EdIntervals::Draw( TPoint P )
       m_pOwner->m_pCanvas->drawEllipse( m_Start.X + x - 3, m_Start.Y + 2, 8, 8 );
     else
       m_pOwner->m_pCanvas->fillRect( m_Start.X + x - 2, m_Start.Y + 3, 6, 6, "black" );
-    m_pOwner->m_pCanvas->drawText( m_Start.X + x - 5, m_Start.Y + 32, m_Points[i].m_sValue );
+    int Shift = m_Points[i].m_sValue.count() * 3;
+    m_pOwner->m_pCanvas->drawText( m_Start.X + x - Shift, m_Start.Y + 32, m_Points[i].m_sValue );
     }
   int j = 1;
   int i = 0;

@@ -33,6 +33,7 @@ class TSolutionChain
     MathExpr GetExpr( int i );
     void Expand();
     void AddComment( const QString& s, int i = -1 );
+    MATHEMATICS_EXPORT QString GetLastComment();
   };
 
 #endif

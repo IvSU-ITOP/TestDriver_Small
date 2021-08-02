@@ -108,6 +108,7 @@ class TXDescrList
     TASKFILEMANAGER_EXPORT void Clear();
     TASKFILEMANAGER_EXPORT void Assign( PDescrList& A );
     void LoadFromTaskFile( const QByteArray& LKeyWord );
+    void LoadFromQuestionVariables(const QByteArrayList& );
     BaseTask &GetTask() { return m_Task; }
     TASKFILEMANAGER_EXPORT QByteArray GetText();
     QByteArray* GetTextPtr();
@@ -294,8 +295,9 @@ class CalcList : public QVector<CalcPair>
     CalcList() : m_pTask( nullptr ) {}
     CalcList( BaseTask* pTask ) : m_pTask( pTask ) {}
     bool GetRand( QByteArray& L, QByteArray& LO );
-    TASKFILEMANAGER_EXPORT void Random_gen( const QByteArray& S );
+    TASKFILEMANAGER_EXPORT MathExpr Random_gen( const QByteArray& S );
     void LoadFromTaskFile( const QByteArray& LKeyWord );
+    void LoadFromQuestionVariables(const QByteArrayList& );
     TASKFILEMANAGER_EXPORT CalcList& operator =( const CalcList& );
     TASKFILEMANAGER_EXPORT void Calculate();
     void Save( QByteStream& );
@@ -414,6 +416,7 @@ class BaseTask
     TASKFILEMANAGER_EXPORT virtual ~BaseTask();
     TASKFILEMANAGER_EXPORT void ClearTrackDependent();
     TASKFILEMANAGER_EXPORT void LoadFromFile();
+    TASKFILEMANAGER_EXPORT void LoadFromStack(QString&);
     TASKFILEMANAGER_EXPORT virtual void LoadTrackDependentFromFile();
     TASKFILEMANAGER_EXPORT void CalcRead();
     PPromptDescr StepPrompt();

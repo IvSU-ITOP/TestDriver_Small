@@ -217,7 +217,16 @@ QString TXPTask::CompareUserExpr( const MathExpr& exi, OutWindow* pOutWin )
     {
     double Precision = TExpr::sm_Precision;
     TExpr::sm_Precision = TExpr::sm_Accuracy;
-    bool Result = m_ExactCompare && exi.Eq( exComp ) || !m_ExactCompare && exi.Equal( exComp );
+    bool Result;
+    if(m_ExactCompare)
+      Result = exi.Eq( exComp );
+    else
+      {
+      bool OldNoReduceByCompare = MathExpr::sm_NoReduceByCompare;
+      MathExpr::sm_NoReduceByCompare = false;
+      Result = exi.Equal( exComp );
+      MathExpr::sm_NoReduceByCompare = OldNoReduceByCompare;
+      }
     TExpr::sm_Precision = Precision;
     return Result;
     };

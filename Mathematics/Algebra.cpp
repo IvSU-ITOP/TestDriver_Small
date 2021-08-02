@@ -9,6 +9,7 @@
 int s_DegPoly = 8;
 bool Solver::sm_TestMode = false;
 Solver* Solver::sm_TestSolvers = nullptr;
+MathExpr Solver::m_OldExpr;
 
 bool GetAnswer( const MathExpr& expr, QByteArray VarName )
   {
@@ -2206,7 +2207,7 @@ MathExpr DelSplitted( const MathExpr& ex )
   return ex;
   }
 
-TL2exp* SolutionSimpleEquaion(PNode equation, const QByteArray& SelectName )
+Lexp SolutionSimpleEquaion(PNode equation, const QByteArray& SelectName )
   {
   if( equation->m_IsLeft && equation->m_IsRight )
     throw  ErrParser( "Too many unknowns!", peMultipl );
@@ -2231,7 +2232,7 @@ TL2exp* SolutionSimpleEquaion(PNode equation, const QByteArray& SelectName )
   Sol->m_OpSign = '=';
   Sol->m_Priority = 5;
   MathExpr Expr1;
-  TL2exp* pResult = new TL2exp;
+  Lexp Result = new TL2exp;
   Parser &P = *equation->m_pOwner;
   while( LeftPart->m_Info.toUpper() != SelectName.toUpper() )
     {
@@ -2329,7 +2330,7 @@ TL2exp* SolutionSimpleEquaion(PNode equation, const QByteArray& SelectName )
       Expr1 = P.OutPut( Sol );
     else
       Expr1 = P.OutPut( Sol ).Reduce();
-    pResult->Addexp( Expr1 );
+    Result.Addexp( Expr1 );
     }
 
   if( equation->m_IsLeft )
@@ -2341,18 +2342,18 @@ TL2exp* SolutionSimpleEquaion(PNode equation, const QByteArray& SelectName )
     {
     MathExpr Expr2 = Expr1.Reduce();
     if( !Expr1.Eq( Expr2 ) )
-      pResult->Addexp( Expr2 );
+      Result.Addexp( Expr2 );
     }
   else
     {
     Sol->m_pLeft = LeftPart;
     Sol->m_pRight = RightPart;
-    pResult->Addexp(P.OutPut( Sol ).Reduce() );
+    Result.Addexp(P.OutPut( Sol ).Reduce() );
     }
-  return pResult;
+  return Result;
   }
 
-TL2exp* CalcDetLinEqu( const QByteArray& Source, const QByteArray& VarName )
+Lexp CalcDetLinEqu( const QByteArray& Source, const QByteArray& VarName )
   {
   if( Source.isEmpty() ) return new TL2exp();
 
@@ -2406,17 +2407,17 @@ TL2exp* CalcDetLinEqu( const QByteArray& Source, const QByteArray& VarName )
   s_Precision = 0.0000001;
   int OldDegPoly = s_DegPoly;
   s_DegPoly = 3;
-  TL2exp* pResult = nullptr;
+  Lexp Result;
 
   auto Final = [&] ()
     {
-    if( s_FinalComment && pResult != nullptr )
+    if( s_FinalComment && !Result.IsEmpty() )
       TSolutionChain::sm_SolutionChain.AddComment( X_Str( "MRootsE", "Roots are found" ) );
     s_Precision = OldPrecision;
     s_DegPoly = OldDegPoly;
-    if( s_PutAnswer && s_Answer.IsEmpty() && pResult != nullptr )
-      s_Answer = pResult;
-    return pResult;
+    if( s_PutAnswer && s_Answer.IsEmpty() && !Result.IsEmpty() )
+      s_Answer = Result;
+    return Result;
     };
 
   try
@@ -2433,8 +2434,8 @@ TL2exp* CalcDetLinEqu( const QByteArray& Source, const QByteArray& VarName )
         throw  ErrParser( "Wrong type of equation!", peNoSolvType );
       if( IsType( TVariable, ex1 ) && IsType( TConstant, ex2 ) )
         {
-        pResult = new TL2exp;
-        pResult->Addexp( ex2 );
+        Result = new TL2exp;
+        Result.Addexp( ex2 );
         return Final();
         }
       TSolutionChain::sm_SolutionChain.AddExpr( expr );
@@ -2502,8 +2503,8 @@ TL2exp* CalcDetLinEqu( const QByteArray& Source, const QByteArray& VarName )
           TSolutionChain::sm_SolutionChain.AddExpr( ex );
           if( Cast( TVariable, CastPtr( TBinar, ex )->Left().Ptr() ) != nullptr )
             {
-            pResult = new TL2exp;
-            pResult->Addexp( ex );
+            Result = new TL2exp;
+            Result.Addexp( ex );
             return Final();
             }
           if( !( a.Constan( d ) && abs( d ) < 0.0000001 ) )
@@ -2511,8 +2512,8 @@ TL2exp* CalcDetLinEqu( const QByteArray& Source, const QByteArray& VarName )
             ex = b / a;
             ex1 = ex.Reduce();
             ex = ex1.CancellationOfMultiNominals( ex2 );
-            pResult = new TL2exp;
-            pResult->Addexp( ex );
+            Result = new TL2exp;
+            Result.Addexp( ex );
             if( !ex1.Eq( ex ) ) ex = new TBinar( '=', ex1, ex );
             else
               ex = new TBinar( '=', Variable( VarName ), ex );
@@ -2520,7 +2521,7 @@ TL2exp* CalcDetLinEqu( const QByteArray& Source, const QByteArray& VarName )
             q = P.GetExpression( a.WriteE() );
             if( !NIsConst( q ) )
               TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( msNotequal, a, Constant( 0 ) ) );
-            PutConditions( Cond, pResult->Last()->m_Memb);
+            PutConditions( Cond, Result.Last()->m_Memb);
             if( s_FinalComment )
               TSolutionChain::sm_SolutionChain.AddComment( X_Str( "MLinSolved", "Equation is solved" ) );
             }
@@ -2556,8 +2557,8 @@ TL2exp* CalcDetLinEqu( const QByteArray& Source, const QByteArray& VarName )
           ex1 = rp.CancellationOfMultiNominals( ex2 ).Reduce();
           ex2 = new TBinar( '=', lp, rp );
           if( !ex1.Eq( rp ) ) ex2 = new TBinar( '=', ex2, ex1 );
-          pResult = new TL2exp;
-          pResult->Addexp( ex1 );
+          Result = new TL2exp;
+          Result.Addexp( ex1 );
           PExMemb  F;
           if( Cond.FindEqual( new TBinar( msNotequal, lp, rp ), F ) )
             throw  ErrParser( "No Solutions!", peNoSolv );
@@ -2588,8 +2589,6 @@ TL2exp* CalcDetLinEqu( const QByteArray& Source, const QByteArray& VarName )
             X_Str( "MInfOrNotSolRight2", "the equation has infinite set of solutions " ) +
             X_Str( "MInfOrNotSolRight3", "otherwise equation has no solutions." ) );
           }
-        delete pResult;
-        pResult = nullptr;
         }
       }
     else
@@ -2598,8 +2597,6 @@ TL2exp* CalcDetLinEqu( const QByteArray& Source, const QByteArray& VarName )
   catch( ErrParser E )
     {
     TSolutionChain::sm_SolutionChain.AddExpr( new TStr( "" ), X_Str( E.Name(), E.Message() ) );
-    delete pResult;
-    pResult = nullptr;
     }
   return Final();
   }
@@ -2633,13 +2630,13 @@ void FracToMult(PNode Expr )
     PreOrder( Expr );
     }
 
-TL2exp* CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
+Lexp CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
   {
-  TL2exp* pResult = new TL2exp;
+  Lexp Result = new TL2exp;
   auto ErrResult = [&] ()
     {
     TSolutionChain::sm_SolutionChain.AddExpr( new TStr( "?" ), X_Str( "MEnterQuadrEquat", "Enter quadratic equation!" ) );
-    return pResult;
+    return nullptr;
     };
 
   double OldPrecision = s_Precision;
@@ -2649,16 +2646,16 @@ TL2exp* CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
   auto Final = [&] ()
     {
     s_Precision = OldPrecision;
-    if( s_PutAnswer && s_Answer.IsEmpty() && pResult->Count() != 0 )
-      s_Answer = pResult;
+    if( s_PutAnswer && s_Answer.IsEmpty() && Result.Count() != 0 )
+      s_Answer = Result;
     s_NoRootReduce = OldNoRootReduce;
-    return pResult;
+    return Result;
     };
 
   MathExpr ex;
   try
     {
-    if( Source.isEmpty() ) return pResult;
+    if( Source.isEmpty() ) return Result;
     s_NoRootReduce = true;
     if( VarName == "" )
       {
@@ -2692,7 +2689,7 @@ TL2exp* CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
           return Final();
           }
         if( s_RootCount > i )
-          pResult->Addexp( ex );
+          Result.Addexp( ex );
         else
           {
           MathExpr ex1 = CalcDetQuEqu( ex.WriteE(), VarName );
@@ -2700,7 +2697,7 @@ TL2exp* CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
           if( !s_FactorizedSolving ) return ErrResult();
           s_FinalComment = false;
           for(PExMemb ResMemb = CastPtr( TL2exp, ex1 )->First(); !ResMemb.isNull(); ResMemb = ResMemb->m_pNext )
-            pResult->Addexp( ResMemb->m_Memb );
+            Result.Addexp( ResMemb->m_Memb );
           }
         } while( true );
       }
@@ -2768,7 +2765,7 @@ TL2exp* CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
               TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( msNotequal, a[1], Constant( 0 ) ) );
             if( s_FinalComment )
               TSolutionChain::sm_SolutionChain.AddComment( X_Str( "MLinSolved", "Equation is solved" ) );
-            pResult->Addexp( ex );
+            Result.Addexp( ex );
             }
           }
         else
@@ -2804,11 +2801,11 @@ TL2exp* CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
             ex = new TBinar( '=', ( Variable( VarName, true ) * ( a[2] * Variable( VarName, true ) + a[1] ) ).Reduce(), Constant( 0 ) );
             TSolutionChain::sm_SolutionChain.AddExpr( ex );
             ex = GetPutRoot( Constant( 0 ), VarName );
-            pResult->Addexp( Constant( 0 ) );
+            Result.Addexp( Constant( 0 ) );
             ex = GetPutRoot( (-( a[1] / a[2] ) ).Reduce(), VarName );
             if( s_FinalComment )
               TSolutionChain::sm_SolutionChain.AddComment( X_Str( "MRootsFound", "Roots are found." ) );
-            pResult->Addexp( (-( a[1] / a[2] ) ).Reduce() );
+            Result.Addexp( (-( a[1] / a[2] ) ).Reduce() );
             }
           else
             if( a[1].Constan( r ) && abs( r ) < 0.0000001 )
@@ -2820,11 +2817,11 @@ TL2exp* CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
               else
                 ex1 = CreateComplex( Constant( 0 ), ex1.RetNeg().Reduce().Root( 2 ) ).Reduce();
               ex = GetPutRoot( ex1, VarName );
-              pResult->Addexp( ex );
+              Result.Addexp( ex );
               ex = GetPutRoot( -ex1, VarName );
               if( s_FinalComment )
                 TSolutionChain::sm_SolutionChain.AddComment( X_Str( "MRootsFound", "Roots are found." ) );
-              pResult->Addexp( ex );
+              Result.Addexp( ex );
               }
             else
               {
@@ -2849,7 +2846,7 @@ TL2exp* CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
                   new TBinar( '=', Variable( VarName + QByteArray::number( s_RootCount + 2 ), true ), ex1 ) );
                 s_RootCount += 2;
                 TSolutionChain::sm_SolutionChain.AddExpr( ex );
-                pResult->Addexp( ex1.Reduce() );
+                Result.Addexp( ex1.Reduce() );
                 PNode q = P.GetExpression( a[2].WriteE() );
                 if( !NIsConst( q ) )
                   TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( msNotequal, a[2], Constant( 0 ) ) );
@@ -2868,12 +2865,12 @@ TL2exp* CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
                 MathExpr x1 = op1.Reduce().Reduce();
                 ReduceExpr( x1 );
                 x1 = ExpandExpr( x1 );
-                pResult->Addexp( x1 );
+                Result.Addexp( x1 );
                 op2 = ( -a[1] + ex ) / ex1;
                 MathExpr x2 = op2.Reduce().Reduce();
                 ReduceExpr( x2 );
                 x2 = ExpandExpr( x2 );
-                pResult->Addexp( x2 );
+                Result.Addexp( x2 );
                 ex = GetPutRoot( new TBinar( '=', op1, x1 ), VarName );
                 ex = GetPutRoot( new TBinar( '=', op2, x2 ), VarName );
                 PNode q = P.GetExpression( a[2].WriteE() );
@@ -2886,7 +2883,7 @@ TL2exp* CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
           }
         }
       else
-        pResult->Addexp( ex );
+        Result.Addexp( ex );
       }
     else
       return ErrResult();
@@ -2924,12 +2921,12 @@ int DegOfPoly( const MathExpr& ex, const QByteArray& Name )
   return k;
   }
 
-TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
+Lexp CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
   {
-  if( Source.isEmpty() ) return new TL2exp;
+  if( Source.isEmpty() ) return nullptr;
   bool bComplex = false;
   MathExpr exRoot;
-  TL2exp *pResult = new TL2exp;
+  Lexp Result = new TL2exp;
   bool IsName, Mult, bFinalComment;
   auto OutLexp = [&] ( const MathExpr& ex, int Num )
     {
@@ -2950,7 +2947,7 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
     f->m_Memb.Binar( '=', op1, op2 );
     if( bComplex ) op2 = op2.Substitute( "b", exRoot ).Reduce();
     TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( '=', Variable( VarName + '_' + NumberToStr( Num ) ), op2 ) );
-    pResult->Addexp( op2 );
+    Result.Addexp( op2 );
     };
 
   auto ComplexRoot = [&] ( MathExpr& CEx )
@@ -2977,15 +2974,13 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
     {
     s_Precision = OldPrecision;
     s_NoRootReduce = OldRootReduce;
-    return pResult;
+    return Result;
     };
 
   auto ErrResult = [&] ()
     {
     if( s_FinalComment )
       TSolutionChain::sm_SolutionChain.AddComment( X_Str( "MEnterBiQuEquat", "Enter biquadratic equation" ) );
-    delete pResult;
-    pResult = new TL2exp;
     return Final();
     };
 
@@ -3029,7 +3024,7 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
           return Final();
           }
         if( s_RootCount > i )
-          pResult->Addexp( ex );
+          Result.Addexp( ex );
         else
           {
           bool InterRes = TSolutionChain::sm_InterimResult;
@@ -3053,7 +3048,7 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
           if( !s_FactorizedSolving ) return ErrResult();
           bFinalComment = false;
           for(PExMemb ResMemb = CastPtr( TL2exp, ex1 )->First(); !ResMemb.isNull(); ResMemb = ResMemb->m_pNext )
-            pResult->Addexp( ResMemb->m_Memb );
+            Result.Addexp( ResMemb->m_Memb );
           }
         } while( true );
       }
@@ -3090,8 +3085,8 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
         {
         if( r < 0 )
           {
-          pResult = RootPolinom( ex );
-          TSolutionChain::sm_SolutionChain.AddExpr(pResult );
+          Result = RootPolinom( ex );
+          TSolutionChain::sm_SolutionChain.AddExpr( Result );
           if( s_FinalComment )
             TSolutionChain::sm_SolutionChain.AddComment( X_Str( "MBiQuadEqSolved", "Biquadratic equation is solved" ) );
           return Final();
@@ -3140,8 +3135,8 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
         TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( '=', ex2, ex1 ) );
         if( ex1.Negative() )
           {
-          pResult = RootPolinom( ex );
-          TSolutionChain::sm_SolutionChain.AddExpr(pResult );
+          Result = RootPolinom( ex );
+          TSolutionChain::sm_SolutionChain.AddExpr(Result );
           if( s_FinalComment )
             TSolutionChain::sm_SolutionChain.AddComment( X_Str( "MBiQuadEqSolved", "Biquadratic equation is solved" ) );
           return Final();
@@ -3151,15 +3146,15 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
         TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( '=', ex1, ex2 ) );
         ex = ex2.Root( 2 ).Reduce();
         GetPutRoot( ex, VarName );
-        pResult->Addexp( ex );
+        Result.Addexp( ex );
         GetPutRoot( -ex, VarName );
-        pResult->Addexp( -ex );
+        Result.Addexp( -ex );
         TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( '=', ex1, -ex2 ) );
         ex = CreateComplex( Constant( 0 ), ex2 );
         GetPutRoot( -ex, VarName );
-        pResult->Addexp( ex );
+        Result.Addexp( ex );
         GetPutRoot( -ex, VarName );
-        pResult->Addexp( -ex );
+        Result.Addexp( -ex );
         if( s_FinalComment )
           TSolutionChain::sm_SolutionChain.AddComment( X_Str( "MBiQuadEqSolved", "Biquadratic equation is solved" ) );
         return Final();
@@ -3211,11 +3206,11 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
           x1 = -x2;
           }
         ex = GetPutRoot( new TBinar( '=', x1, x1.Reduce() ), VarName );
-        pResult->Addexp( x1.Reduce() );
+        Result.Addexp( x1.Reduce() );
         if( s_PutAnswer )
           CastPtr( TL2exp, s_Answer )->Addexp( ex );
         ex = GetPutRoot( new TBinar( '=', x2, x2.Reduce() ), VarName );
-        pResult->Addexp( x2.Reduce() );
+        Result.Addexp( x2.Reduce() );
         if( s_PutAnswer )
           CastPtr( TL2exp, s_Answer )->Addexp( ex );
         PNode q = P.GetExpression( a[2].WriteE() );
@@ -3283,13 +3278,13 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
             }
           ex = new TBinar( '=', new TVariable( true, VarName + '_' + NumberToStr( s_RootCount + 1 ) ), new TBinar( '=', new TVariable( true, VarName + '_' + NumberToStr( s_RootCount + 2 ) ), x1 ) );
           s_RootCount = s_RootCount + 2;
-          pResult->Addexp( x1.Reduce() );
+          Result.Addexp( x1.Reduce() );
           TSolutionChain::sm_SolutionChain.AddExpr( ex );
           if( s_PutAnswer )
             CastPtr( TL2exp, s_Answer )->Addexp( ex );
           ex = new TBinar( '=', new TVariable( true, VarName + '_' + NumberToStr( s_RootCount + 1 ) ), new TBinar( '=', new TVariable( true, VarName + '_' + NumberToStr( s_RootCount + 2 ) ), x2 ) );
           s_RootCount = s_RootCount + 2;
-          pResult->Addexp( x2.Reduce() );
+          Result.Addexp( x2.Reduce() );
           TSolutionChain::sm_SolutionChain.AddExpr( ex );
           if( s_PutAnswer )
             CastPtr( TL2exp, s_Answer )->Addexp( ex );
@@ -3337,11 +3332,11 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
                 x2 = CreateComplex( Constant( 0 ), y1.RetNeg().Root( 2 ) ).Reduce();
                 x1 = -( x2 ).Reduce();
                 }
-            pResult->Addexp( x1.Reduce() );
+            Result.Addexp( x1.Reduce() );
             ex = GetPutRoot( x1, VarName );
             if( s_PutAnswer )
               CastPtr( TL2exp, s_Answer )->Addexp( ex );
-            pResult->Addexp( x2.Reduce() );
+            Result.Addexp( x2.Reduce() );
             ex = GetPutRoot( x2, VarName );
             if( s_PutAnswer )
               CastPtr( TL2exp, s_Answer )->Addexp( ex );
@@ -3365,12 +3360,12 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
                 x2 = CreateComplex( Constant( 0 ), y2.RetNeg().Root( 2 ) ).Reduce();
                 x1 = -( x2 ).Reduce();
                 }
-            pResult->Addexp( x1.Reduce() );
+            Result.Addexp( x1.Reduce() );
             ex = GetPutRoot( x1, VarName );
             if( s_PutAnswer )
               CastPtr( TL2exp, s_Answer )->Addexp( ex );
             ex = GetPutRoot( x2, VarName );
-            pResult->Addexp( x2.Reduce() );
+            Result.Addexp( x2.Reduce() );
             TSolutionChain::sm_SolutionChain.AddExpr( ex );
             if( s_PutAnswer )
               CastPtr( TL2exp, s_Answer )->Addexp( ex );
@@ -3404,7 +3399,6 @@ TL2exp* CalcDetBiQuEqu( const QByteArray& Source, const QByteArray& VarName )
   catch( ErrParser E )
     {
     TSolutionChain::sm_SolutionChain.AddExpr( new TStr( "" ), X_Str( E.Name(), E.Message() ) );
-    pResult->Clear();
     }
   return Final();
   }
@@ -3504,21 +3498,20 @@ bool EquationsSolving( const QByteArray& UserTask, const QByteArray& VarName )
   return false;
   }
 
-TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool CalcBiQ )
+Lexp FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool CalcBiQ )
   {
-  auto Gorner = [&] ( const MathExpr& x, const TExprs& p, int Deg )
+  auto Gorner = [] ( const MathExpr& x, const TExprs& p, int Deg )
     {
-    MathExpr Result = p[Deg];
+    MathExpr Res = p[Deg];
     for( int i = Deg - 1; i >= 0; i-- )
-      Result = ( ( Result * x ).Reduce() + p[i] ).Reduce();
-    return Result;
+      Res = ( ( Res * x ).Reduce() + p[i] ).Reduce();
+    return Res;
     };
-
   MathExpr CommDen, ex, ex1, ex2;
   TExprs q;
   int DegDen;
   double d;
-  TL2exp* pResult = new TL2exp;
+  Lexp Result = new TL2exp;
 
   auto CheckRoot = [&] ( const MathExpr& Root, int n )
     {
@@ -3532,11 +3525,10 @@ TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool Ca
     if( DenVal.Constan( d ) && abs( d ) < 0.0000001 )
       {
       TSolutionChain::sm_SolutionChain.AddExpr( DenValue, X_Str( "MRootStranger", "false Root!" ) );
-      return false;
+      return;
       }
     TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( msNotequal, DenValue, Constant( 0 ) ) );
-    pResult->Addexp( Root );
-    return true;
+    if( !Result.IsEmpty()) Result.Addexp( Root );
     };
 
   int RootNum;
@@ -3564,43 +3556,43 @@ TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool Ca
     bool CalcOnlyOld = s_CalcOnly;
     s_CalcOnly = true;
     TSolutionChain::sm_SolutionChain.m_Accumulate = false;
-    pResult = CalcDetQuEqu( Source, VarName );
+    Result = CalcDetQuEqu( Source, VarName );
     TSolutionChain::sm_SolutionChain.m_Accumulate = !CalcOnlyOld;
-    if( pResult->Count() != 0 )
+    if( !Result.IsEmpty() )
       {
       s_CalcOnly = CalcOnlyOld;
       bool InterRes = TSolutionChain::sm_InterimResult;
       TSolutionChain::sm_InterimResult = true;
-      pResult = CalcDetQuEqu( Source, VarName );
+      Result = CalcDetQuEqu( Source, VarName );
       TSolutionChain::sm_InterimResult = InterRes;
-      for( PExMemb memMemb = pResult->First(); !memMemb.isNull(); memMemb = memMemb->m_pNext )
+      for( PExMemb memMemb = Result.First(); !memMemb.isNull(); memMemb = memMemb->m_pNext )
         if( memMemb->m_Memb.Binar( '=', ex1, ex2 ) )
           {
           ex = ExpandExpr( ex2 );
           memMemb->m_Memb = ex;
           }
-      return pResult;
+      return Result;
       }
     Lexp R = CalcIrratEq( Source );
     s_CalcOnly = CalcOnlyOld;
     if( !R.IsEmpty() )
       {
       R = CalcIrratEq( Source );
-      for( PExMemb memMemb = pResult->First(); !memMemb.isNull(); memMemb = memMemb->m_pNext )
+      for( PExMemb memMemb = Result.First(); !memMemb.isNull(); memMemb = memMemb->m_pNext )
         if( memMemb->m_Memb.Binar( '=', ex1, ex2 ) )
           {
           ex = ExpandExpr( ex2 );
-          pResult->Addexp( ex );
+          Result.Addexp( ex );
           }
         else
-          pResult->Addexp( ExpandExpr( memMemb->m_Memb ) );
-      return pResult;;
+          Result.Addexp( ExpandExpr( memMemb->m_Memb ) );
+      return Result;;
       }
     }
   if( Source.isEmpty() )
     {
     s_NoRootReduce = OldNoRootReduce;
-    return pResult;
+    return Result;
     }
 
   double OldPrecision = s_Precision;
@@ -3612,9 +3604,9 @@ TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool Ca
     s_EquationSolving = false;
     s_GlobalVarName = OldGlobalVarName;
     s_Precision = OldPrecision;
-    if( s_PutAnswer && pResult->Count() != 0 ) s_Answer = pResult;
+    if( s_PutAnswer && Result.Count() != 0 ) s_Answer = Result;
     s_NoRootReduce = OldNoRootReduce;
-    return pResult;
+    return Result;
     };
 
   try
@@ -3658,13 +3650,13 @@ TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool Ca
           {
           case 0:
           case 1:
-            pResult = CalcDetLinEqu( NewSource, VarName );
+            Result = CalcDetLinEqu( NewSource, VarName );
             break;
           case 2:
             {
             bool InterRes = TSolutionChain::sm_InterimResult;
             TSolutionChain::sm_InterimResult = true;
-            pResult = CalcDetQuEqu( NewSource, VarName );
+            Result = CalcDetQuEqu( NewSource, VarName );
             TSolutionChain::sm_InterimResult = InterRes;
             }
             break;
@@ -3674,7 +3666,7 @@ TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool Ca
             if( p[2].Constan( d ) && abs( d ) < 0.0000001 && p[1].Constan( d ) && abs( d ) < 0.0000001 )
               {
               ex1 = ( -p[0] / p[3] ).Root( 3 ).Reduce();
-              pResult->Addexp( ex1 );
+              Result.Addexp( ex1 );
               if( ex1.Negative() )
                 {
                 TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( '=', Variable( VarName + "_1" ), ex1 ) );
@@ -3682,10 +3674,10 @@ TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool Ca
                 ex2 = x1.Reduce();
                 x1 = CreateComplex( ex2, ex2 * Constant( 3 ).Root( 2 ) );
                 TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( '=', Variable( VarName + "_2" ), x1 ) );
-                pResult->Addexp( x1 );
+                Result.Addexp( x1 );
                 MathExpr x2 = CreateComplex( ex2, -( ex2 * Constant( 3 ).Root( 2 ) ) );
                 TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( '=', Variable( VarName + "_3" ), x2 ) );
-                pResult->Addexp( x2 );
+                Result.Addexp( x2 );
                 }
               else
                 TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( '=', Variable( VarName ), ex1 ) );
@@ -3705,16 +3697,16 @@ TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool Ca
                 TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( '=', Variable( "x" ) * ex1, op2 ) );
                 bool InterRes = TSolutionChain::sm_InterimResult;
                 TSolutionChain::sm_InterimResult = true;
-                pResult = CalcDetQuEqu( TBinar( '=', ex1, op2 ).WriteE(), VarName );
+                Result = CalcDetQuEqu( TBinar( '=', ex1, op2 ).WriteE(), VarName );
                 TSolutionChain::sm_InterimResult = InterRes;
                 TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( '=', Variable( "x_3" ), op2 ) );
-                pResult->Addexp( op2 );
+                Result.Addexp( op2 );
                 }
               else
                 throw  ErrParser( "Wrong type of equation!", peNoSolvType );
             }
             break;
-          case 4: pResult = CalcDetBiQuEqu( NewSource, VarName );
+          case 4: Result = CalcDetBiQuEqu( NewSource, VarName );
           }
         return Final();
         }
@@ -3774,13 +3766,13 @@ TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool Ca
           {
           case 0:
           case 1:
-            pResult = CalcDetLinEqu( NewSource, VarName );
+            Result = CalcDetLinEqu( NewSource, VarName );
             break;
           case 2:
             {
             bool InterRes = TSolutionChain::sm_InterimResult;
             TSolutionChain::sm_InterimResult = true;
-            pResult = CalcDetQuEqu( NewSource, VarName );
+            Result = CalcDetQuEqu( NewSource, VarName );
             TSolutionChain::sm_InterimResult = InterRes;
             }
             break;
@@ -3789,13 +3781,13 @@ TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool Ca
               {
               ex1 = ( -p[0] / p[3] ).Reduce().Root( 3 );
               TSolutionChain::sm_SolutionChain.AddExpr( new TBinar( '=', Variable( VarName ), ex1 ) );
-              pResult->Addexp( ex1 );
+              Result.Addexp( ex1 );
               }
             else
               throw  ErrParser( "Wrong type of equation!", peNoSolvType );
             break;
           case 4:
-            pResult = CalcDetBiQuEqu( NewSource, VarName );
+            Result = CalcDetBiQuEqu( NewSource, VarName );
           }
         return Final();
         }
@@ -4092,7 +4084,6 @@ TL2exp* FractRatEq( const QByteArray& Source, const QByteArray& VarName, bool Ca
     }
   catch( ErrParser E )
     {
-    pResult->Clear();
     if( !s_FinalComment )
       throw E;
     TSolutionChain::sm_SolutionChain.AddExpr( new TStr( "" ), X_Str( E.Name(), E.Message() ) );
@@ -4183,7 +4174,7 @@ MathExpr SqSbSm( const MathExpr& exi )
     MathExpr a_2 = a^pow;
     MathExpr b_2 = b^pow;
     MathExpr ab2 = a * b;
-    MathExpr ab2r = pow * ab2.Reduce();
+    MathExpr ab2r = (pow * ab2.Reduce());
     ab2 *= pow;
     MathExpr P, Pr;
     if( SbSm.Subtr( a, b ) )
@@ -4206,7 +4197,8 @@ MathExpr SqSbSm( const MathExpr& exi )
     else
       {
       MathExpr sqr = new TBinar( '=', sq, Pr );
-      MathExpr ex12 = Pr.Reduce().Reduce();
+
+      MathExpr ex12 = Pr.Reduce(true);
       if(Pr.Eq( ex12 ) )
         Result = sqr;
       else
@@ -5850,7 +5842,7 @@ bool CalcSubstitution( const QByteArray& Equation, MathExpr BaseSubst )
     {
     CheckInputOfEquationsSystem( exi, List, false );
     TLinear Linear( List );
-    if( Linear.Status() == liOK ) Linear.PutToWindow();
+ //   if( Linear.Status() == liOK ) Linear.PutToWindow();
     TSubstitution Substitution( exi );
     switch( Substitution.Status() )
       {
@@ -7008,7 +7000,7 @@ MathExpr DetVieEqu( const MathExpr& exi )
   return P;
   }
 
-TL2exp* CalcPolinomEqu( const QByteArray& Source, const QByteArray&& VarName )
+Lexp CalcPolinomEqu( const QByteArray& Source, const QByteArray&& VarName )
   {
   if( Source.isEmpty() ) return nullptr;
 
@@ -7120,13 +7112,13 @@ TL2exp* CalcPolinomEqu( const QByteArray& Source, const QByteArray&& VarName )
 
   double OldPrecision = s_Precision;
   s_Precision = 0.0000001;
-  TL2exp* pResult = nullptr;
+  Lexp Result;
 
   auto BadEq = [&] ()
     {
     s_Precision = OldPrecision;
     TSolutionChain::sm_SolutionChain.AddComment( X_Str( "MNotAcceptEquat", "Wrong type of equation!" ) );
-    return pResult;
+    return Result;
     };
 
   TExprs a;
@@ -7160,7 +7152,7 @@ TL2exp* CalcPolinomEqu( const QByteArray& Source, const QByteArray&& VarName )
       int Deg = s_DegPoly;
       for( ; Deg > 0 && g[0][Deg] == 0; Deg-- );
       if( Deg >= 9 ) return BadEq();
-      pResult = new TL2exp;
+      Result = new TL2exp;
       Degs[0] = Deg;
       Degs[1] = Degs[0] - 1;
       for( int i = 0; i <= Degs[1]; i++ )
@@ -7183,7 +7175,7 @@ TL2exp* CalcPolinomEqu( const QByteArray& Source, const QByteArray&& VarName )
         g[0] = g0;
         Degs[0] = degs0;
         MathExpr x = Constant( Roots[j] );
-        pResult->Addexp( x );
+        Result.Addexp( x );
         do
           {
           ex1 = new TBinar( '=', Variable( "x_" + NumberToStr( ++jj ) ), x );
@@ -7202,7 +7194,7 @@ TL2exp* CalcPolinomEqu( const QByteArray& Source, const QByteArray&& VarName )
     TSolutionChain::sm_SolutionChain.AddExpr( new TStr( "" ), X_Str( E.Name(), E.Message() ) );
     }
   s_Precision = OldPrecision;
-  return pResult;
+  return Result;
   }
 
 bool CalcEquation( const QByteArray& Source )

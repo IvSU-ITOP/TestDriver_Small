@@ -198,45 +198,47 @@ bool TaskFile::LoadNameFromTaskFile( const QByteArray& LKeyWord, QByteArray& Nam
       }
     }
 
-  void CalcList::Random_gen( const QByteArray& SArg )
+  MathExpr CalcList::Random_gen( const QByteArray& SArg )
     {
     QByteArray S = SArg.simplified();
     TXDescrList::ProcessMacro( S, msMetaSign );
+    QByteArray Var_name;
     int AssPos = S.indexOf( '=' );
-    if( AssPos == -1 ) return;
-    QByteArray Var_name = S.left( AssPos ).trimmed();
+    if( AssPos != -1 )
+      Var_name = S.left( AssPos ).trimmed();
     int OpBrackPos = S.indexOf( '[' );
-    if( OpBrackPos == -1 ) return;
+    if( OpBrackPos == -1 ) return nullptr;
     S = S.mid( OpBrackPos + 1 );
     int CloseBrackPos = S.indexOf( ']' );
-    if( CloseBrackPos == -1 ) return;
+    if( CloseBrackPos == -1 ) return nullptr;
     double Delta, Left_b, Right_b;
     if( CloseBrackPos < S.length() - 1 )
       {
       bool Ok;
       Delta = S.mid( CloseBrackPos + 1 ).trimmed().toDouble( &Ok );
-      if( !Ok ) return;
+      if( !Ok ) return nullptr;
       S = S.left( CloseBrackPos );
       int PointsPos = S.indexOf( ".." );
-      if( PointsPos == -1 ) return;
+      if( PointsPos == -1 ) return nullptr;
       Left_b = S.left( PointsPos ).toDouble( &Ok );
-      if( !Ok ) return;
+      if( !Ok ) return nullptr;
       QByteArray Expr = S.mid( PointsPos + 2 );
       if( Expr[0] == '@' )
         Right_b = ExpStore::sm_pExpStore->GetValue( Expr );
       else
         {
         Right_b = Expr.toDouble( &Ok );
-        if( !Ok ) return;
+        if( !Ok ) return nullptr;
         }
     double Arg = abs( Right_b - Left_b ) / Delta;
     long long R = Round(Arg);
     int iRandom = m_pTask->Random(R);
-    ExpStore::sm_pExpStore->Store_var( Var_name, new TConstant( Left_b + iRandom * Delta ) );
-    return;
+    MathExpr Result = new TConstant( Left_b + iRandom * Delta);
+    if( !Var_name.isEmpty() ) ExpStore::sm_pExpStore->Store_var( Var_name, Result );
+    return Result;
     }
   QByteArrayList Values = S.left( CloseBrackPos ).split( ';' );
-  if( Values.count() == 0 ) return;
+  if( Values.count() == 0 ) return nullptr;
   int iRandom = m_pTask->Random( Values.count() - 1 );
   MathExpr exi = Parser::StrToExpr( Values[iRandom] );
   if( s_GlobalInvalid )
@@ -244,7 +246,8 @@ bool TaskFile::LoadNameFromTaskFile( const QByteArray& LKeyWord, QByteArray& Nam
     s_XPStatus.SetMessage( "Task corrupted : RAND: " + S );
     exi = new TConstant( 0 );
     }
-  ExpStore::sm_pExpStore->Store_var( Var_name, exi );
+  if( !Var_name.isEmpty() ) ExpStore::sm_pExpStore->Store_var( Var_name, exi );
+  return exi;
   }
 
 CalcPair::CalcPair( const QByteArray& Pair, CalcList *pOwner, XDescr_type Kind ) : m_pOwner( pOwner ), m_Kind( Kind )
@@ -267,14 +270,22 @@ void CalcPair::Calculate()
 
 bool CalcPair::CalcExpress()
   {
-  if( m_Kind == tXDrandom ) return false;
   QByteArray Expression = m_Expression;
+  MathExpr RandExpr;
+  if( m_Kind == tXDrandom )
+    {
+    int OpBrackPos = Expression.indexOf( '[' );
+    if( OpBrackPos <= 0) return false;
+    RandExpr = m_pOwner->Random_gen(Expression.mid(OpBrackPos));
+    Expression = Expression.left(OpBrackPos) + RandExpr.WriteE();
+    }
   Expression.replace( "@S(", "@Simplify(");
   Expression.replace( "@PS(", "@PolinomSmplf(" );
   Expression.replace( "@SE(", "@SimplifyEquation(" );
   Expression.replace( "@SF(", "@SimplifyFull(" );
   s_iDogOption = !s_TaskEditorOn;
-  MathExpr VarValue = Parser::PureStrToExpr( Expression ).Perform();
+  MathExpr VarValue(Parser::PureStrToExpr( Expression ).Perform());
+  if(!RandExpr.IsEmpty()) VarValue = VarValue.SimplifyFull();
   s_iDogOption = 0;
   if( s_GlobalInvalid || VarValue.IsEmpty() && !m_Variable.isEmpty() ) throw ErrParser( "Task corrupted " + m_Expression, ParserErr::peNewErr );
   if( m_Variable.isEmpty() ) return true;
@@ -301,6 +312,16 @@ void CalcList::LoadFromTaskFile( const QByteArray& LKeyWord )
   for( PDescrMemb index = DList.m_pFirst; !index.isNull(); index = index->m_pNext )
     if( index->m_Kind == tXDexpress || index->m_Kind == tXDrandom )
       push_back( CalcPair( index->m_Content, this, index->m_Kind ) );
+  Calculate();
+  }
+
+void CalcList::LoadFromQuestionVariables(const QByteArrayList& Variables)
+  {
+  clear();
+  TXDescrList DList(*m_pTask);
+  DList.LoadFromQuestionVariables( Variables );
+  for( PDescrMemb index = DList.m_pFirst; !index.isNull(); index = index->m_pNext )
+    push_back( CalcPair( index->m_Content, this, index->m_Kind ) );
   Calculate();
   }
 
@@ -614,6 +635,77 @@ void TXDescrList::LoadFromTaskFile( const QByteArray& LKeyWord )
       break;
       }
     } while( !File.atEnd() );
+  }
+
+void TXDescrList::LoadFromQuestionVariables(const QByteArrayList& Variables)
+  {
+  QByteArrayList VarNames;
+  for( auto pInstr = Variables.begin(); pInstr != Variables.end(); pInstr++ )
+    {
+    int SK = pInstr->indexOf(':');
+    if( SK == -1 )
+      throw ErrParser( "Line: " + *pInstr + " Error in STACK File", ParserErr::peNewErr );
+    QByteArray VarName = pInstr->left(SK).trimmed();
+    VarNames.append(VarName);
+    QByteArray Instr = pInstr->mid(SK + 1).trimmed();
+    int iRand = Instr.indexOf("rand");
+    if(iRand != -1)
+      {
+      int iVal = iRand + 5;
+      QByteArray Val = Instr.mid(iVal, Instr.lastIndexOf(')') - iVal);
+      QByteArray Rand = VarName + '=' + Instr.left(iRand) + "[0.." + Val + "]1";
+      Add( tXDrandom, Rand );
+      continue;
+      }
+    bool bMustReduce = true;
+    QByteArray NewName;
+    QByteArray Expression;
+    auto TestName = [&]()
+      {
+      if(NewName.isEmpty()) return;
+      if(VarNames.indexOf(NewName) == -1)
+        {
+        if(NewName == "ev")
+          {
+          Expression += "@S";
+          Instr.remove(Instr.indexOf(",simp"), 5);
+          bMustReduce = false;
+          NewName.clear();
+          return;
+          }
+        Expression += NewName;
+        int fnum;
+        if(bMustReduce)
+          bMustReduce = NewName == "i" || IsFunctName(NewName, fnum);
+        }
+      else
+        Expression += '@' + NewName;
+      NewName.clear();
+      };
+    for( int i = 0; i < Instr.length(); i++)
+      {
+      uchar C = Instr[i];
+      if(isalpha(C))
+        NewName += C;
+      else
+        if(NewName.isEmpty())
+          { if(C != ';') Expression += C; }
+        else
+          if(isdigit(C))
+            NewName += C;
+          else
+            {
+            TestName();
+            if(C != ';') Expression += C;
+            }
+      }
+    TestName();
+    QByteArray Expr = VarName + "=";
+    if(bMustReduce)
+      Add( tXDexpress, Expr + "@S(" + Expression + ")" );
+    else
+      Add( tXDexpress, Expr + Expression );
+    }
   }
 
 void TXStepList::Clear()
@@ -1328,6 +1420,83 @@ void BaseTask::LoadFromFile()
   SetFirstStep();
   m_pStepsL->ResetMarks();
   m_pMarker = m_pCurr;
+  }
+
+void BaseTask::LoadFromStack(QString& FileName)
+  {
+  QFile File(FileName);
+  if( !File.open( QIODevice::ReadOnly ) ) throw ErrParser( "Error; Can't open file: " + FileName, ParserErr::peNewErr );
+  QByteArrayList StackTest = File.readAll().split('\n');
+  int iStart = 0, iCurrent;
+  auto TextSearch = [&]( const QByteArray& Text )
+    {
+    iCurrent = iStart;
+    int iText;
+    for (; iCurrent < StackTest.count() && (iText = StackTest[iCurrent].indexOf(Text)) == -1; iCurrent++  );
+    if(iText == -1) return -1;
+    return iText + Text.count();
+    };
+
+//  if(TextSearch("<name>") == -1 ) throw ErrParser( "This File has no Stack", ParserErr::peNewErr );
+//  m_OutTemplate = true;
+//  sm_LastCreatedTrack = 0;
+//  int iName = TextSearch("<text>");
+//  if(iName == -1 ) throw ErrParser( "This File has no Stack", ParserErr::peNewErr );
+//  m_Name = StackTest[iCurrent].mid(iName, iName - StackTest[iCurrent].lastIndexOf('<'));
+//  m_Language = lngEnglish;
+//  iStart = iCurrent;
+//  if(TextSearch("ltr") != -1 ) m_Language = lngHebrew;
+  if(TextSearch("<questionvariables>") == -1 ) throw ErrParser( "This File has no Stack", ParserErr::peNewErr );
+  iStart = iCurrent;
+  int iCalc = TextSearch("<text>");
+  if(iCalc == -1 ) throw ErrParser( "This File has no Stack", ParserErr::peNewErr );
+  iStart = iCurrent;
+  iCalc = TextSearch("</questionvariables>");
+  if(iCalc == -1 ) throw ErrParser( "This File has no Stack", ParserErr::peNewErr );
+//  sm_NewHebFormat = true;
+//  m_MultiTask = false;
+//  TExpr::sm_Accuracy = 0.01;
+  QByteArrayList CalcText = StackTest.mid(iStart, iCurrent - iStart);
+  CalcText[0].replace("<text>", "");
+  CalcText.last().replace("</text>", "");
+  m_pCalc->LoadFromQuestionVariables(CalcText);
+
+/*
+
+  m_pQuestion->m_bHasEndLeft = false;
+  m_pQuestion->LoadFromTaskFile( "QUESTION" );
+  m_pMethodL->LoadFromTaskFile( "METHOD" );
+  m_pComment->LoadFromTaskFile( "COMMENT" );
+  m_pPrompt->LoadFromTaskFile( "PROMPT" );
+  m_Header.m_HideUnarMinus = m_pFile->LoadBooleanFromTaskFile( "HIDEUNARMINUS", sm_GlobalShowUnarMinus );
+  bool HideUnarm = !sm_GlobalShowUnarMinus;
+  m_Header.m_ShowUnarMinus = m_pFile->LoadBooleanFromTaskFile( "SHOWUNARMINUS", HideUnarm );
+  sm_GlobalShowUnarMinus = !HideUnarm;
+  m_Header.m_HideMinusByAddition = m_pFile->LoadBooleanFromTaskFile("HIDEMINUSBYADDITION", sm_GlobalShowMinusByAddition);
+  bool HideMinus = !sm_GlobalShowMinusByAddition;
+  m_Header.m_ShowMinusByAddition = m_pFile->LoadBooleanFromTaskFile("SHOWMINUSBYADDITION", HideMinus);
+  sm_GlobalShowMinusByAddition = !HideMinus;
+  m_Header.m_HideMultSign = m_pFile->LoadBooleanFromTaskFile( "HIDEMULTSIGN", sm_GlobalShowMultSign );
+  bool HideMSign = !sm_GlobalShowMultSign;
+  m_Header.m_ShowMultSign = m_pFile->LoadBooleanFromTaskFile( "SHOWMULTSIGN", HideMSign );
+  sm_GlobalShowMultSign = !HideMSign;
+  m_Header.m_ShowDeg = m_pFile->LoadBooleanFromTaskFile( "ANGLEDEG", sm_GlobalShowRad );
+  bool ShowDeg = !sm_GlobalShowRad;
+  m_Header.m_ShowRad = m_pFile->LoadBooleanFromTaskFile( "ANGLERAD", ShowDeg );
+  s_ShowMinute = m_pFile->LoadBooleanFromTaskFile("SHOWMINUTE", ShowDeg);
+  sm_GlobalShowRad = !ShowDeg;
+  TExpr::sm_TrigonomSystem = sm_GlobalShowRad ? TExpr::tsRad : TExpr::tsDeg;
+  ResetParms();
+  for( int Nstep = 1;; Nstep++ )
+    {
+    QByteArray StepId( QByteArray::number( Nstep ) );
+    if( !m_pFile->Step_exist( StepId ) ) break;
+    m_pStepsL->Add( StepId, *this );
+    }
+  SetFirstStep();
+  m_pStepsL->ResetMarks();
+  m_pMarker = m_pCurr;
+*/
   }
 
 void BaseTask::SetFirstStep()

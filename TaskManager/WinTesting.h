@@ -74,6 +74,7 @@ class WinTesting : public QMainWindow
   QAction *m_pQuit;
   QAction *m_pCreateTask;
   QAction *m_pOpenTaskBtn;
+  QAction *m_pOpenStack;
   QAction *m_pShowFunctions;
   QAction *m_pShowExpression;
   QAction *m_pHyperlink;
@@ -136,6 +137,7 @@ public slots :
     void slotChangeLanguage( TLanguages L = lngHebrew );
     void slotSaveTaskFile(bool bNewName = true);
     void slotEditTaskFile() { slotOpenTaskFile( true ); }
+    void slotOpenStack();
     void slotCreateTask();
     void slotReplyTopic();
     void slotReplyTask();
@@ -273,7 +275,6 @@ class ListCalculators : public QListWidget
 class DetailedCalculator : public QWidget
   {
   Q_OBJECT
-    QLabel *m_pCalcTitle;
   ListCalculators *m_pCalculators;
   QStackedLayout *m_pCalcsLayout;
   public:
@@ -303,7 +304,7 @@ class ButtonBox : public QWidget
   QLabel *m_pPrompt;
   int m_ButtonCount;
   public:
-    ButtonBox();
+    ButtonBox(QWidget*);
     void SetButton( QPushButton* );
     void Clear();
     bool SolveDefault();
@@ -313,6 +314,10 @@ class SolverWidget : public QWidget
   {
   Q_OBJECT
   QPushButton *m_pSolve;
+  QPushButton *m_pSelfTest;
+  QPushButton *m_pInpAnswer;
+  QPushButton *m_pUndoSelfTest;
+  QPushButton *m_pMoveToWorkSheet;
   ButtonBox *m_pButtonBox;
   MathExpr m_Expression;
   virtual void resizeEvent( QResizeEvent *event );
@@ -323,12 +328,17 @@ class SolverWidget : public QWidget
     void SearchSolve();
     void Solve( Solver*, QPushButton* );
     void ClearButtons() { m_pButtonBox->Clear(); }
+    void MoveToWorkSheet();
+    void SelfTest();
+    void InpAnswer();
+    void UndoSelfTest();
   };
 
 class BottomWindow : public QWidget
   {
   Q_OBJECT
     QLabel *m_pTitle;
+  QLabel *m_pCalcTitle;
   QLabel *m_pPrecision;
   CalcButton *m_pPrecisionIncr;
   CalcButton *m_pPrecisionDecr;
@@ -339,7 +349,9 @@ class BottomWindow : public QWidget
   QVBoxLayout *m_pVCalcLayout;
   QGroupBox *m_pCalculator;
   QHBoxLayout *m_pMainLayout;
+  TExpr::TrigonomSystem m_TrigonomSystem;
   int m_EditorWidth;
+  int m_FullEditorWidth;
   public:
     BottomWindow();
     void LangSwitch();
@@ -353,6 +365,9 @@ class BottomWindow : public QWidget
     void SwitchCalc();
     QPushButton* GetCalcButton( int Widget, int row, int col );
     void ClearButtons() { m_pSolverWidet->ClearButtons(); }
+    void ShowCalculator(bool Show);
+    void RestoreTrigonomSystem() { TExpr::sm_TrigonomSystem = m_TrigonomSystem; }
+    public slots:
     void ShowCalculator();
   };
 

@@ -990,7 +990,7 @@ MathExpr TTerm::GetVarsOnly( QList<TMultiplier> *pVarsList )
   for( int I = 0; I < count(); I++ )
     {
     exBase = ( *this )[I].m_Base;
-    if( exBase.WriteE().indexOf( sm_ParamNames ) == -1 && !exBase.ConstExpr() )
+    if( sm_ParamNames.indexOf(exBase.WriteE() ) == -1 && !exBase.ConstExpr() )
       {
       Result *= ( *this )[I].RetMulti();
       if( pVarsList != nullptr ) pVarsList->append( ( *this )[I] );
@@ -1006,7 +1006,7 @@ MathExpr TTerm::GetTermWithoutVars()
   for( int I = 0; I < count(); I++ )
     {
     exBase = ( *this )[I].m_Base;
-    if( exBase.WriteE().indexOf( sm_ParamNames ) != -1 || exBase.ConstExpr() )
+    if( sm_ParamNames.indexOf(exBase.WriteE() ) != -1 || exBase.ConstExpr() )
       Result *= ( *this )[I].RetMulti();
     }
   return NegTExprs( m_Coefficient * ReduceTExprs( Result ), m_Sign == -1 );
@@ -1069,7 +1069,7 @@ bool TTerm::IsOneVar( MathExpr& VarX, int& AttrX )
   for( int I = 0; I < count(); I++ )
     {
     MathExpr exVar = ( *this )[I].m_Base;
-    bool VarI = exVar.WriteE().indexOf( sm_ParamNames ) == -1 && !exVar.ConstExpr();
+    bool VarI = sm_ParamNames.indexOf(exVar.WriteE() ) == -1 && !exVar.ConstExpr();
     bool PwrI = ( *this )[I].GetPwrInt() == 1;
     if( VarI )
       {
@@ -1129,7 +1129,7 @@ bool TTerm::IsLinear()
     for( int I = 0; I < count(); I++ ) 
       {
       MathExpr exBase = ( *this )[I].m_Base;
-      if( exBase.WriteE().indexOf( sm_ParamNames ) == -1  && !exBase.ConstExpr() )
+      if( sm_ParamNames.indexOf(exBase.WriteE() ) == -1  && !exBase.ConstExpr() )
         {
         VarCount++;
         VarNo = I;
@@ -1146,7 +1146,7 @@ QByteArray TTerm::VarName()
   for( int I = 0; I < count(); I++ )
     {
     MathExpr exBase = ( *this )[I].m_Base;
-    if( exBase.WriteE().indexOf( sm_ParamNames ) == -1 && !exBase.ConstExpr() )
+    if( sm_ParamNames.indexOf(exBase.WriteE() ) == -1 && !exBase.ConstExpr() )
       Result = (*this)[I].m_Base.WriteE();
     }
   return Result;
@@ -1156,7 +1156,7 @@ MathExpr TTerm::Params()
   {
   MathExpr Result;
   for( int I = 0; I < count(); I++ )
-    if( ( *this )[I].m_Base.WriteE().indexOf( sm_ParamNames ) != -1 )
+    if( sm_ParamNames.indexOf( (*this) [I].m_Base.WriteE()) != -1 )
       {
       if( Result.IsEmpty() )
         Result = ( *this )[I].RetMulti();
@@ -1240,7 +1240,7 @@ bool TTerm::HasVariable( const QByteArray& VarName, int Power )
   for( int I = 0; I < count(); I++ )
     {
     QByteArray sName = ( *this )[I].m_Base.WriteE();
-    if( sName.indexOf( sm_ParamNames ) > -1 ) continue;
+    if( sm_ParamNames.indexOf(sName ) > -1 ) continue;
     if( sName == VarName )
       Result = ( *this )[I].GetPwrInt() == Power;
     else
@@ -1256,7 +1256,7 @@ bool TTerm::HasProduct( const QByteArray& Var1, const QByteArray& Var2, int Powe
   for( int I = 0; I < count(); I++ )
     {
     QByteArray sName = ( *this )[I].m_Base.WriteE();
-    if( sName.indexOf( sm_ParamNames ) > -1 ) continue;
+    if( sm_ParamNames.indexOf(sName ) > -1 ) continue;
     if( sName == Var1 )
       {
       Result = ( *this )[I].GetPwrInt() == Power1;
@@ -1368,7 +1368,7 @@ void TMultiNominal::GetAllVars( QByteArrayList& VarsList )
     for( int J = 0; J < ( *this )[I].count(); J++ )
       {
       MathExpr exBase = ( *this )[I][J].m_Base;
-      if( exBase.WriteE().indexOf( TTerm::sm_ParamNames ) == -1 && !exBase.ConstExpr() )
+      if( TTerm::sm_ParamNames.indexOf(exBase.WriteE() ) == -1 && !exBase.ConstExpr() )
         {
         QByteArray Var = ( *this )[I][J].m_Base.WriteE();
         if( VarsList.isEmpty() )
@@ -2901,6 +2901,7 @@ TMatrix2::TMatrix2( TMatrix2& AMatrix2 ) : TMatrix2( AMatrix2.count() )
   for( int I = 0; I < count(); I++ )
     {
     Variable(I) = AMatrix2.Variable(I);
+    m_RowsOrder[I] = AMatrix2.m_RowsOrder[I];
     for( int J = 0; J <= count(); J++ )
       ( *this )( I, J ) = AMatrix2( I, J );
     }
@@ -2914,12 +2915,12 @@ void TMatrix2::InitMatrix( int ASize )
   m_Variables.clear();
   int iRow = 0;
   m_RowsOrder.resize( ASize );
-  for( auto pCol = begin(); pCol != end(); pCol++ )
+  for( auto pRow = begin(); pRow != end(); pRow++, iRow++ )
     {
     m_Variables.append( "" );
-    m_RowsOrder[iRow] = iRow++;
+    m_RowsOrder[iRow] = iRow;
     for( int J = 0; J <= ASize; J++ )
-      pCol->append( Constant( 0 ) );
+      pRow->append( Constant( 0 ) );
     }
   }
 
@@ -2994,12 +2995,12 @@ void TMatrix2::CountOfDet()
 
 MathExpr& TMatrix2::operator ()( int iRow, int iCol )
   {
-  return ( *this )[m_RowsOrder[iRow]][iCol];
+  return ( *this )[m_RowsOrder[iRow]][iCol+1];
   }
 
 MathExpr& TMatrix2::FreeTerms( int I )
   {
-  return ( *this )( I, 0 );
+  return ( *this )( I, -1 );
   }
 
 MathExpr CreateVar( const QByteArray& Name, int index )
@@ -3014,13 +3015,13 @@ MathExpr CreateVar( const QByteArray& Name, int index )
 MathExpr TMatrix2::GetEquation( int I )
   {
   if( isEmpty() || I >= count() ) return MathExpr();
-  MathExpr Result = ( *this )( I, 1 ) * CreateVar( Variable( 0 ), 1 );
+  MathExpr Result = ( *this )( I, 0 ) * CreateVar( Variable( 0 ), 1 );
   int N, D;
-  for( int iItem = 2; iItem <= VariableCount(); iItem++ )
+  for( int iItem = 1; iItem < VariableCount(); iItem++ )
     if( ( *this )( I, iItem ).SimpleFrac_( N, D ) && ( N < 0 || D < 0 ) )
-      Result -= MathExpr( new TSimpleFrac( abs( N ), abs( D ) ) ) * CreateVar( Variable( iItem - 1 ), iItem );
+      Result -= MathExpr( new TSimpleFrac( abs( N ), abs( D ) ) ) * CreateVar( Variable( iItem ), iItem );
     else
-      Result += ( *this )( I, iItem ) * CreateVar( Variable( iItem - 1 ), iItem );
+      Result += ( *this )( I, iItem ) * CreateVar( Variable( iItem ), iItem );
   s_CanExchange = false;
   Result = new TBinar( '=', Result.Reduce(), FreeTerms( I ) );
   s_CanExchange = true;
@@ -3136,9 +3137,9 @@ void TLinear::ResetMatrix()
           bResult = bResult && IndexName != -1;
           if( bResult )
             {
-            Oper1 = m_Matrix2(I, IndexName + 1);
+            Oper1 = m_Matrix2(I, IndexName);
             Oper2 = Aij;
-            m_Matrix2(I, IndexName + 1) = ExpandExpr( Oper1 + Oper2 );
+            m_Matrix2(I, IndexName) = ExpandExpr( Oper1 + Oper2 );
             }
           }
         }
@@ -3202,10 +3203,10 @@ bool TLinear::Run()
 
   double PrecOld = s_Precision;
   s_Precision = 1e-14;
-  int K = 0;
+  int K = -1;
   double Val;
   int EquationCount;
-  for( int K1 = 0; K1 < m_Matrix2.count(); K1++ )
+  for( int K1 = 0; K1 < m_Matrix2.count(); K1++)
     {
     EquationCount = K1 + 1;
     bool AllWasZero;
@@ -3213,10 +3214,10 @@ bool TLinear::Run()
       {
       K++;
       AllWasZero = false;
-      if( K == m_Matrix2.count() + 1 || m_Matrix2( K1, K ).Constan( Val ) && abs( Val ) < Zero )
+      if( K == m_Matrix2.count() || m_Matrix2( K1, K ).Constan( Val ) && abs( Val ) < Zero )
         {
         AllWasZero = true;
-        for( int J = K + 1; J <= m_Matrix2.VariableCount(); J++ )
+        for( int J = K + 1; J < m_Matrix2.VariableCount(); J++ )
           if( !m_Matrix2( K1, J ).Constan( Val ) || abs( Val ) > Zero )
             {
             AllWasZero = false;
@@ -3253,7 +3254,7 @@ bool TLinear::Run()
         if( m_Matrix2( I, K ).Constan( Val ) && abs( Val ) < Zero )
           continue;
         MathExpr exMul2 = m_Matrix2( I, K );
-        for( int J = K; J <= m_Matrix2.VariableCount(); J++ )
+        for( int J = K; J < m_Matrix2.VariableCount(); J++ )
           m_Matrix2( I, J ) = ( exMul1 * m_Matrix2( I, J ) - exMul2 * m_Matrix2( K1, J ) ).Reduce();
         m_Matrix2.FreeTerms(I) = ( exMul1 * m_Matrix2.FreeTerms(I) - exMul2 * m_Matrix2.FreeTerms(K1) ).Reduce();
         }
@@ -3271,16 +3272,16 @@ bool TLinear::Run()
   for( int I = EquationCount - 1; I >= 0; I-- )
     {
     int J = 0;
-    for( int K = 1; K <= m_Matrix2.VariableCount(); K++ )
+    for( int K = 0; K < m_Matrix2.VariableCount(); K++ )
       {
       J++;
       if( !m_Matrix2( I, K ).Constan( Val ) || abs( Val ) > Zero ) break;
       }
     MathExpr exTmp = m_Matrix2.FreeTerms(I);
-    for( int K = J + 1; K <= m_Matrix2.VariableCount(); K++ )
+    for( int K = J; K < m_Matrix2.VariableCount(); K++ )
       if( !m_Matrix2( I, K ).Constan( Val ) || abs( Val ) > Zero )
-        exTmp -= m_Matrix2( I, K ) * m_Solution[K - 1];
-    m_Solution[J - 1] = ( exTmp / m_Matrix2( I, J ) ).Reduce();
+        exTmp -= m_Matrix2( I, K ) * m_Solution[K];
+    m_Solution[J - 1] = ( exTmp / m_Matrix2( I, J - 1 ) ).Reduce();
     }
 
   int iDim = 0;

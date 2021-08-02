@@ -3,6 +3,7 @@
 #include "../FormulaPainter/InEdit.h"
 #include "MathTool.h"
 #include "Parser.h"
+#include "Algebra.h"
 
 TSolutionChain TSolutionChain::sm_SolutionChain;
 bool TSolutionChain::sm_InterimResult = false;
@@ -14,8 +15,8 @@ TSolutionChain::TSolutionChain() : m_Accumulate(false), m_Expanded(false), m_Add
 int TSolutionChain::AddExpr( const MathExpr& ex, const QString& msg, bool Main )
   {
   if( !m_Accumulate ) return 0;
-  if( m_Chains.count() > 0 && m_Chains[m_Chains.count() - 1].m_Exprs.Eq( ex ) )
-    return m_Chains.count();
+  for( auto pPair = m_Chains.begin(); pPair != m_Chains.end(); pPair++)
+    if( pPair->m_Exprs.Eq(ex) ) return m_Chains.count();
   m_Chains.append( Pair( ex, Main && !sm_InterimResult ) );
   m_Comments.append( msg );
   return m_Chains.count();
@@ -24,7 +25,7 @@ int TSolutionChain::AddExpr( const MathExpr& ex, const QString& msg, bool Main )
 int TSolutionChain::AddExpr( double Val, const QString& msg, bool Main )
   {
   return AddExpr( Constant( Val ), msg, Main );
-  m_Comments.append( msg );
+//  m_Comments.append( msg );
   }
 
 int TSolutionChain::AddAndReplace( const MathExpr& Target, const MathExpr& Source, bool Main )
@@ -116,6 +117,7 @@ MathExpr TSolutionChain::GetChain()
       List.Addexp( new TStr( FromLang( m_Comments[i] ) ) );
       List.Last()->m_Visi = false;
       }
+    Solver::m_OldExpr.Clear();
     return ReturnFinal(List);
     }
   Lexp List;
@@ -163,6 +165,7 @@ MathExpr TSolutionChain::GetChain()
     List.Addexp( exTmp );
     List.Last()->m_Visi = false;
     }
+  Solver::m_OldExpr.Clear();
   return ReturnFinal( List );
   }
   
@@ -174,6 +177,7 @@ void TSolutionChain::Delete()
 
 void TSolutionChain::Clear()
   {
+  if( !m_Chains.isEmpty() && !Solver::m_OldExpr.IsEmpty() && Solver::m_OldExpr.Eq(m_Chains[0].m_Exprs ) ) return;
   DockTail( 0 );
   m_Accumulate = true;
   m_Expanded = false;
@@ -208,4 +212,12 @@ void TSolutionChain::AddComment( const QString& s, int i )
     m_Comments[m_Chains.count() - 1] = s;
   else
     m_Comments[i] = s;
+  }
+
+QString TSolutionChain::GetLastComment()
+  {
+  if(m_Comments.isEmpty()) return "";
+  QString Result = m_Comments.last();
+//  m_Comments.clear();
+  return Result;
   }

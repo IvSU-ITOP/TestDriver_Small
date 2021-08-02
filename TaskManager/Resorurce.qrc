@@ -88,5 +88,9 @@
         <file>Resources/abacus.png</file>
         <file>Resources/ShowUnarByAdd.jpg</file>
         <file>Resources/plotter.png</file>
+        <file>Resources/MoveToWorksheet.png</file>
+        <file>Resources/UndoSelfTest.jpg</file>
+        <file>Resources/InpAnswer.jpg</file>
+        <file>Resources/SelfTest.jpg</file>
     </qresource>
 </RCC>

@@ -1140,7 +1140,7 @@ MathExpr ExpandExpr( MathExpr exi )
     }
   s_GlobalInvalid = false;
   P = exi_E.Reduce();
-  P = DeletBR( P );
+//  P = DeletBR( P );
   return P;
   }
 

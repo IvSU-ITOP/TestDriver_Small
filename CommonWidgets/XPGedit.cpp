@@ -52,6 +52,7 @@ XPGedit::XPGedit( QWidget *parent, EditSets *pEditSets ) : QWidget( parent ),
 void	XPGedit::resizeEvent( QResizeEvent * pEvent )
   {
   QWidget::resizeEvent( pEvent );
+  int W = width();
   if( m_pImage != nullptr || width() <= 0 || height() <= 0 ) return;
   m_pImage = new QImage( width() * 2, height() * 4, QImage::Format_ARGB32 );
   QPainter *pPainter = new QPainter( m_pImage );
@@ -153,7 +154,7 @@ void XPGedit::RefreshXPE()
   int dh = m_pInEdit->m_Size.height() - height();
   bool bScroll = m_KeyPressed && dh > 0;
   m_KeyPressed = false;
-  SetSize(m_pInEdit->m_Size);
+//  SetSize(m_pInEdit->m_Size);
   if( bScroll )
     {
     QScrollBar *pScrollBar = m_pScrollArea->verticalScrollBar();
@@ -758,6 +759,7 @@ QScrollArea* XPGedit::SetSize( QSize Size )
     {
     Size.setHeight(max(m_MinSize.height(), Size.height()));
     Size.setWidth(max(m_MinSize.width(), Size.width()));
+    m_pScrollArea->setFixedSize(Size.width(), Size.height() + 5);
     }
   else
     {

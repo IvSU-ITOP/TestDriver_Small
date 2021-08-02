@@ -100,7 +100,9 @@ QByteArray funct_name[][3] =
     { "Polygon", "Polygon", "Polygon" },
     { "SaveBrackets", "SaveBrackets", "SaveBrackets" },
     { "func", "func", "func" },
-    { "S", "S", "S" }
+    { "S", "S", "S" },
+    { "rand_with_prohib", "rand_with_prohib", "rand_with_prohib" },
+    { "signum", "signum", "signum" }
   };
 
 int count_funct_name = sizeof( funct_name ) / sizeof( funct_name[0] );

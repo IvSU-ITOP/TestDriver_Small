@@ -3647,10 +3647,16 @@ bool CalcExpEq( const QByteArray& Source, bool Recurs )
         else
           Result = ReplaceFractions( exLeft );
       if( exRight.Divis( exNom, exDenom ) )
+        {
         CastPtr( TOper, ex )->Right() = exNom * ( exDenom ^ Constant( -1 ) ).Reduce();
+        Result = true;
+        }
       else
         if( exRight.SimpleFrac_( Nom, Denom ) && Nom == 1 )
+          {
           CastPtr( TOper, ex )->Right() = Constant( Denom ) ^ Constant( -1 );
+          return true;
+          }
         else
           Result = ReplaceFractions( exRight ) || Result;
       return Result;
@@ -4010,7 +4016,10 @@ bool CalcExpEq( const QByteArray& Source, bool Recurs )
   try
     {
     PNode eq = P.AnyExpr( P.FullPreProcessor( Source, "x" ) );
-    ex = P.OutPut( eq );
+    MathExpr ex0 = P.OutPut( eq );
+    TSolutionChain::sm_SolutionChain.AddExpr( ex0, X_Str( "MExponentialEquation", " Exponential equation" ), false);
+    ex = ex0.Reduce();
+    if(ex != ex0) TSolutionChain::sm_SolutionChain.AddExpr( ex, "", false);
     VarName = ex.HasUnknown();
     MathExpr op1, op2;
     MathExpArray a;
@@ -4049,7 +4058,7 @@ bool CalcExpEq( const QByteArray& Source, bool Recurs )
         {
         Result = false;
         }
-      if( Result ) return Final();
+       if( Result ) return Final();
       Result = true;
       }
     ex1 = SummAndSub( ex );

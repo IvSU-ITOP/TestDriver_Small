@@ -1232,6 +1232,7 @@ LangSwitch_HelpStepCaption=Help by Step
 LangSwitch_mnmHelp_Caption=Content
 LangSwitch_About_Caption=About...
 LangSwitch_Graphic_Edit=graphic edit
+LangSwitch_Stack_Question=Selecting STACK File Dialog
 LangSwitch_Title=Task Selecting Dialog
 LangSwitch_Filter=Task Files    *.tsk|*.tsk;|All Files          *.*|*.*
 LangSwitch_AboutBoxOKButtonCaption=Continue
