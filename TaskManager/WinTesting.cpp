@@ -204,14 +204,14 @@ SolverWidget::SolverWidget() : m_pSolve( new QPushButton(this) ), m_pButtonBox( 
   QPixmap Pixmap = QPixmap( ":/Resources/Calculator.jpg" ).scaledToHeight( CalcButton::sm_ButtonHeight * 2.5 );
   m_pSolve->setIcon( Pixmap );
   m_pSolve->setIconSize( Pixmap.size() );
-  m_pSolve->setFlat( true );
+  m_pSolve->setFlat( false );
   connect( m_pSolve, SIGNAL( clicked() ), SLOT( SearchSolve() ) );
   m_pSolve->adjustSize();
   Pixmap = QPixmap( ":/Resources/MoveToWorksheet.png" );
   m_pMoveToWorkSheet->setIcon(Pixmap);
   m_pMoveToWorkSheet->setIconSize( Pixmap.size() );
   m_pMoveToWorkSheet->setFixedWidth(Pixmap.width());
-  m_pMoveToWorkSheet->setFlat( true );
+  m_pMoveToWorkSheet->setFlat( false );
   connect( m_pMoveToWorkSheet, SIGNAL( clicked() ), SLOT( MoveToWorkSheet() ) );
   m_pMoveToWorkSheet->adjustSize();
   }
@@ -449,10 +449,10 @@ void SolverWidget::SearchSolve()
   }
 
 BottomWindow::BottomWindow() : m_pTitle(new QLabel), m_pPrecision(new QLabel), m_pDetailedCalc( new DetailedCalculator), 
-  m_pPrecisionIncr( new CalcButton( "MPrecPlusBtnHint", "Increase precision", ":/Resources/Extras-Forward-icon.png" ) ),
-  m_pPrecisionDecr( new CalcButton( "MPrecMinusBtnHint", "Decrease precision", ":/Resources/Extras-Backward-icon.png" ) ),
-  m_pAngleMeas( new CalcButton( "MRadDegHint", "Angle Measure" ) ), m_pSolverWidet( new SolverWidget ), m_pVCalcLayout( new QVBoxLayout ),
-  m_pSWitchCalc( new CalcButton( "MDisplayKeys", "Keys" ) ), m_pCalculator( new QGroupBox), m_pMainLayout( new QHBoxLayout),
+  m_pPrecisionIncr( new CalcButton( "MPrecPlusBtnHint", "Increase precision", ":/Resources/Extras-Forward-icon.png", true ) ),
+  m_pPrecisionDecr( new CalcButton( "MPrecMinusBtnHint", "Decrease precision", ":/Resources/Extras-Backward-icon.png", true ) ),
+  m_pAngleMeas( new CalcButton( "MRadDegHint", "Angle Measure", "", true ) ), m_pSolverWidet( new SolverWidget ), m_pVCalcLayout( new QVBoxLayout ),
+  m_pSWitchCalc( new CalcButton( "MDisplayKeys", "Keys", "", true ) ), m_pCalculator( new QGroupBox), m_pMainLayout( new QHBoxLayout),
   m_pCalcTitle( new QLabel ), m_TrigonomSystem(TExpr::tsRad)
   {
   WinTesting::sm_pBottomWindow = this;
@@ -2771,15 +2771,19 @@ void SciCalc::Calculator()
   Solve( new TSciCalc );
   }
 
-CalcButton::CalcButton( const QByteArray& Hint, const QByteArray& DefaultHint, const QString& Icon ) : m_Hint( Hint ), m_DefaultHint( DefaultHint )
+CalcButton::CalcButton( const QByteArray& Hint, const QByteArray& DefaultHint, const QString& Icon, bool bToTitle ) : m_Hint( Hint ), m_DefaultHint( DefaultHint )
   {
   LangSwitch();
   if( Icon.isEmpty() ) return;
   QPixmap Pixmap( Icon );
-  QPixmap NewPix = Pixmap.scaledToHeight( sm_ButtonHeight - 4 );
+  QPixmap NewPix;
+  if( bToTitle )
+    NewPix = Pixmap.scaledToHeight( sm_ButtonHeight - 4 );
+  else
+    NewPix = Pixmap.scaledToWidth(sm_ButtonHeight * 1.6 );
   setIcon( NewPix );
   setIconSize( NewPix.size() );
-  setFlat( true );
+  setFlat( bToTitle );
   }
 
 void CalcButton::LangSwitch()
@@ -2819,6 +2823,7 @@ void CalcWidget::Solve( Solver *pSolver )
     Panel::sm_pEditor->setFocus();
     };
   WinTesting::sm_pBottomWindow->RestoreTrigonomSystem();
+  s_NoRootReduce = false;
   QByteArray Formula( Panel::sm_pEditor->Write() );
   if( Formula.isEmpty() ) return Final();
   bool TestMode = Solver::sm_TestMode && sm_Result.device()->isOpen();

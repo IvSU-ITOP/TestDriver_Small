@@ -74,7 +74,7 @@ const int
   extern QByteArray s_GlobalVarName;
   extern bool s_IsTrinom;
   extern bool s_SummExpFactorize;
-  extern bool s_NoRootReduce;
+  MATHEMATICS_EXPORT extern bool s_NoRootReduce;
   extern bool s_PutAnswer;
   extern bool s_ReductionMustBeContinued;
   extern bool s_PowerToRoot;

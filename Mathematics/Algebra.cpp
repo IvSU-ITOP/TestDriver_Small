@@ -1610,7 +1610,7 @@ MathExpr TExpr::ReductionPoly( MathExpArray& Arr, const QByteArray& Name ) const
 //    for( int i = 0; i < Arr.count(); i++ )
 //      qDebug() << Arr[i].WriteE();
     for( ; n > 0 && Arr[n].Reduce().Constan( r ) && abs( r ) < 0.0000001; n-- );
-    Result = CreateExprPoly( Arr, n, Name );
+    Result = CreateExprPoly( Arr, n, Name ).Reduce(true);
     }
   catch( ErrParser Error )
     {
@@ -2497,8 +2497,8 @@ Lexp CalcDetLinEqu( const QByteArray& Source, const QByteArray& VarName )
                 throw  ErrParser( "Wrong type of equation!", peNoSolvType );
           if( !ex.Equal( expr ) )
             TSolutionChain::sm_SolutionChain.AddExpr( expr );
-          MathExpr a = p[1].Reduce();
-          MathExpr b = (-p[0]).Reduce();
+           MathExpr a = p[1].Reduce(true);
+          MathExpr b = (-p[0]).Reduce(true);
           ex = new TBinar( '=', ( a * Variable( VarName ) ).Reduce(), b );
           TSolutionChain::sm_SolutionChain.AddExpr( ex );
           if( Cast( TVariable, CastPtr( TBinar, ex )->Left().Ptr() ) != nullptr )
@@ -2752,7 +2752,7 @@ Lexp CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
               }
           else
             {
-            ex1 = ( -a[0] / a[1] ).Reduce().Reduce();
+            ex1 = ( -a[0] / a[1] ).Reduce().Reduce(true);
             if( s_FactorizedSolving )
               ex = GetPutRoot( ex1, VarName );
             else
@@ -2826,7 +2826,7 @@ Lexp CalcDetQuEqu( const QByteArray& Source, QByteArray VarName )
             else
               {
               MathExpr D1 = ( a[1] ^ 2 ) - Constant( 4 ) * a[2] * a[0];
-              MathExpr D = D1.Reduce();
+              MathExpr D = D1.Reduce(true);
               if( D.Equal( D1 ) )
                 ex = new TBinar( '=', Variable( 'D' ), D );
               else

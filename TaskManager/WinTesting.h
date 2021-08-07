@@ -32,7 +32,7 @@ class CalcButton : public QPushButton
   QByteArray m_DefaultHint;
   public:
     static double sm_ButtonHeight;
-    CalcButton( const QByteArray& Hint, const QByteArray& DefaultHint, const QString& Icon = QString() );
+    CalcButton( const QByteArray& Hint, const QByteArray& DefaultHint, const QString& Icon = QString(), bool bToTitle = false );
     void LangSwitch();
   };
 

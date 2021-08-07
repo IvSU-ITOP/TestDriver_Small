@@ -66,7 +66,7 @@ MathExpr TSolutionChain::GetChain()
     {
     if( Final.isEmpty() ) return Result;
     bool FullReduce = TExpr::sm_FullReduce;
-    TExpr::sm_FullReduce = true;
+//    TExpr::sm_FullReduce = true;
     bool bWasChanged = false;
     for( auto pExpr = Final.begin(); pExpr != Final.end(); pExpr++ )
       {

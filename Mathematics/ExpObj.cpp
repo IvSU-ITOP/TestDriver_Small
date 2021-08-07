@@ -173,9 +173,17 @@ bool MathExpr::operator < ( const MathExpr& Expr ) const
   return ( *m_pExpr ) < Expr;
   }
 
+bool MathExpr::Eq( const MathExpr& E2 ) const
+  {
+  TestPtr();
+  if(m_Contents == E2.m_Contents) return true;
+  return m_pExpr->Eq( E2 );
+  }
+
 bool MathExpr::Equal( const MathExpr& E2 ) const
   {
   TestPtr();
+  if(m_Contents == E2.m_Contents) return true;
   bool bResult = m_pExpr->Eq( E2 );
   if( bResult ) return true;
   bResult = m_pExpr->Equal( E2 );
@@ -232,7 +240,7 @@ QByteArray TStr::UnpackValue( const QByteArray& V )
   return FromLang( S );
   }
 
-TStr::TStr( const QByteArray& V ) : m_Value(UnpackValue(V)) {}
+TStr::TStr( const QByteArray& V ) : TExpr(), m_Value(UnpackValue(V)) {}
 
 QByteArray TStr::PackValue() const
   {
@@ -302,6 +310,7 @@ MathExpr TLexp::Clone() const
     pLIST->Addexp( index->m_Memb.Clone() );
     pLIST->m_pLast->m_Visi = index->m_Visi;
     }
+  pLIST->m_WasReduced = m_WasReduced;
   return pLIST;
   }
 
@@ -594,6 +603,7 @@ MathExpr TLord::Clone() const
     pLIST->Addexp( index->m_Memb->Clone() );
     pLIST->m_pLast->m_Visi = index->m_Visi;
     }
+  pLIST->m_WasReduced = m_WasReduced;
   return pLIST;
   }
 
@@ -643,6 +653,7 @@ MathExpr TL2exp::Clone() const
     pLIST->Addexp( index->m_Memb.Clone() );
     pLIST->m_pLast->m_Visi = index->m_Visi;
     }
+  pLIST->m_WasReduced = m_WasReduced;
   return pLIST;
   }
 
@@ -946,6 +957,7 @@ MathExpr TConstant::Clone() const
     */
   pResult->m_Precision = m_Precision;
   pResult->m_IsE = m_IsE;
+  pResult->m_WasReduced = m_WasReduced;
   return pResult;
   }
 
@@ -1100,7 +1112,7 @@ int TConstant::Compare( const MathExpr& ex ) const
   return 2;
   }
 
-TFunc::TFunc( bool Meta, const QByteArray& Name, const MathExpr& Arg ) : m_Meta_sign( Meta ),
+TFunc::TFunc( bool Meta, const QByteArray& Name, const MathExpr& Arg ) : TExpr(), m_Meta_sign( Meta ),
 m_Name( Name ), m_Arg( Arg ), m_ShortName( OutputFunctName( Name ) )
   {
 #ifdef DEBUG_TASK 
@@ -1110,7 +1122,9 @@ m_Name( Name ), m_Arg( Arg ), m_ShortName( OutputFunctName( Name ) )
    
 MathExpr TFunc::Clone() const
   { 
-  return new TFunc( m_Meta_sign, m_Name, m_Arg->Clone() ); 
+  TFunc *pResult = new TFunc( m_Meta_sign, m_Name, m_Arg->Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TFunc::TrigTerm( const QByteArray& sName, const MathExpr& exArg, const MathExpr& exPower )
@@ -1891,7 +1905,7 @@ MathExpr TFunc::Reduce() const
     return Left + Name + m_Operand2.SWrite();
     }
 
-TDegExpr::TDegExpr( const QByteArray& Value )
+TDegExpr::TDegExpr( const QByteArray& Value ) : TOper()
   {
   int n = Value.indexOf( ';' );
   QByteArray Deg = Value.left( n );
@@ -1950,7 +1964,9 @@ MathExpr TDegExpr::Reduce() const
 
 MathExpr TDegExpr::Clone() const
   {
-  return new TDegExpr( m_Operand1.Clone(), m_Operand2.Clone() );
+  TDegExpr *pResult = new TDegExpr( m_Operand1.Clone(), m_Operand2.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TDegExpr::Perform() const
@@ -2023,7 +2039,9 @@ QByteArray TDegExpr::SWrite() const
 
 MathExpr TMeaExpr::Clone() const
   {
-  return new TMeaExpr( m_Operand1.Clone(), m_Operand2.Clone() );
+  TMeaExpr *pResult = new TMeaExpr( m_Operand1.Clone(), m_Operand2.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TMeaExpr::Perform() const
@@ -2101,7 +2119,7 @@ bool TMeaExpr::Measur_( MathExpr& ex, MathExpr& exm ) const
   return true;
   }
 
-TRoot::TRoot( const MathExpr& base, int Root )
+TRoot::TRoot( const MathExpr& base, int Root ) : TPowr()
   {
   m_Name = '~';
   m_Operand1 = base;
@@ -2114,7 +2132,9 @@ TRoot::TRoot( const MathExpr& base, int Root )
 
 MathExpr TRoot::Clone() const
   {
-  return (m_Operand1.Clone()).Root( m_Root );
+  TRoot* pResult = new TRoot(m_Operand1.Clone(), m_Root);
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TRoot::Reduce() const
@@ -2374,7 +2394,10 @@ MathExpr TRoot::Reduce() const
         }
     }
   else
-    return Value();
+    if(sm_FullReduce)
+      return Value();
+    else
+      return opr1.Root( m_Root );
   if( Result.IsEmpty() )
     {
     if( s_IsIntegral && opr1.Oper_( cOper, Temp1, Temp2 ) && ( cOper == '+' || cOper == '-' ) )
@@ -2542,7 +2565,9 @@ TRoot1::TRoot1( const MathExpr& Ex1, const MathExpr& Ex2 ) : TPowr( Ex1, Ex2 )
 
 MathExpr TRoot1::Clone() const
   {
-  return new TRoot1( m_Operand1.Clone(), m_Operand2.Clone() );
+  TRoot1* pResult = new TRoot1(m_Operand1.Clone(), m_Operand2.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TRoot1::Reduce() const
@@ -2672,7 +2697,9 @@ TMixedFrac::TMixedFrac( int I, int N, int D ): TSimpleFrac( N, D )
 
 MathExpr TMixedFrac::Clone() const
   {
-  return new TMixedFrac( m_IntPart, m_NomPart, m_Denom );
+  TMixedFrac* pResult = new TMixedFrac( m_IntPart, m_NomPart, m_Denom );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TMixedFrac::Reduce() const
@@ -2778,7 +2805,7 @@ bool TMixedFrac::Unarminus( MathExpr& A ) const
   return true;
   }
 
-TPowr::TPowr( const MathExpr& Ex1, const MathExpr& Ex2 )
+TPowr::TPowr( const MathExpr& Ex1, const MathExpr& Ex2 ) : TOper()
   {
   QByteArray VarName;
   if( ( Ex1 == nullptr ) || ( Ex2 == nullptr ) )
@@ -2794,7 +2821,7 @@ TPowr::TPowr( const MathExpr& Ex1, const MathExpr& Ex2 )
 #endif
   }
 
-TPowr::TPowr( const MathExpr& base, int Power )
+TPowr::TPowr( const MathExpr& base, int Power ) : TOper()
   {
   QByteArray VarName;
 
@@ -2809,7 +2836,7 @@ TPowr::TPowr( const MathExpr& base, int Power )
 #endif
   }
 
-TPowr::TPowr( const MathExpr& base, int Nom, int Denom )
+TPowr::TPowr( const MathExpr& base, int Nom, int Denom ) : TOper()
   {
   QByteArray VarName;
   if( base.Variab( VarName ) && ( VarName == "i" ) )
@@ -2825,7 +2852,9 @@ TPowr::TPowr( const MathExpr& base, int Nom, int Denom )
 
 MathExpr TPowr::Clone() const
   {
-  return m_Operand1.Clone() ^ m_Operand2.Clone();
+  MathExpr Result = m_Operand1.Clone() ^ m_Operand2.Clone();
+  Result.Ptr()->m_WasReduced = m_WasReduced;
+  return Result;
   }
 
 bool TPowr::IsLinear() const
@@ -3634,7 +3663,7 @@ bool TOper::HasMatrix() const
   return m_Operand1.HasMatrix() || m_Operand2.HasMatrix();
   }
 
-TSimpleFrac::TSimpleFrac( int N, int D )
+TSimpleFrac::TSimpleFrac( int N, int D ) : TExpr()
   {
   if( D == 0 )
     {
@@ -3651,7 +3680,9 @@ TSimpleFrac::TSimpleFrac( int N, int D )
 
 MathExpr TSimpleFrac::Clone() const
   {
-  return new TSimpleFrac( m_Nom, m_Denom );
+  TSimpleFrac *pResult = new TSimpleFrac( m_Nom, m_Denom );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TSimpleFrac::Reduce() const
@@ -3827,6 +3858,7 @@ Bracketed TSimpleFrac::MustBracketed() const
 
 TUnar::TUnar( const MathExpr& A ): m_Arg( A )
   {
+  m_WasReduced = false;
 #ifdef DEBUG_TASK
   m_Contents = WriteE();
 #endif
@@ -4146,7 +4178,9 @@ MathExpr TUnar::Reduce() const
 
 MathExpr TUnapm::Clone() const
   {
-  return new TUnapm( m_Arg.Clone() );
+  TUnapm *pResult = new TUnapm( m_Arg.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TUnapm::Perform() const
@@ -4246,7 +4280,9 @@ TIndx::TIndx( const MathExpr& Ex1, const MathExpr& Ex2 ): TOper( Ex1, Ex2 )
 
 MathExpr TIndx::Clone() const
   {
-  return new TIndx( m_Operand1.Clone(), m_Operand2.Clone() );
+  TIndx* bResult = new TIndx( m_Operand1.Clone(), m_Operand2.Clone() );
+  bResult->m_WasReduced = m_WasReduced;
+  return bResult;
   }
 
 MathExpr TIndx::Reduce() const
@@ -4320,7 +4356,9 @@ MathExpr TIndx::Substitute( const QByteArray& vr, const MathExpr& vl )
 
 MathExpr TIntegral::Clone() const
   {
-  return new TIntegral( m_Meta_sign, m_Expint->Clone(), m_Varint->Clone() );
+  TIntegral* pResult = new TIntegral( m_Meta_sign, m_Expint->Clone(), m_Varint->Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TIntegral::Reduce() const
@@ -4421,7 +4459,7 @@ QByteArray TIntegral::SWrite() const
   }
 
 TDefIntegral::TDefIntegral( bool M, const MathExpr& exi, const MathExpr& exll, const MathExpr& exhl, const MathExpr& Var )
-  : m_Lolimit(exll), m_Hilimit(exhl)
+  : TIntegral(), m_Lolimit(exll), m_Hilimit(exhl)
   {
   m_Expint = exi;
   m_Varint = Var;
@@ -4430,7 +4468,9 @@ TDefIntegral::TDefIntegral( bool M, const MathExpr& exi, const MathExpr& exll, c
 
 MathExpr TDefIntegral::Clone() const
   {
-  return new TDefIntegral( m_Meta_sign, m_Expint, m_Lolimit, m_Hilimit, CastPtr( TVariable, m_Varint.Clone() ) );
+  TDefIntegral* pResult = new TDefIntegral( m_Meta_sign, m_Expint, m_Lolimit, m_Hilimit, CastPtr( TVariable, m_Varint.Clone() ) );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TDefIntegral::Perform() const
@@ -4529,7 +4569,9 @@ TMultIntegral::TMultIntegral( bool Meta, const MathExpr& exi, const MathExpr& ex
   
 MathExpr TMultIntegral::Clone() const
   {
-  return new TMultIntegral( m_Meta_sign, m_Expint.Clone(), m_Region.Clone(), m_Varint.Clone() );
+  TMultIntegral *pResult = new TMultIntegral( m_Meta_sign, m_Expint.Clone(), m_Region.Clone(), m_Varint.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TMultIntegral::Reduce() const
@@ -4605,7 +4647,9 @@ TCurveIntegral::TCurveIntegral( bool Meta, uchar Type, const MathExpr& exi, cons
 
 MathExpr TCurveIntegral::Clone() const
   {
-  return new TCurveIntegral( m_Meta_sign, m_Type, m_Expint.Clone(), m_Varint.Clone() );
+  TCurveIntegral *pResult = new TCurveIntegral( m_Meta_sign, m_Type, m_Expint.Clone(), m_Varint.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TCurveIntegral::Reduce() const
@@ -4662,12 +4706,14 @@ bool TCurveIntegral::Curveintegr_( MathExpr& exi, MathExpr& exll, uchar& Type ) 
   return true;
   }
 
-TGSumm::TGSumm( bool M, const MathExpr& exs, const MathExpr& exll, const MathExpr& exhl ) : m_Expsum( exs ), m_Lolimit( exll ),
-  m_Hilimit( exhl ), m_Meta_sign( M ) {}
+TGSumm::TGSumm( bool M, const MathExpr& exs, const MathExpr& exll, const MathExpr& exhl ) : TExpr(), m_Expsum( exs ),
+  m_Lolimit( exll ), m_Hilimit( exhl ), m_Meta_sign( M ) {}
 
 MathExpr TGSumm::Clone() const
   {
-  return new TGSumm( m_Meta_sign, m_Expsum.Clone(), m_Lolimit.Clone(), m_Hilimit.Clone() );
+  TGSumm *pResult = new TGSumm( m_Meta_sign, m_Expsum.Clone(), m_Lolimit.Clone(), m_Hilimit.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TGSumm::Perform() const
@@ -4743,7 +4789,9 @@ MathExpr TGSumm::Reduce() const
 
 MathExpr TLimit::Clone() const
   {
-  return new TLimit( m_Meta_sign, m_Exp.Clone(), m_Varlimit.Clone(), m_Explimit.Clone() );
+  TLimit *pResult = new TLimit( m_Meta_sign, m_Exp.Clone(), m_Varlimit.Clone(), m_Explimit.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
   
 MathExpr TLimit::Reduce() const
@@ -4814,7 +4862,7 @@ bool TLimit::Limit( MathExpr& ex, MathExpr& exv, MathExpr& exl ) const
   return true;
   }
 
-TLog::TLog( const MathExpr& ex1, const MathExpr& ex2 ): m_Basis( ex1 ), m_Arg( ex2 )
+TLog::TLog( const MathExpr& ex1, const MathExpr& ex2 ): TExpr(), m_Basis( ex1 ), m_Arg( ex2 )
   {
 #ifdef DEBUG_TASK
   m_Contents = WriteE();
@@ -4823,7 +4871,9 @@ TLog::TLog( const MathExpr& ex1, const MathExpr& ex2 ): m_Basis( ex1 ), m_Arg( e
 
 MathExpr TLog::Clone() const
   {
-  return m_Basis.Clone().Log( m_Arg.Clone() );
+  TLog *pResult = new TLog( m_Basis.Clone(), m_Arg.Clone());
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TLog::Reduce() const
@@ -5029,12 +5079,14 @@ QByteArray TLog::SWrite() const
   }
 
 TGMult::TGMult( bool Meta, const MathExpr& exm, const MathExpr& exll, const MathExpr& exhl )
-  : m_Expmul( exm ), m_Lolimit( exll ), m_Hilimit( exll ), m_Meta_sign( Meta )
+  : TExpr(), m_Expmul( exm ), m_Lolimit( exll ), m_Hilimit( exll ), m_Meta_sign( Meta )
   {}
 
 MathExpr TGMult::Clone() const
   {
-  return new TGMult( m_Meta_sign, m_Expmul.Clone(), m_Lolimit.Clone(), m_Hilimit.Clone() );
+  TGMult *pResult = new TGMult( m_Meta_sign, m_Expmul.Clone(), m_Lolimit.Clone(), m_Hilimit.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TGMult::Reduce() const
@@ -5074,7 +5126,7 @@ bool TGMult::Equal( const MathExpr& E2 ) const
   }
 
 TSubst::TSubst( bool Meta, const MathExpr& ex, const MathExpr& exll, const MathExpr& exhl )
-  : m_Exp( ex ), m_Lolimit( exll ), m_Hilimit( exhl ), m_Meta_sign( Meta )
+  : TExpr(), m_Exp( ex ), m_Lolimit( exll ), m_Hilimit( exhl ), m_Meta_sign( Meta )
   {
 #ifdef DEBUG_TASK
   m_Contents = WriteE();
@@ -5083,7 +5135,9 @@ TSubst::TSubst( bool Meta, const MathExpr& ex, const MathExpr& exll, const MathE
 
 MathExpr TSubst::Clone() const
   {
-  return new TSubst( m_Meta_sign, m_Exp.Clone(), m_Lolimit.Clone(), m_Hilimit.Clone() );
+  TSubst *pResult = new TSubst( m_Meta_sign, m_Exp.Clone(), m_Lolimit.Clone(), m_Hilimit.Clone()  );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TSubst::Reduce() const
@@ -5161,8 +5215,8 @@ QByteArray TSubst::SWrite() const
   return Result + m_Lolimit->SWrite() + "}{" + m_Hilimit->SWrite() + '}';
   }
 
-TDeriv::TDeriv( const MathExpr& Stroke, const MathExpr& Part, const MathExpr& ex, const MathExpr& vr ) : m_Expdif( ex ), m_Vardif( vr ),
-  m_DerivAsStroke( Stroke ), m_Partial( Part )
+TDeriv::TDeriv( const MathExpr& Stroke, const MathExpr& Part, const MathExpr& ex, const MathExpr& vr ) : TExpr(),
+  m_Expdif( ex ), m_Vardif( vr ), m_DerivAsStroke( Stroke ), m_Partial( Part )
   {
   m_HasParenthesis = !(IsType(TVariable, m_Expdif ));
 #ifdef DEBUG_TASK
@@ -5170,7 +5224,7 @@ TDeriv::TDeriv( const MathExpr& Stroke, const MathExpr& Part, const MathExpr& ex
 #endif
   }
 
-TDeriv::TDeriv( MathExpr& Parms)
+TDeriv::TDeriv( MathExpr& Parms) : TExpr()
   {
   TLexp *pLexp = CastPtr( TLexp, Parms );
   if( pLexp->m_Count < 4 ) throw ErrParser( "Syntax error!", peSyntacs );
@@ -5202,7 +5256,9 @@ MathExpr TDeriv::Reduce() const
 
 MathExpr TDeriv::Clone() const
   {
-  return new TDeriv( m_DerivAsStroke.Clone(), m_Partial.Clone(), m_Expdif.Clone(), m_Vardif.Clone() );
+  TDeriv *pResult = new TDeriv( m_DerivAsStroke.Clone(), m_Partial.Clone(), m_Expdif.Clone(), m_Vardif.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TDeriv::Diff( const QByteArray& d )
@@ -5306,7 +5362,7 @@ QByteArray TDeriv::SWrite() const
   return Result + '}';
   }
 
-TAbs::TAbs( bool M, const MathExpr& ex )
+TAbs::TAbs( bool M, const MathExpr& ex ) : TExpr()
   {
   if( IsConstType( TMatr, ex ) )
     {
@@ -5324,7 +5380,9 @@ TAbs::TAbs( bool M, const MathExpr& ex )
 
 MathExpr TAbs::Clone() const
   {
-  return new TAbs( m_Meta_sign, m_Exp.Clone() );
+  TAbs *pResult = new TAbs( m_Meta_sign, m_Exp.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TAbs::Reduce() const
@@ -5432,7 +5490,7 @@ bool TAbs::Replace( const MathExpr& Target, const MathExpr& Source )
   return Result;
   }
 
-TComplexExpr::TComplexExpr( const MathExpr& ex1, const MathExpr& ex2 ) : m_Re( ex1 ), m_Im( ex2 )
+TComplexExpr::TComplexExpr( const MathExpr& ex1, const MathExpr& ex2 ) : TExpr(), m_Re( ex1 ), m_Im( ex2 )
   {
   SetReduced( ( IsConstType( TConstant, ex1 ) || IsConstType( TVariable, ex1 ) ) &&
     ( IsConstType( TConstant, ex2 ) || IsConstType( TVariable, ex2 ) ) );
@@ -5443,7 +5501,9 @@ TComplexExpr::TComplexExpr( const MathExpr& ex1, const MathExpr& ex2 ) : m_Re( e
 
 MathExpr TComplexExpr::Clone() const
   {
-  return CreateComplex( m_Re.Clone(), m_Im.Clone() );
+  TComplexExpr *pResult = new TComplexExpr( m_Re.Clone(), m_Im.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr CreateComplex( const MathExpr& Re, const MathExpr& Im ) 
@@ -5539,6 +5599,11 @@ bool TComplexExpr::HasComplex() const
   return true;
   }
 
+bool TComplexExpr::ConstExpr() const
+  {
+  return m_Re.ConstExpr() && m_Im.ConstExpr();
+  }
+
 bool TComplexExpr::ImUnit() const 
   { 
   return m_Re == 0 && ( m_Im == 1 || m_Im == -1);
@@ -5549,7 +5614,8 @@ bool TComplexExpr::Cons_int( int& I ) const
   return m_Im == 0 && m_Re.Cons_int( I );
   }
 
-TTrigoComplex::TTrigoComplex( double a, double b, double aScale ) : m_Re( a ), m_Im( b ), m_Scale( aScale )
+TTrigoComplex::TTrigoComplex( double a, double b, double aScale ) : TExpr(),
+  m_Re( a ), m_Im( b ), m_Scale( aScale )
   {
 #ifdef AO_DEBUG
   Contents = WriteE;
@@ -5558,7 +5624,9 @@ TTrigoComplex::TTrigoComplex( double a, double b, double aScale ) : m_Re( a ), m
 
 MathExpr TTrigoComplex::Clone() const
   {
-  return new TTrigoComplex( m_Re, m_Im, m_Scale );
+  TTrigoComplex *pResult = new TTrigoComplex( m_Re, m_Im, m_Scale );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 QByteArray TTrigoComplex::SWrite() const
@@ -5583,7 +5651,7 @@ bool TTrigoComplex::Eq( const MathExpr& E2 ) const
   return Equal( E2 );
   }
 
-TMatr::TMatr(const MathExpr& ex) : m_IsVisible(true), m_IsNumerical(true), m_Exp(ex), m_RowCount(0), m_ColCount(0)
+TMatr::TMatr(const MathExpr& ex) : TExpr(), m_IsVisible(true), m_IsNumerical(true), m_Exp(ex), m_RowCount(0), m_ColCount(0)
   {
   PExMemb f1, f2;
   MathExpr arg;
@@ -5650,7 +5718,7 @@ TMatr::TMatr(const MathExpr& ex) : m_IsVisible(true), m_IsNumerical(true), m_Exp
 #endif
   }
 
-TMatr::TMatr(const MatrixArry& Matr) : m_IsVisible(true), m_IsNumerical(true), m_A(Matr)
+TMatr::TMatr(const MatrixArry& Matr) : TExpr(), m_IsVisible(true), m_IsNumerical(true), m_A(Matr)
   {
   m_RowCount = m_A.count();
   m_ColCount = m_A[0].count();
@@ -5714,7 +5782,9 @@ TMatr::TMatr(const MatrixArry& Matr) : m_IsVisible(true), m_IsNumerical(true), m
 
 MathExpr TMatr::Clone() const
   {
-  return new TMatr( m_Exp.Clone() );
+  TMatr *pResult = new TMatr( m_Exp.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 MathExpr TMatr::Reduce() const
@@ -6252,6 +6322,7 @@ bool TFunc::HasComplex() const
 
 TBool::TBool(bool V) : m_Valueb(V)
   {
+  SetReduced();
 #ifdef DEBUG_TASK
   m_Contents = WriteE();
 #endif 
@@ -6312,7 +6383,7 @@ bool TBool::Boolean_( bool& V ) const
   return true;
   }
 
-TSyst::TSyst(const MathExpr& ex) : m_Exp(ex)
+TSyst::TSyst(const MathExpr& ex) : TExpr(), m_Exp(ex)
   {
 #ifdef DEBUG_TASK
   m_Contents = WriteE();
@@ -6321,7 +6392,9 @@ TSyst::TSyst(const MathExpr& ex) : m_Exp(ex)
 
 MathExpr TSyst::Clone() const
   {
-  return new TSyst( m_Exp->Clone() );
+  TSyst *pResult = new TSyst( m_Exp.Clone() );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 bool TSyst::ConstExpr() const
@@ -6383,7 +6456,7 @@ bool TSyst::Syst_( MathExpr& ex ) const
   return true;
   }
 
-TTable::TTable(const MathExpr& ex) : m_NoFreeze(false)
+TTable::TTable(const MathExpr& ex) : TMatr(), m_NoFreeze(false)
   {
   PExMemb f1, f2, FirstMemb;
   QByteArray S;
@@ -6555,6 +6628,7 @@ bool TTable::Equal( const MathExpr& E2 ) const
 
 TChart::TChart( const MathExpr& ex ) : m_Exp( ex ), m_N( 0 ), m_Scale( 1.0 ), m_FromTemplate( false )
   {
+  SetReduced();
   PExMemb F1;
   if( !m_Exp.List2ex( F1 ) )
     throw  ErrParser( X_Str( "MWrongChart", "Wrong chart!" ), peSyntacs );
@@ -6722,8 +6796,8 @@ bool TChart::Chart( MathExpr& ex ) const
   return true;
   }
 
-TInterval::TInterval( double a, double L, const Lexp& P, const Lexp& S, const Lexp& I ) : m_Ax( a ), m_Len( L ), m_Points( P ),
-m_Signs(S), m_Intervals(I) {}
+TInterval::TInterval( double a, double L, const Lexp& P, const Lexp& S, const Lexp& I ) : TExpr(),
+  m_Ax( a ), m_Len( L ), m_Points( P ), m_Signs(S), m_Intervals(I) {}
 
 MathExpr TInterval::Clone() const
   {
@@ -6761,7 +6835,9 @@ QByteArray TInterval::SWrite() const
 
 MathExpr TVect::Clone() const
   {
-  return new TVect( m_Name );
+  TVect *pResult = new TVect( m_Name );
+  pResult->m_WasReduced = m_WasReduced;
+  return pResult;
   }
 
 bool TVect::Eq( const MathExpr& E2 ) const
@@ -6805,7 +6881,7 @@ bool TVect::Vect( MathExpr& N ) const
 
 TSimpleInterval::TSimpleInterval( const QByteArray& sName, const MathExpr& ex1, const MathExpr& ex2 ) :
   TOper( ex1, ex2 ), m_Brackets( sName )
-  {}
+  {  TExpr::SetReduced(); }
 
 MathExpr TSimpleInterval::Clone() const 
   { 
@@ -6861,6 +6937,7 @@ TExprPict::~TExprPict() {}
 
 TExprPict::TExprPict(const MathExpr& APath) // : m_Path(CastConstPtr(TCommStr, APath)->Value()) 
   {
+  SetReduced();
   const TCommStr *pStr = CastConstPtr(TCommStr, APath);
   if(pStr == nullptr )
     m_Path = APath.WriteE() + ".jpg";

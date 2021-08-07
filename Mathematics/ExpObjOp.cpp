@@ -428,6 +428,7 @@ MathExpr TSubt::Reduce() const
     return new TComplexExpr( m_Operand1.Reduce(), new TConstant( -1 ) );
     }
 
+  s_GlobalInvalid = false;
   opr1r = m_Operand1.Reduce();
   if(s_GlobalInvalid)return Ethis;
   opr2r = m_Operand2.Reduce();
@@ -863,7 +864,9 @@ MathExpr TMult::Reduce() const
         {
         opr1 = ( Multiplicators[i] * Multiplicators[k] );
 //        if( Eq( opr1 ) ) return opr1;
-        opr1 = opr1.Reduce();
+        opr2 = opr1.Reduce();
+        if(!opr2.Multp(op3, op4) || !op3.Eq(Multiplicators[k]))
+          opr1 = opr2;
         if( opr1.Multp( op3, op4 ) && !op4.ImUnit() )
           {
           k++;
@@ -1061,6 +1064,16 @@ MathExpr TMult::Reduce() const
     return Constant( Value1 * Value2 );
     }
 
+  if( ( opr1.SimpleFrac_( N1, D1 ) && opr2.Cons_int( Int ) ) || ( opr2.SimpleFrac_( N1, D1 ) && opr1.Cons_int( Int ) ) )
+    {
+    if( ( N1 * 1.0 * Int ) > ( 1.0*INT_MAX ) )
+      return Constant( ( double ) N1 / D1 * Int );
+    return GenerateFraction( N1 * Int, D1 ).Reduce();
+    }
+
+  if( ( opr1.SimpleFrac_( N1, D1 ) && opr2.Constan( Value2 ) ) || ( opr2.SimpleFrac_( N1, D1 ) && opr1.Constan( Value2 ) ) )
+    return Constant( Value2 * N1 / D1 ).Reduce();
+
   if( opr1.Constan( Value1 ) )
     {
     if( Value1 == 0 )
@@ -1113,16 +1126,6 @@ MathExpr TMult::Reduce() const
 
   if( opr2.Unapm_( Op21 ) )
     return ( opr1 * Op21 ).Unapm().Reduce();
-
-  if( ( opr1.SimpleFrac_( N1, D1 ) && opr2.Cons_int( Int ) ) || ( opr2.SimpleFrac_( N1, D1 ) && opr1.Cons_int( Int ) ) )
-    {
-    if( ( N1 * 1.0 * Int ) > ( 1.0*INT_MAX ) )
-      return Constant( ( double ) N1 / D1 * Int );
-    return GenerateFraction( N1 * Int, D1 ).Reduce();
-    }
-
-  if( ( opr1.SimpleFrac_( N1, D1 ) && opr2.Constan( Value2 ) ) || ( opr2.SimpleFrac_( N1, D1 ) && opr1.Constan( Value2 ) ) )
-    return Constant( Value2 * N1 / D1 ).Reduce();
 
   if( opr1.Multp( Op11, Op12 ) && opr1.Eq( m_Operand1 ) )
     {
@@ -1828,7 +1831,7 @@ MathExpr TDivi::Reduce() const
   if( opr1.Unarminus( Op11 ) || NegatConst( opr1 ) )
     {
     OldDiviExpr = Ethis;
-    MathExpr P = ( -( -opr1 / opr2 ) ).Reduce();
+    MathExpr P = ( -( (-opr1).Reduce() / opr2 ) ).Reduce();
     OldDiviExpr.Clear();
     return P;
     }
@@ -1837,7 +1840,7 @@ MathExpr TDivi::Reduce() const
     if( opr2 == -1 )
       return -opr1;
     else
-      return ( -( opr1 / -opr2 ) ).Reduce();
+      return ( -( opr1 / (-opr2).Reduce() ) ).Reduce();
 
   if( opr1.Unapm_( Op11 ) )
     return ( -( Op11 / opr2 ) ).Reduce();

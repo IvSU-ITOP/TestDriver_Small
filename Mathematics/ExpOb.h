@@ -31,6 +31,8 @@ class TConstant;
 class MathExpr;
 class ResultReceiver;
 class Parser;
+class TUnar;
+class TPowr;
 
 //inline double Frac( double V ) { return V - floor( V ); }
 typedef QSharedPointer<class TExMemb> PExMemb;
@@ -40,8 +42,11 @@ enum Bracketed { brNone, brOperation, brPower };
 class TExpr
   {
   friend MathExpr;
+  friend TUnar;
+  friend TPowr;
   uint m_Counter;
-  bool m_WasReduced;
+  protected:
+    bool m_WasReduced;
   public:
     MATHEMATICS_EXPORT static int sm_CreatedCount;
     MATHEMATICS_EXPORT static int sm_DeletedCount;
@@ -205,9 +210,10 @@ class TExpr
     MathExpr ReToMult();
     MathExpr CalcFunc( const QByteArray& fname );
     QByteArray HasUnknown( const QByteArray& = "" ) const;
+    void SetReduced() { m_WasReduced = true; }
     virtual bool operator <( const MathExpr& ) { return false; }
     virtual bool HasMatrix() const { return false; }
-    virtual bool IsIndexed() const { return false; }
+    virtual bool IsIndexed() const { return false; }   
   };
 
 class Lexp;
@@ -217,11 +223,12 @@ class MathExpr
   static bool sm_NewReduce;
   protected:
   TExpr *m_pExpr;
-#ifdef DEBUG_TASK
+//#ifdef DEBUG_TASK
     QByteArray  m_Contents;
-#endif
+//#endif
   public:
     MathExpr() : m_pExpr( nullptr ) {}
+/*
 #ifndef DEBUG_TASK
     MathExpr( const MathExpr& E ) : m_pExpr( E.m_pExpr ) { if( m_pExpr != nullptr ) m_pExpr->m_Counter++; }
     MathExpr( TExpr* pE ) : m_pExpr( pE ) 
@@ -229,11 +236,12 @@ class MathExpr
       if( m_pExpr != nullptr ) m_pExpr->m_Counter++; 
       }
 #else
+*/
     MathExpr( const MathExpr& E ) : m_pExpr( E.m_pExpr )
       {
       if( m_pExpr == nullptr ) return;
       m_pExpr->m_Counter++;
-      m_Contents = m_pExpr->WriteE();
+      m_Contents = E.m_Contents;
       }
     MathExpr( TExpr* pE ) : m_pExpr( pE )
       {
@@ -241,7 +249,7 @@ class MathExpr
       m_pExpr->m_Counter++;
       m_Contents = m_pExpr->WriteE();
       }
-#endif
+//#endif
     MATHEMATICS_EXPORT MathExpr(const QString&);
     virtual ~MathExpr()   
       { 
@@ -272,7 +280,7 @@ class MathExpr
     MathExpr RetNeg() const;
     bool operator == ( const MathExpr& E2 ) const { return  m_pExpr == E2.m_pExpr; } 
     bool operator != ( const MathExpr& E2 ) const { return  m_pExpr != E2.m_pExpr; }
-    bool Eq( const MathExpr& E2 ) const { TestPtr(); return m_pExpr->Eq( E2 ); }
+    MATHEMATICS_EXPORT bool Eq( const MathExpr& E2 ) const;
     MATHEMATICS_EXPORT bool Equal( const MathExpr& E2 ) const;
     MATHEMATICS_EXPORT bool HasStr() const { TestPtr(); return m_pExpr->HasStr(); }
     bool FindEq( const MathExpr& E, PExMemb & F ) { TestPtr(); return m_pExpr->FindEq( E, F ); }
@@ -493,7 +501,7 @@ class TLexp : public TExpr
     PExMemb m_pFirst;
     PExMemb m_pLast;
   public:
-    TLexp() : m_Count(0) {}
+    TLexp() : TExpr(), m_Count(0) {}
     uint Count() const { return m_Count; }
     virtual ~TLexp();
     void Clear();
@@ -547,6 +555,7 @@ class TLord : public TLexp
   {
   friend class TMatr;
   public:
+  TLord() : TLexp() {}
     virtual MathExpr Clone() const;
     virtual MathExpr Reduce() const;
     virtual MathExpr Perform() const;
@@ -559,6 +568,7 @@ class TL2exp : public TLexp
   {
   friend class TMatr;
   public:
+    TL2exp() : TLexp() {}
     virtual MathExpr Clone() const;
     virtual MathExpr Reduce() const;
     virtual MathExpr Perform() const;
@@ -575,7 +585,7 @@ class TVariable : public TExpr
   char m_Ind[mc_IndCount];    // { atributes: -1 subscript, +1 - overscript 2 - mean}
   bool m_IsIndexed;
   public:
-    TVariable() : m_Meta_sign( false ), m_IsIndexed(false) { memset( m_Ind, 0, sizeof( m_Ind ) ); }
+    TVariable() : m_Meta_sign( false ), m_IsIndexed(false) { SetReduced(); memset( m_Ind, 0, sizeof( m_Ind ) ); }
     MATHEMATICS_EXPORT TVariable( bool Meta, const QByteArray& Name );
     TVariable( bool Meta, uchar Name ) : TVariable() { m_Meta_sign = Meta; m_Name = QByteArray(1, Name); }
     virtual MathExpr Clone() const;
@@ -589,7 +599,7 @@ class TVariable : public TExpr
     virtual bool Equal( const MathExpr& E2 ) const; // не реализована
 
     virtual MathExpr Substitute( const QByteArray& vr, const MathExpr& vl );
-    virtual QByteArray WriteE() const;
+    MATHEMATICS_EXPORT virtual QByteArray WriteE() const;
     virtual QByteArray SWrite() const;
     virtual bool Variab( QByteArray& N ) const;
     virtual bool IsLinear() const;
@@ -603,7 +613,7 @@ class TInfinity : public TExpr
   {
   bool m_Neg;
   public:
-    TInfinity( bool ANeg ) : m_Neg( ANeg ) {}
+    TInfinity( bool ANeg ) : m_Neg( ANeg ) { SetReduced(); }
     virtual MathExpr Clone() const { return new TInfinity( m_Neg ); }
     virtual MathExpr Diff( const QByteArray& d = "x" ) { s_GlobalInvalid = true; return Clone(); }
     virtual bool Eq( const MathExpr& exp ) const { bool  ng;  return exp.Infinity( ng ) && ( m_Neg == ng ); }
@@ -623,7 +633,7 @@ class TConstant : public TExpr
   bool m_IsE;
   public:
     static bool sm_ConstToFraction;
-    TConstant() : m_Value( 0.0 ), m_Precision( 0.0 ), m_IsE( false ) {}
+    TConstant() : TExpr(), m_Value( 0.0 ), m_Precision( 0.0 ), m_IsE( false ) {}
     MATHEMATICS_EXPORT TConstant( double V, bool IsE = false );
     MathExpr Clone() const;
     MathExpr Reduce() const;
@@ -752,10 +762,10 @@ class TOper : public TExpr
     MathExpr m_Operand1;
     MathExpr m_Operand2;
   public:
-    TOper() {}
-    TOper( const MathExpr& ex1, const MathExpr& ex2 ) : m_Operand1( ex1 ), m_Operand2( ex2 ), m_Name(0) {}
-    TOper( const MathExpr& ex1, const MathExpr& ex2, char Name ) : m_Operand1( ex1 ), m_Operand2( ex2 ), m_Name(Name) {}
-    virtual QByteArray WriteE() const;
+    TOper() : TExpr() {}
+    TOper( const MathExpr& ex1, const MathExpr& ex2 ) : TExpr(), m_Operand1( ex1 ), m_Operand2( ex2 ), m_Name(0) {}
+    TOper( const MathExpr& ex1, const MathExpr& ex2, char Name ) : TExpr(), m_Operand1( ex1 ), m_Operand2( ex2 ), m_Name(Name) {}
+    MATHEMATICS_EXPORT virtual QByteArray WriteE() const;
     virtual QByteArray SWrite() const;
 
     bool Oper_( char& N, MathExpr& op1, MathExpr& op2 ) const;
@@ -909,8 +919,8 @@ class TIntegral : public TExpr
   MathExpr m_Varint;
   bool m_Meta_sign;
   public:
-    TIntegral() : m_Meta_sign( false ) {}
-    TIntegral( bool Meta, const MathExpr& ex, const MathExpr& Var ) : m_Meta_sign( Meta ), m_Expint( ex ), m_Varint(Var) {}
+    TIntegral() : TExpr(), m_Meta_sign( false ) {}
+    TIntegral( bool Meta, const MathExpr& ex, const MathExpr& Var ) : TExpr(), m_Meta_sign( Meta ), m_Expint( ex ), m_Varint(Var) {}
     virtual MathExpr Clone() const;
     virtual MathExpr Reduce() const;
     virtual MathExpr Perform() const;
@@ -1024,7 +1034,7 @@ class TLimit : public TExpr
   MathExpr m_Explimit;
   bool m_Meta_sign;
   public:
-    TLimit( bool Meta, const MathExpr& exs, const MathExpr& exv, const MathExpr& exhl ) :
+    TLimit( bool Meta, const MathExpr& exs, const MathExpr& exv, const MathExpr& exhl ) : TExpr(),
       m_Meta_sign( Meta ), m_Exp( exs ), m_Varlimit( exv ), m_Explimit( exhl )
       {
 #ifdef DEBUG_TASK
@@ -1232,7 +1242,7 @@ class TPolygon : public TExpr
   MathExpr m_Points;
   int m_Kind;
   public:
-    TPolygon( const MathExpr& APoints, int Akind = 0 ) : m_Points( APoints ), m_Kind( Akind) {}
+    TPolygon( const MathExpr& APoints, int Akind = 0 ) : TExpr(), m_Points( APoints ), m_Kind( Akind) {}
     MathExpr Clone() const { return new TPolygon( m_Points, m_Kind ); }
     bool Polygon() const { return true; }
     const MathExpr Points() { return m_Points; }
@@ -1262,6 +1272,7 @@ class TComplexExpr : public TExpr
     bool Cons_int( int& I ) const;
     virtual Bracketed MustBracketed() const;
     virtual void SetReduced( bool Reduced ) { TExpr::SetReduced( Reduced ); m_Re.SetReduced( Reduced ); m_Im.SetReduced( Reduced ); }
+    bool ConstExpr() const;
   };
 
 class TTrigoComplex : public TExpr
@@ -1294,7 +1305,7 @@ class TMatr : public TExpr
   public:
     bool m_IsVisible;
     static int sm_RecursionDepth;
-    TMatr() : m_RowCount( 0 ), m_ColCount( 0 ), m_Rank( 0 ), m_IsVisible( true ), m_IsNumerical( true ) {}
+    TMatr() : TExpr(), m_RowCount( 0 ), m_ColCount( 0 ), m_Rank( 0 ), m_IsVisible( true ), m_IsNumerical( true ) {}
     TMatr( const MathExpr& ex );
     TMatr( const MatrixArry& matr );
     MathExpr Clone() const;
@@ -1377,7 +1388,7 @@ class TUnapm : public TExpr
   {
   MathExpr m_Arg;
   public:
-    TUnapm( const MathExpr& A ) : m_Arg(A) {}
+    TUnapm( const MathExpr& A ) : TExpr(), m_Arg(A) {}
     MathExpr Clone() const;
     MathExpr Reduce() const;
     MathExpr Perform() const;
@@ -1470,7 +1481,7 @@ class TMathGraph : public TExpr
   QByteArrayList m_Labels;
   QByteArray m_Source;
   public:
-    TMathGraph( ConjugationTable& Table, QBitmap& Bmp, QByteArrayList& ALabels, QByteArray& ASource ) {}
+    TMathGraph( ConjugationTable& Table, QBitmap& Bmp, QByteArrayList& ALabels, QByteArray& ASource ) {  SetReduced(); }
     MathExpr Clone() { return nullptr; }
     bool Eq( const MathExpr& E2 ) const { return false; }
     bool Equal( const MathExpr& E2 ) const { return false; }
