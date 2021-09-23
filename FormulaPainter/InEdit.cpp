@@ -557,7 +557,6 @@ void XPInEdit::PreCalc( TPoint P, QSize &S, int &A )
 
 void XPInEdit::EditDraw()
   {
-//  m_SelectedRect.setSize( QSize( 0, 0 ) );
   if( m_SelectedRect.isValid() )
     m_pCanvas->fillRect( m_SelectedRect, ~m_EditSets.m_BkgrColor.rgb() );
   if(m_pCurrentTable != nullptr)
@@ -1391,6 +1390,7 @@ EdAction XPInEdit::EditAction( U_A_T Uact  )
 
   if ( Uact == "GSUMMA" )
     {
+    sm_EditKeyPress = false;
     EdGSumm *pElementS = new EdGSumm ( this );
     EdMemb *pAppending = m_pL->m_pSub_L->Append_Before ( pElementS );
     pElementS->m_pAA->m_pMother = pAppending;
@@ -1534,7 +1534,7 @@ void XPInEdit::PaintChar( int X, int Y, QChar Char )
   {
   bool bSelected = m_SelectedRect.contains( X, Y );
   if( bSelected )
-    SetPaintColor( ~m_pCanvas->pen().color().rgb() );
+      SetPaintColor( ~m_pCanvas->pen().color().rgb() );
   m_pCanvas->drawText( X, Y - m_TopChar[m_FontKind], Char );
   if( bSelected )
     RestorePaintColor();
@@ -1919,6 +1919,18 @@ bool EdMemb::HasIntegral()
   return ( !m_pMember.IsEmpty() && IsConstEdType( EdIntegr, m_pMember.data() ) ) || ( m_pNext != nullptr && m_pNext->HasIntegral() );
   }
 
+EdDfIntegr* EdMemb::GetDefIntegral()
+  {
+  EdDfIntegr *pResult = nullptr;
+  if(!m_pMember.IsEmpty())
+    {
+    pResult = dynamic_cast< EdDfIntegr* >(m_pMember.data());
+    if(pResult != nullptr) return pResult;
+    }
+  if(m_pNext == nullptr) return pResult;
+  return m_pNext->GetDefIntegral();
+  }
+
 int EdMemb::IntegralDPos()
   {
   if( m_pMember.IsEmpty() ) return -1;
@@ -2029,6 +2041,7 @@ void EdList::TailSize()
 
 void EdList::PreCalc(TPoint P, QSize &S, int &A)
   {
+  if(P.Y < 0) P.Y = 0;
   m_Start = P;
   if (m_pMother == NULL)
     {
@@ -2449,7 +2462,8 @@ EdMemb* EdList::Append_Before( const PEdElm& pE )
     {
     m_pFirst = Result;
     m_pFirstInLine = Result;
-    sm_EditKeyPress = m_Hebrew;
+    sm_EditKeyPress = false;
+//    sm_EditKeyPress = m_Hebrew;
     }
   else
     sm_EditKeyPress = false;
@@ -2537,6 +2551,12 @@ bool EdList::SelectString(int Y)
 bool EdList::HasIntegral()
   {
   return m_pFirst != nullptr && m_pFirst->HasIntegral();
+  }
+
+EdDfIntegr* EdList::GetDefIntegral()
+  {
+  if(m_pFirst == nullptr) return nullptr;
+  return m_pFirst->GetDefIntegral();
   }
 
 int EdList::IntegralDPos()
@@ -4974,11 +4994,19 @@ void EdCurveIntegr::PreCalc( TPoint P, QSize &S, int &A )
   m_Start = P;
   m_pIntegralSign->PreCalc( P, m_Size, IntAxis );
   m_pAA->PreCalc( P, SAA, m_pAA->m_Axis );
-  double MaxH = EdIntegr::sm_SignSize == 0 ? max( SAA.height(), SBB.height() ) : EdIntegr::sm_SignSize;
+  double MaxH = EdIntegr::sm_SignSize == 0 ? SAA.height() : EdIntegr::sm_SignSize;
   if( Round( MaxH ) - m_Size.height() > 2 )
     {
     m_pIntegralSign->RecalcSize( MaxH / m_Size.height() );
     m_pIntegralSign->PreCalc( P, m_Size, IntAxis );
+    }
+  int dH = max(0, m_pAA->m_Axis - IntAxis);
+  if(dH > 0)
+    {
+    TPoint IntP(P);
+    IntP.Y += dH;
+    m_pIntegralSign->PreCalc( IntP, m_Size, IntAxis );
+    m_Size.setHeight(m_Size.height() + dH);
     }
   PBB.X = P.X;
   PBB.Y = P.Y + m_Size.height() + 2;
@@ -4996,7 +5024,7 @@ void EdCurveIntegr::PreCalc( TPoint P, QSize &S, int &A )
     PAA.X += ( SBB.width() - m_Size.width() ) / 2;
     m_pIntegralSign->PreCalc( PAA, m_Size, IntAxis );
     }
-  int AAY = m_Start.Y + IntAxis - SAA.height() / 2;
+  int AAY = m_Start.Y + IntAxis - SAA.height() / 2 + dH;
   PAA.X += m_pIntegralSign->Width() + 2;
   PAA.Y = AAY;
   m_pAA->PreCalc( PAA, SAA, m_pAA->m_Axis );
@@ -7414,14 +7442,32 @@ bool EdDfIntegr::SetCurrent( const TPoint &C, EdList* &pSL, EdMemb* &pCr )
 
 void EdDfIntegr::PreCalc ( TPoint P, QSize &S, int &A )
   {
-  TPoint PL, PH, PInt = P;
+  TPoint PL, PH;
   QSize SL, SH, SInt;
+  int Shift = 0;
+  bool BaseLevel = m_pOwner->m_DrawingPower == 0;
+  m_pOwner->SetPowerSize( +1, BaseLevel );
+  m_pHL->PreCalc( PH, SH, m_pHL->m_Axis );
+  m_pOwner->SetPowerSize( 0, BaseLevel );
+  int MyHHeight = SH.height();
+  if(m_Shift == -1)
+    {
+    EdDfIntegr *pAA = m_pAA->GetDefIntegral();
+    if(pAA != nullptr )
+      {
+      int HHeight = MyHHeight;
+      pAA->DefineHHeight(HHeight);
+      Shift = HHeight - MyHHeight;
+      }
+    }
+  else
+    Shift = m_Shift - MyHHeight;
+  P.Y += Shift;
+  TPoint PInt = P;
   int dX, dY, AInt;
   m_Start = P;
   EdIntegr::PreCalc( PInt, SInt, AInt );
   SInt = m_pIntegralSign->m_Size;
-  bool BaseLevel;
-  BaseLevel = m_pOwner->m_DrawingPower == 0;
   PH = P;
   m_pOwner->SetPowerSize( +1, BaseLevel );
   m_pHL->PreCalc( PH, SH, m_pHL->m_Axis );
@@ -7469,6 +7515,7 @@ void EdDfIntegr::PreCalc ( TPoint P, QSize &S, int &A )
     }
   m_Size.setHeight( max( m_Size.height(), m_pAA->m_Size.height() ) );
   S = m_Size;
+  m_Axis += Shift;
   A = m_Axis;
   }
 
@@ -7639,6 +7686,19 @@ QByteArray EdDfIntegr::SWrite()
   return Result + m_pAA->SWrite() + "}{" + m_pBB->SWrite() + '}';
     }
 
+void EdDfIntegr::DefineHHeight( int &Shift )
+  {
+  TPoint PH;
+  QSize SH;
+  bool BaseLevel = m_pOwner->m_DrawingPower == 0;
+  m_pOwner->SetPowerSize( +1, BaseLevel );
+  m_pHL->PreCalc( PH, SH, m_pHL->m_Axis );
+  m_pOwner->SetPowerSize( 0, BaseLevel );
+  m_Shift = max(Shift, SH.height());
+  EdDfIntegr *pAA = m_pAA->GetDefIntegral();
+  if(pAA != nullptr ) pAA->DefineHHeight(m_Shift);
+  }
+
 EdGSumm::EdGSumm( XPInEdit *pOwn, uchar Sign ) : EdElm( pOwn ), m_pAA( new EdList( m_pOwner ) ), m_pLL( new EdList( m_pOwner ) ),
   m_pHL( new EdList( m_pOwner ) )
   {
@@ -7757,6 +7817,7 @@ void EdGSumm::ClearSelection ()
   m_pAA->ClearSelection();
   m_pHL->ClearSelection();
   m_pLL->ClearSelection();
+  m_Selected = false;
   }
 
 bool EdGSumm::MoveInRight ( EdList* &pL )
@@ -8061,9 +8122,20 @@ QByteArray EdSubst::SWrite()
     return "\\subst{" + m_pAA->SWrite() + "}{" + m_pLL->SWrite() + "}{" + m_pHL->SWrite() + '}';
     }
 
-EdStr::EdStr(XPInEdit *pOwn, QByteArray text, bool NoSelectFont) : EdElm(pOwn), m_Value(text), m_SelStart(-1), m_SelEnd(-1), m_NoSelectFont(NoSelectFont)
+EdStr::EdStr(XPInEdit *pOwn, QByteArray Text, bool NoSelectFont) : EdElm(pOwn), m_Value(Text), m_SelStart(-1), m_SelEnd(-1), m_NoSelectFont(NoSelectFont)
   {
-  QByteArray Text(text);
+  if(!sm_PureText)
+    {
+    QString UString;
+    bool WasOperation = false;
+    for( int iChar = 0; iChar < Text.length(); UString += ::ToUnicode( Text[iChar++] ) )
+      WasOperation = WasOperation || Recode.contains(Text[iChar]);
+    if(WasOperation)
+      {
+      m_SValue = UString.split('\n');
+      return;
+      }
+    }
   m_SValue = ToLang(Text.replace(msPrime, '"').replace(msDoublePrime, '{').replace(msTriplePrime, '}').replace(msCharNewLine, '\n')).split('\n');
   }
 

@@ -1,4 +1,4 @@
-QT += widgets axcontainer axserver network
+QT += widgets network
 QT+=charts
 
 TARGET = TestDriver

@@ -8,6 +8,8 @@
 extern DataTask s_Task;
 extern void MessageOutput( QtMsgType type, const QMessageLogContext &context, const QString &msg );
 extern QFile s_LogFile;
+extern QByteArray s_MainUrl;
+
 //QSqlDatabase s_DB;
 
 int main( int argc, char *argv[] )
@@ -27,6 +29,8 @@ int main( int argc, char *argv[] )
 //  QGuiApplication a(argc, argv);
   DataServer Server;
   if( !Server.StartServer() ) return 1;
+  RefServer PDFServer;
+    if( !PDFServer.StartServer() ) return 1;
   QString ipAddress;
   QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
   // use the first non-localhost IPv4 address
@@ -41,5 +45,11 @@ int main( int argc, char *argv[] )
   if (ipAddress.isEmpty())
       ipAddress = QHostAddress(QHostAddress::LocalHost).toString();
   qDebug() << ipAddress << Server.serverPort();
+  QByteArray Path(argv[0]);
+  Path = Path.left(Path.lastIndexOf('\\'));
+  QFile CFFile( Path + "\\Config.txt");
+  CFFile.open(QIODevice::ReadOnly);
+  s_MainUrl = CFFile.readAll().trimmed();
+  CFFile.close();
   return a.exec();
   }

@@ -186,7 +186,7 @@ void HelpPanelWindow::Create( QWidget *pWindow, const QString& Title )
   }
 
 RichTextWindow::RichTextWindow(QWidget *pParent) : QTextEdit(pParent), m_ContentLoading(false),
-  m_pOldViewSettings( XPGedit::sm_pViewSettings )
+  m_OldViewSettings( XPGedit::sm_ViewSettings )
   {
   setStyleSheet( "QWidget {background:#dceff5;font-size:16pt;font-family:arial}" );
   m_ViewSettings.m_BkgrColor = "#dceff5";
@@ -194,7 +194,7 @@ RichTextWindow::RichTextWindow(QWidget *pParent) : QTextEdit(pParent), m_Content
   m_ViewSettings.m_TaskCmFont.setPointSize( 16 );
   m_ViewSettings.m_SimpCmFont.setFamily( "Arial" );
   m_ViewSettings.m_SimpCmFont.setPointSize( 16 );
-  XPGedit::sm_pViewSettings = &m_ViewSettings;
+  XPGedit::sm_ViewSettings = m_ViewSettings;
   setReadOnly( true );
   setWordWrapMode( QTextOption::NoWrap );
   setDocument( new RichTextDocument() );
@@ -205,7 +205,7 @@ RichTextWindow::RichTextWindow(QWidget *pParent) : QTextEdit(pParent), m_Content
 
 RichTextWindow::~RichTextWindow()
   {
-  XPGedit::sm_pViewSettings = m_pOldViewSettings;
+  XPGedit::sm_ViewSettings = m_OldViewSettings;
   }
 
 void RichTextWindow::ResetLanguage()
@@ -859,7 +859,8 @@ StepEdit::StepEdit( HelpButton *pOwnerButton ) : QDialog( ( QWidget* ) pOwnerBut
   m_pShowPromptEdit(new QPushButton( "Edit Exam Prompt") ), m_pPromptEditor(nullptr), m_pFalseCommentEditor(nullptr),
   m_pBtnEdCommentF1(new QPushButton("Edit comment on False answer 1")),
   m_pBtnEdCommentF2(new QPushButton("Edit comment on False answer 2")),
-  m_pBtnEdCommentF3(new QPushButton("Edit comment on False answer 3"))
+  m_pBtnEdCommentF3(new QPushButton("Edit comment on False answer 3")),
+  m_pHeightEditorWindow(new QDoubleSpinBox )
   {
   QString Title( "Edit task step" );
   if( s_Task.m_pTrack->m_MultyTrack )
@@ -967,6 +968,14 @@ StepEdit::StepEdit( HelpButton *pOwnerButton ) : QDialog( ( QWidget* ) pOwnerBut
     pHBox->addWidget(m_pMarkEdit);
     pVBox->addLayout( pHBox );
     }
+  pHBox = new  QHBoxLayout;
+  pHBox->addWidget( new QLabel( "Part of window height for editor" ) );
+  m_pHeightEditorWindow->setRange( 0.3, 0.7 );
+  m_pHeightEditorWindow->setSingleStep( 0.05 );
+  m_pHeightEditorWindow->setDecimals( 2 );
+  m_pHeightEditorWindow->setValue(pStep->m_ShowParms.m_HeightEditorWindow);
+  pHBox->addWidget( m_pHeightEditorWindow );
+  pVBox->addLayout( pHBox );
   QLabel *pListAnswers = new QLabel( "List of true answers" );
   pListAnswers->setAlignment( Qt::AlignCenter );
   pVBox->addWidget( pListAnswers );
@@ -1106,6 +1115,7 @@ void StepEdit::accept()
   pStep->m_ShowParms.m_ShowDeg = m_pShowDeg->isChecked();
   pStep->m_ShowParms.m_OnExactCompare = m_pOnExactCompare->isChecked();
   pStep->m_ShowParms.m_NoHint = m_pNoHint->isChecked();
+  pStep->m_ShowParms.m_HeightEditorWindow = m_pHeightEditorWindow->value();
   if( s_Task.IsMultitask() ) pStep->ResetMark(m_pMarkEdit->value());
   WinTesting::SaveEnable( this );
   delete m_pPromptEditor;
@@ -1210,7 +1220,9 @@ void NationalTextButton::mouseReleaseEvent(QMouseEvent *e)
   NationalTextEditor TE(ToLang(Text.replace(msPrime, '"').replace(msDoublePrime, '{' ).replace(msTriplePrime,'}' ).replace(msCharNewLine, '\n')) );
   if (TE.exec() == QDialog::Rejected) return;
   *m_pExprPanel->m_pExpr = TE.GetText();
+  EdStr::sm_PureText = true;
   m_pExprPanel->CreateContent();
+  EdStr::sm_PureText = false;
   }
 
 NationalTextEditor::NationalTextEditor(const QString& Text) : QDialog(nullptr, Qt::WindowSystemMenuHint), m_TextEditor(new QTextEdit)

@@ -1953,7 +1953,7 @@ void RowEditor::mousePressEvent( QMouseEvent *event )
       QByteArray Formula("Picture(@" + text().trimmed().toLocal8Bit() + ')');
       MathExpr Expr = MathExpr( Parser::StrToExpr( Formula) );
       if( s_GlobalInvalid || Expr.IsEmpty() ) return;
-      XPInEdit InEd( Expr.SWrite(), *BaseTask::sm_pEditSets, *XPGedit::sm_pViewSettings );
+      XPInEdit InEd( Expr.SWrite(), *BaseTask::sm_pEditSets, XPGedit::sm_ViewSettings );
       QImage *pImage = InEd.GetImage();
       pImage->setText( "F1", Parser::PackUnAscii( Formula ) );
       QString Path( RichTextDocument::GetTempPath());

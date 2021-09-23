@@ -165,8 +165,10 @@ class TXPStep
       bool m_ShowDeg;
       bool m_OnExactCompare;
       bool m_NoHint;
+      double m_HeightEditorWindow;
       ShowParms() : m_ShowUnarMinus( false ), m_HideUnarMinus( false ), m_ShowMultSign( false ), m_HideMultSign( false ), m_NoHint(false),
-        m_ShowRad( false ), m_ShowDeg( false ), m_OnExactCompare(false), m_ShowMinusByAddition(false), m_HideMinusByAddition(false) {}
+        m_ShowRad( false ), m_ShowDeg( false ), m_OnExactCompare(false), m_ShowMinusByAddition(false), m_HideMinusByAddition(false),
+        m_HeightEditorWindow(0.5) {}
       void Save( QByteStream & Stream, QByteArray& Id );
       }  m_ShowParms;
 

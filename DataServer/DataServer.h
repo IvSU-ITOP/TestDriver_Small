@@ -20,6 +20,8 @@ void ReadyRead( const QByteArray& Args ); //функция проверяет г
 
 class DataServer : public QTcpServer
   {
+  protected:
+    int m_Port;
   public:
     int m_ConnectionsCount;  //число подключенных пользователей (работает многопоточный режим)
     DataServer();
@@ -28,6 +30,15 @@ class DataServer : public QTcpServer
     void incomingConnection( qintptr socketDescriptor ) override;
 //Эта функция наследуемая от QTcpServer выполняется при подключении
 //очередного пользователя.
+  };
+
+
+class RefServer : public DataServer
+  {
+  public:
+    RefServer();
+  protected:
+ //   void incomingConnection( qintptr socketDescriptor ) override;
   };
 
 class DataTask : public BaseTask

@@ -47,7 +47,7 @@ class XPGedit : public QWidget
     COMMONWIDGETS_EXPORT static bool sm_ShowMultSignInQWindow;
     COMMONWIDGETS_EXPORT static bool sm_SelectPictures;
     XPInEdit *m_pInEdit;
-    COMMONWIDGETS_EXPORT static ViewSettings* sm_pViewSettings;
+    COMMONWIDGETS_EXPORT static ViewSettings sm_ViewSettings;
     COMMONWIDGETS_EXPORT static void ( *sm_ChangeState )( bool IsEmpty );
     COMMONWIDGETS_EXPORT static void( *sm_ResetTestMode )();
     COMMONWIDGETS_EXPORT static void( *sm_AutoTest )( );

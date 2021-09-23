@@ -75,7 +75,6 @@ class PEdElm
 class XPInEdit : public TXPGrEl //    {       Main object-EDITOR of the expression    }
     {
     friend class EdBigChar;
-    static QString ToUnicode( const QString &Text  );
     int m_CharHeight[4];
     int m_TopChar[4];
     int m_SpaceChar[4];
@@ -87,7 +86,8 @@ class XPInEdit : public TXPGrEl //    {       Main object-EDITOR of the expressi
     QColor m_OldBrushColor;
     class EdStr *m_pActiveStr;
     public:
-      FORMULAPAINTER_EXPORT static int sm_AddHeight;
+    static QString ToUnicode( const QString &Text  );
+    FORMULAPAINTER_EXPORT static int sm_AddHeight;
     FORMULAPAINTER_EXPORT static XPInEdit* sm_pEditor;
     FORMULAPAINTER_EXPORT static bool sm_IsRetryEdit;
     FORMULAPAINTER_EXPORT static bool sm_EditString;
@@ -253,6 +253,7 @@ inline void PEdElm::clear()
   m_pEdElm = nullptr;
   }
 
+class EdDfIntegr;
 
 class EdMemb : public EdElm //               {       element with list`s indexes             }
   {
@@ -274,6 +275,7 @@ class EdMemb : public EdElm //               {       element with list`s indexes
     bool Protected() { return m_IsProtected; }
     void SetProtected( bool Val ) { m_IsProtected = Val; }
     bool HasIntegral();
+    EdDfIntegr *GetDefIntegral();
     int IntegralDPos();
     int IntegralSignPos();
     bool IdleChar();
@@ -337,6 +339,7 @@ public:
   virtual void PreCalc ( TPoint P, QSize &S, int &A);
   virtual void Draw ( TPoint P );
   bool HasIntegral();
+  EdDfIntegr *GetDefIntegral();
   int IntegralDPos();
   int IntegralSignPos();
   int Count();
@@ -1131,11 +1134,12 @@ class EdLog : public EdElm
 
 class EdDfIntegr : public EdIntegr
   {
+  int m_Shift;
   public:
     EdList *m_pLL;
     EdList *m_pHL;
     EdDfIntegr ( XPInEdit *pOwn ) :  EdIntegr (pOwn), m_pLL ( new EdList (m_pOwner)),
-      m_pHL ( new EdList (m_pOwner)) {}
+      m_pHL ( new EdList (m_pOwner)), m_Shift(-1) {}
     ~EdDfIntegr () {delete m_pLL; delete m_pHL;}
    virtual bool SetCurrent (const TPoint &C, EdList* &pSL, EdMemb* &pCr);
    virtual void PreCalc (TPoint P, QSize &S, int &A );
@@ -1150,6 +1154,7 @@ class EdDfIntegr : public EdIntegr
    virtual void SelectFragment(QRect &FRect);
    virtual void ClearSelection ();
    virtual QByteArray SWrite();
+   void DefineHHeight( int &Shift );
   };
 
 class EdGMult : public EdGSumm
@@ -1193,7 +1198,7 @@ class EdStr : public EdElm
   void SelectFont();
   bool m_NoSelectFont;
   public:
-    static bool sm_PureText;
+    FORMULAPAINTER_EXPORT static bool sm_PureText;
     FORMULAPAINTER_EXPORT static QTextCodec *sm_pCodec;
     EdStr( XPInEdit *pOwn, QByteArray text, bool NoSelectFont = false );
     EdStr( XPInEdit *pOwn, QString text, bool NoSelectFont = false );

@@ -17,7 +17,7 @@
   int iPenWidth = 1;
 #endif
 
-ViewSettings* XPGedit::sm_pViewSettings = nullptr;
+ViewSettings XPGedit::sm_ViewSettings;
 bool XPGedit::sm_ShowMultSignInQWindow = false;
 bool XPGedit::sm_SelectPictures = false;
 void( *XPGedit::sm_ChangeState )( bool ) = nullptr;
@@ -217,6 +217,7 @@ void XPGedit::dropEvent( QDropEvent *event )
   qDebug() << "XPGedit dropEvent: ";
   if( event->source() == this )
     {
+    m_pInEdit->ClearSelection();
     RefreshXPE();
     return;
     }
@@ -339,10 +340,10 @@ void XPGedit::mousePressEvent( QMouseEvent* pEvent )
        QString Path( RichTextDocument::GetTempPath());
        bool bText = XPInEdit::sm_TextFont;
        if( bText ) m_pInEdit->SetMathFont();
-       BaseTask::sm_pEditSets->m_BkgrColor = sm_pViewSettings->m_BkgrColor;
+       BaseTask::sm_pEditSets->m_BkgrColor = sm_ViewSettings.m_BkgrColor;
        bool ShowMultSignOld = TMult::sm_ShowMultSign;
        TMult::sm_ShowMultSign = sm_ShowMultSignInQWindow;
-      XPInEdit InEd( Expr.SWrite(), *BaseTask::sm_pEditSets, *sm_pViewSettings );
+      XPInEdit InEd( Expr.SWrite(), *BaseTask::sm_pEditSets, sm_ViewSettings );
       if( bText ) m_pInEdit->SetTextFont();
       QImage *pImage = InEd.GetImage();
       TMult::sm_ShowMultSign = ShowMultSignOld;
@@ -436,10 +437,10 @@ void XPGedit::Copy(bool ToWord)
   if(ToWord)
     BaseTask::sm_pEditSets->m_BkgrColor = Qt::white;
   else
-    BaseTask::sm_pEditSets->m_BkgrColor = sm_pViewSettings->m_BkgrColor;
+    BaseTask::sm_pEditSets->m_BkgrColor = sm_ViewSettings.m_BkgrColor;
   bool ShowMultSignOld = TMult::sm_ShowMultSign;
   TMult::sm_ShowMultSign = sm_ShowMultSignInQWindow;
-  XPInEdit InEd( m_ExprForCopy.SWrite(), *BaseTask::sm_pEditSets, *sm_pViewSettings );
+  XPInEdit InEd( m_ExprForCopy.SWrite(), *BaseTask::sm_pEditSets, sm_ViewSettings );
   if( bText ) m_pInEdit->SetTextFont();
   QImage *pImage = InEd.GetImage();
   pImage->setText( "F1", Parser::PackUnAscii( m_FormulaForCopy) );

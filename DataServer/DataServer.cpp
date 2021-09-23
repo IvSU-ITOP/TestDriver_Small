@@ -7,12 +7,15 @@
 const int s_FontSize = 16;
 const int s_PowDecrease = 5;
 DataServer *s_pDataServer;
+QByteArray s_MainUrl;
 QSqlDatabase DB;
 QMutex s_Critical;
 
 QFile s_LogFile( QString( s_Temp ) + "Log.txt" );
 QDebug s_Debug( &s_LogFile );
 QMutex s_Mutex;
+QByteArray s_PWD;
+QByteArray s_MainDir;
 
 void MessageOutput( QtMsgType type, const QMessageLogContext &context, const QString &msg )
   {
@@ -50,7 +53,7 @@ void Message( const QString& Msg )
   throw ErrParser( Msg, ParserErr::peNewErr );
   }
 
-DataServer::DataServer() : QTcpServer(), m_ConnectionsCount(0)
+DataServer::DataServer() : QTcpServer(), m_ConnectionsCount(0), m_Port(5060)
   {
   s_pDataServer = this;
   s_CalcOnly = true;
@@ -65,8 +68,8 @@ DataServer::DataServer() : QTcpServer(), m_ConnectionsCount(0)
 
 bool DataServer::StartServer()
   {
-  if( !listen( QHostAddress::Any, 5060 ) ) return false;
-  qDebug() << "Listen!";
+  if( !listen( QHostAddress::Any, m_Port ) ) return false;
+  qDebug() << "Listen! Port:" << m_Port;
   XPInEdit::sm_Message = Message;
   return true;
   }
@@ -97,134 +100,6 @@ void Thread::run()
   exec(); //4
   }
 
-/*
-void ReadyRead(const QByteArray& Args)
-  {
-  DataTask s_Task;
-  QSqlDatabase s_DB( QSqlDatabase::addDatabase( "QODBC" ) );
-  enum Parms { prmUser, prmTopic, prmHid, prmPathFile, prmPassword, prmTaskType, prmDatabase, prmCharset };
-  QByteArrayList Parms( Args.split( '&' ) );
-  try
-    {
-    if( Parms.count() < prmCharset + 1 )
-      {
-      MathExpr Expr = MathExpr( Parser::StrToExpr( Parms[0] ) );
-      if( s_GlobalInvalid || Expr.IsEmpty() ) throw ErrParser( "Syntax Error in: " + Parms[0], ParserErr::peNewErr );
-      int iEqual = 1;
-      for( ; iEqual < Parms.count(); iEqual++ )
-        {
-        MathExpr ExprT = MathExpr( Parser::StrToExpr( Parms[iEqual] ) );
-        if( s_GlobalInvalid || ExprT.IsEmpty() ) throw ErrParser( "Error; Bad task, formula: " + Parms[iEqual], ParserErr::peNewErr );
-        if( Expr.Equal( ExprT ) ) break;
-        }
-//      m_pSocket->write( QByteArray::number( iEqual ) + "\n\n" );
-//      m_pSocket->flush();
-      return;
-      }
-    if( Parms.count() != prmCharset + 1 ) throw ErrParser( "Error; Number of parameters must be 8", ParserErr::peNewErr );
-    RichTextDocument::sm_TempPath = QString( Temp ) + Parms[prmUser];
-    QDir().mkpath( RichTextDocument::sm_TempPath );
-    XPInEdit::sm_pCodec = QTextCodec::codecForName( Parms[prmCharset] );
-    if( XPInEdit::sm_pCodec == nullptr ) throw ErrParser( "Error; Invalid Charset", ParserErr::peNewErr );
-    s_MemorySwitch = SWtask;
-    ExpStore::sm_pExpStore->Init_var();
-    s_Task.SetFileName( Parms[prmPathFile] );
-    s_Task.CalcRead();
-    if( !s_DB.isValid() ) throw ErrParser( "Error; Database was not valid", ParserErr::peNewErr );
-    s_DB.setDatabaseName( Parms[prmDatabase] );
-    s_DB.setUserName( "root" );
-    s_DB.setHostName( "localhost" );
-    s_DB.setPassword( Parms[prmPassword] );
-    if( !s_DB.open() ) throw ErrParser( "Error; Can't open database: " + Parms[prmDatabase] + "; " + Parms[prmPassword], ParserErr::peNewErr );
-    QSqlQuery Query( s_DB );
-    QString Comment;
-    if( !s_Task.m_pComment->m_pFirst.isNull() )
-      Comment = ToLang( s_Task.m_pComment->m_pFirst->m_Content );
-    QString Q( "Insert Into Task( usr_id,tpc_id,h_id,TaskType,Comment,Template) Values(" + Parms[prmUser] + ',' +
-      Parms[prmTopic] + ',' + Parms[prmHid] + ",'" + Parms[prmTaskType] + "','" + Comment + "','" + s_Task.m_Template + "')" );
-    //    m_pSocket->write( Q.toUtf8() + "\n\n" );
-    //    m_pSocket->flush();
-    //    return;
-
-    Query.exec( Q );
-    QString Txt = Query.lastError().text();
-    if( Query.lastError().isValid() )
-      throw ErrParser( "Error; Cant't add Task, message: " + Query.lastError().text() + " query: " + Q, ParserErr::peNewErr );
-    QByteArray idTask = Query.lastInsertId().toByteArray();
-    if( idTask == "0" ) throw ErrParser( "Error; Cant't add Task, query: " + Q, ParserErr::peNewErr );
-    Query.prepare( "Update Task Set QuestionWindow = ? where idTask = " + idTask );
-    ContentCreator CC;
-    Query.addBindValue( CC.GetContent( s_Task.m_pQuestion ) );
-    Query.exec();
-
-    if( Parms[prmTaskType] != "wrkExam" )
-      {
-      Query.exec( "Insert Into HelpTask( idTask,TaskName,Step) Values(" + idTask + ",'" + ToLang( s_Task.m_Name ) + "',0)" );
-      Query.prepare( "Update HelpTask Set HelpText = ? where idHelpTask = " + Query.lastInsertId().toByteArray() );
-      Query.addBindValue( CC.GetContent( s_Task.m_pMethodL ) );
-      Query.exec();
-      char iStep = '1';
-      for( PStepMemb pStep = s_Task.m_pStepsL->m_pFirst; !pStep.isNull(); pStep = pStep->m_pNext, iStep++ )
-        {
-        Query.exec( "Insert Into HelpTask( idTask,TaskName,Step) Values(" + idTask + ",'" + ToLang( pStep->m_Name ) + "'," + iStep + ')' );
-        Query.prepare( "Update HelpTask Set HelpText = ? where idHelpTask = " + Query.lastInsertId().toByteArray() );
-        Query.addBindValue( CC.GetContent( pStep->m_pMethodL ) );
-        Query.exec();
-        }
-      }
-
-    auto AddFormula = [&] ( const QByteArray& Table, const QByteArray& Formula, const QByteArray& Id )
-      {
-      MathExpr Expr = MathExpr( Parser::StrToExpr( Formula ) );
-      if( s_GlobalInvalid || Expr.IsEmpty() ) throw ErrParser( "Error; Bad task, formula: " + Formula, ParserErr::peNewErr );
-      QByteArray EdFormula( Expr.SWrite() );
-      XPInEdit InEd( EdFormula, *BaseTask::sm_pEditSets, CC.ViewSettings() );
-      QByteArray FormulaPic;
-      QBuffer Buffer( &FormulaPic );
-      Buffer.open( QIODevice::WriteOnly );
-      InEd.GetImage()->save( &Buffer, "JPG" );
-      QString LastId = Query.lastInsertId().toString();
-      QByteArray sQuery( "Update " + Table + " Set Formula = '" +
-        EdFormula.replace( '\\', "\\\\\\\\" ).replace( '\n', "\\\\n" ) + "', Image = '" + FormulaPic.toBase64() + "', Answer='" + Expr.WriteE() );
-      Query.exec( sQuery + "' where " + Id + " = " + LastId );
-      return LastId;
-      };
-
-    char iStep = '1';
-    for( PStepMemb pStep = s_Task.m_pStepsL->m_pFirst; !pStep.isNull(); pStep = pStep->m_pNext, iStep++ )
-      {
-      if( Parms[prmTaskType] == "wrkExam" )
-        {
-        if( pStep->m_Mark == 0 && !pStep->m_pNext.isNull() ) continue;
-        Query.exec( "Insert Into HintTask( idTask,Comment,Step,Mark) Values(" + idTask + ",'" +
-          ToLang( pStep->GetComment() ) + "'," + iStep + ',' + QString::number( pStep->m_Mark ) + ')' );
-        }
-      else
-        Query.exec( "Insert Into HintTask( idTask,Comment,Step) Values(" + idTask + ",'" +
-        ToLang( pStep->GetComment() ) + "'," + iStep + ')' );
-      QString idHint = AddFormula( "hinttask", pStep->m_pResultE->m_pFirst->m_Content, "idHintTask" );
-      if( Parms[prmTaskType] != "wrkLearn" )
-        {
-        Query.exec( "Insert Into SubHint( idHintTask) Values(" + idHint + ')' );
-        AddFormula( "SubHint", pStep->m_pF1->m_pFirst->m_Content, "idSubHint" );
-        Query.exec( "Insert Into SubHint( idHintTask) Values(" + idHint + ')' );
-        AddFormula( "SubHint", pStep->m_pF2->m_pFirst->m_Content, "idSubHint" );
-        Query.exec( "Insert Into SubHint( idHintTask) Values(" + idHint + ')' );
-        AddFormula( "SubHint", pStep->m_pF3->m_pFirst->m_Content, "idSubHint" );
-        }
-      }
-//    m_pSocket->write( idTask + "\n\n" );
-//    m_pSocket->flush();
-    return;
-    }
-  catch( ErrParser& ErrMsg )
-    {
-    qDebug() << "!" + ErrMsg.Message().toUtf8();
-//    m_pSocket->flush();
-    return;
-    }
-  }
-  */
   void Thread::ReadyRead()
   {
   QByteArrayList Parms( m_pSocket->readAll().split( '&' ) );
@@ -234,76 +109,221 @@ void ReadyRead(const QByteArray& Args)
   qDebug() << "QMYSQL Added";
   s_MemorySwitch = SWtask;
   ExpStore::sm_pExpStore->Clear();
+  QByteArray Ext;
   try
     {
+    uint iHiperRef = 0;
     if( !DB.isValid() ) throw ErrParser( "Error in: QMYSQL", ParserErr::peNewErr );
-    if( Parms.count() < prmCharset + 1 )
+    if(Parms.count() < 9 && Parms.count() != 2 && Parms.count() != 4)
       {
-      DataTask Task;
-      QByteArray Formulas;
-      for( int i = 0; i < Parms.count(); i++ )
+      QByteArray sTskId;
+      QByteArray Task;
+      QByteArray TaskName;
+      QByteArray Ref = Parms[0];
+      for(; Parms.count() < 9; Parms.append(""));
+      Parms[prmTaskType] = "wrkTrain";
+      Parms[prmDatabase] = "testingdriver";
+      if(Parms.count() == 1)
         {
-        if( i > 0 ) Formulas += "; ";
-        Formulas += Parms[i];
-        }
-      qDebug() << "Start to compare" << m_SocketDescriptor << " Compared formulas" << Formulas << " Connections Count : "
-        << ++s_pDataServer->m_ConnectionsCount;
-      TStr::sm_Server = true;
-      MathExpr Expr = MathExpr( Parser::StrToExpr( Parms[0] ) );
-      TStr::sm_Server = false;
-      if( s_GlobalInvalid || Expr.IsEmpty() ) throw ErrParser( "Syntax Error in: " + Parms[0], ParserErr::peNewErr );
-#ifdef DEBUG_TASK
-      qDebug() << "Contents " << CastPtr( TExpr, Expr )->m_Contents;
-#endif
-      int iEqual = 1;
-      for( ; iEqual < Parms.count(); iEqual++ )
-        {
-        QByteArray  Parm(Parms[iEqual]), Formula;
-        TStr::sm_Server = true;
-        for( int iStartPack = Parm.indexOf("##"); iStartPack != -1; iStartPack = Parm.indexOf("##") )
+        Parms[prmPassword] = s_PWD;
+        iHiperRef = 1;
+        if(Ref.left(9) != "GET /Task") return;
+        int iSpace = Ref.indexOf(" ", 9);
+        if(iSpace == -1) return;
+        sTskId = Ref.mid(10, iSpace - 10);
+        int iTskId = sTskId.toInt();
+        if(iTskId <= 0) return;
+        DB.setDatabaseName( "pictures" );
+        DB.setUserName( "root" );
+        DB.setHostName( "localhost" );
+        DB.setPassword( s_PWD );
+        if( !DB.open() )
+          throw ErrParser( "Error; Can't open database: pictures", ParserErr::peNewErr );
+        QSqlQuery Query( DB );
+        QString Q( "Select Type, Formula, Name From pictures Where Id=" + sTskId );
+        Query.exec( Q );
+        if(Query.size() <= 0) return;
+        Query.next();
+        if(Query.value( 0 ).toByteArray() != "Task") return;
+        QByteArray BaseTask(Query.value( 1 ).toByteArray());
+        int Offset = 0;
+        for( int iPos = BaseTask.indexOf("#H:"); iPos != -1; iPos = BaseTask.indexOf("#H:", Offset ) )
           {
-          Formula += Parm.left(iStartPack);
-          QByteArray S(TStr::UnpackValue(Parm.mid(iStartPack)));
-          Formula += S;
-          Parm = Parm.mid(iStartPack + S.length() * 4 + 6);
+          Task += BaseTask.mid(Offset, iPos - Offset ) + QByteArray::fromHex(BaseTask.mid(iPos + 3, 2 ) );
+          Offset = iPos + 5;
           }
-        TStr::sm_Server = false;
-        Formula += Parm;
-        QByteArrayList Formuls(Formula.split( '#' ));
-        int i = 0;
-        for( ; i < Formuls.count(); i++ )
+        Task += BaseTask.mid(Offset);
+        TaskName = Query.value( 2 ).toByteArray();
+        QByteArray MainDir(s_MainDir + "TasksByReference/");
+        QByteArray TskDir =  MainDir + sTskId + '/';
+        Parms[prmPathFile] = TskDir + TaskName;
+        QDir Dir(MainDir);
+        if(!Dir.exists())
           {
-          if( Formuls[i].isEmpty() ) continue;
-          MathExpr ExprT = MathExpr( Parser::StrToExpr( Formuls[i] ) );
-          if( s_GlobalInvalid || ExprT.IsEmpty() ) throw ErrParser( "Error; Bad task, formula: " + Formuls[i], ParserErr::peNewErr );
+          Dir.setPath(s_MainDir);
+          Dir.mkdir("TasksByReference");
+          Dir.setPath(MainDir);
+          }
+        if(!Dir.exists(Parms[prmPathFile]))
+          {
+          Dir.mkdir(sTskId);
+          QFile F(Parms[prmPathFile]);
+          F.open(QIODevice::WriteOnly);
+          F.write(Task);
+          F.close();
+          Q = "Select FileName, Picture From taskpictures Where TaskId=" + sTskId;
+          Query.exec( Q );
+          while( Query.next() )
+            {
+            QByteArray Picture(QByteArray::fromBase64(Query.value( 1 ).toByteArray()));
+            F.setFileName(TskDir + Query.value( 0 ).toByteArray());
+            F.open(QIODevice::WriteOnly);
+            F.write(Picture);
+            F.close();
+            }
+          }
+        DB.close();
+        }
+      else
+        {
+        int iSlash = Ref.lastIndexOf('/');
+        if(iSlash == -1) return;
+        int iPrevSlash = Ref.lastIndexOf('/', iSlash - 1);
+        if(iPrevSlash == -1) return;
+        QByteArray P, PP(Parms[1]);
+        for(int i = PP.length() - 1; i >= 0; P += PP[i--] );
+        Parms[prmPassword] = P;
+        Parms[prmPathFile] = Parms[2] + Ref;
+        QFile F(Parms[prmPathFile]);
+        if( !F.open(QIODevice::ReadOnly) ) return;
+        Task = F.readAll();
+        F.close();
+        int iTask = Task.indexOf("TASK");
+        if(iTask == -1) return;
+        TaskName = Ref.mid(iSlash + 1);
+        sTskId = Ref.mid(iPrevSlash + 1, iSlash - iPrevSlash - 1);
+        iHiperRef = 2;
+        }
+      DB.setDatabaseName( Parms[prmDatabase] );
+      DB.setUserName( "root" );
+      DB.setHostName( "localhost" );
+      DB.setPassword( Parms[prmPassword] );
+      if( !DB.open() ) throw ErrParser( "Error; Can't open database: pictures", ParserErr::peNewErr );
+      QByteArray Q = "Select usr_id From user Where usr_Id_Card='Default Id Card'";
+      QSqlQuery TDQuery( DB );
+      TDQuery.exec( Q );
+      TDQuery.next();
+      Parms[prmUser] = TDQuery.value( 0 ).toByteArray();
+      Q = "Select Test_id From tests Where test_name='TestsByReference'";
+      QByteArray TestId;
+      TDQuery.exec( Q );
+      if(TDQuery.next())
+        TestId = TDQuery.value( 0 ).toByteArray();
+      else
+        {
+        TDQuery.exec("Insert Into Tests(test_dir, test_name, test_month, test_day) Values('TasksByReference','TestsByReference', 12, 31)" );
+        TestId = TDQuery.lastInsertId().toByteArray();
+        }
+      Q = "Select tpc_id From topic Inner Join chapter On topic.chp_id = chapter.chp_id Where chp_name='" + sTskId + "' and tst_id = " + TestId;
+      TDQuery.exec( Q );
+      if(TDQuery.next())
+        Parms[prmTopic] = TDQuery.value( 0 ).toByteArray();
+      else
+        {
+        Q = "Insert Into chapter(tst_id, chp_name, TestTopicCount) Values(" +
+        TestId + ",'" + sTskId + "',0)";
+        TDQuery.exec( Q );
+        QByteArray ChapterId = TDQuery.lastInsertId().toByteArray();
+        QByteArray TopicName;
+        int iNameStart = Task.indexOf("'") + 1;
+        if(iNameStart != 0 )
+          {
+          int iNameEnd = Task.indexOf("'", iNameStart);
+          TopicName = Task.mid(iNameStart, iNameEnd - iNameStart);
+          }
+        QString  SQ = "Insert Into topic(chp_id, tpc_name, tpc_task_file, tpc_col, FullResult) Values(" +
+            ChapterId + ",'" + ToLang(TopicName) + "','" + TaskName + "',0,10)";
+        TDQuery.exec( SQ );
+        Parms[prmTopic] = TDQuery.lastInsertId().toByteArray();
+        }
+      Parms[prmHid] = "0";
+      Parms[prmURL] = "192.168.1.1";
+      Ext = TaskName.mid(TaskName.indexOf('.') + 1);
+      if(Ext == "heb" || Ext == "HEB")
+        Parms[prmCharset] = "Windows-1255";
+      else
+        Parms[prmCharset] = "Windows-1251";
+      }
+    else
+      if( Parms.count() < prmCharset + 1 )
+        {
+        DataTask Task;
+        QByteArray Formulas;
+        for( int i = 0; i < Parms.count(); i++ )
+          {
+          if( i > 0 ) Formulas += "; ";
+          Formulas += Parms[i];
+          }
+        qDebug() << "Start to compare" << m_SocketDescriptor << " Compared formulas" << Formulas << " Connections Count : "
+          << ++s_pDataServer->m_ConnectionsCount;
+        TStr::sm_Server = true;
+        MathExpr Expr = MathExpr( Parser::StrToExpr( Parms[0] ) );
+        TStr::sm_Server = false;
+        if( s_GlobalInvalid || Expr.IsEmpty() ) throw ErrParser( "Syntax Error in: " + Parms[0], ParserErr::peNewErr );
+#ifdef DEBUG_TASK
+        qDebug() << "Contents " << CastPtr( TExpr, Expr )->m_Contents;
+#endif
+        int iEqual = 1;
+        for( ; iEqual < Parms.count(); iEqual++ )
+          {
+          QByteArray  Parm(Parms[iEqual]), Formula;
+          TStr::sm_Server = true;
+          for( int iStartPack = Parm.indexOf("##"); iStartPack != -1; iStartPack = Parm.indexOf("##") )
+            {
+            Formula += Parm.left(iStartPack);
+            QByteArray S(TStr::UnpackValue(Parm.mid(iStartPack)));
+            Formula += S;
+            Parm = Parm.mid(iStartPack + S.length() * 4 + 6);
+            }
+          TStr::sm_Server = false;
+          Formula += Parm;
+          QByteArrayList Formuls(Formula.split( '#' ));
+          int i = 0;
+          for( ; i < Formuls.count(); i++ )
+            {
+            if( Formuls[i].isEmpty() ) continue;
+            MathExpr ExprT = MathExpr( Parser::StrToExpr( Formuls[i] ) );
+            if( s_GlobalInvalid || ExprT.IsEmpty() ) throw ErrParser( "Error; Bad task, formula: " + Formuls[i], ParserErr::peNewErr );
           //        m_pSocket->write( Expr.WriteE() + ";;" + ExprT.WriteE() + "\n\n" );
           //        m_pSocket->flush();
           //        return;
 #ifdef DEBUG_TASK
-          qDebug() << "Contents expT" << CastPtr( TExpr, ExprT )->m_Contents;
+            qDebug() << "Contents expT" << CastPtr( TExpr, ExprT )->m_Contents;
 #endif
 
-          double Precision = TExpr::sm_Precision;
-          TExpr::sm_Precision = 0.01;
-          bool bResult = Expr.Equal( ExprT );
-          TExpr::sm_Precision = Precision;
-          if( bResult ) break;
+            double Precision = TExpr::sm_Precision;
+            TExpr::sm_Precision = 0.01;
+            bool bResult = Expr.Equal( ExprT );
+            TExpr::sm_Precision = Precision;
+            if( bResult ) break;
+            }
+            if( i < Formuls.count() ) break;
           }
-          if( i < Formuls.count() ) break;
-        }
 #ifdef DEBUG_TASK
-      qDebug() << "Soket " << m_SocketDescriptor << " Count " << Parms.count() << " Equal " << iEqual;
+        qDebug() << "Soket " << m_SocketDescriptor << " Count " << Parms.count() << " Equal " << iEqual;
 #endif
-      m_pSocket->write( QByteArray::number( iEqual ) + "\n\n" );
-      m_pSocket->flush();
-      return;
-      }
+        m_pSocket->write( QByteArray::number( iEqual ) + "\n\n" );
+        m_pSocket->flush();
+        return;
+        }
     if( !DB.isValid() ) DB = QSqlDatabase::addDatabase( "QMYSQL" );
     qDebug() << "QMYSQL Added";
     DB.setDatabaseName( Parms[prmDatabase] );
     DB.setUserName( "root" );
     DB.setHostName( "localhost" );
     DB.setPassword( Parms[prmPassword] );
+    s_PWD = Parms[prmPassword];
+    s_MainDir = Parms[prmPathFile].left(Parms[prmPathFile].indexOf("TestingDriverMy") + 16);
 //    DB.setPassword( "Jozefa,Niedzw." );
     if( !DB.open() ) throw ErrParser( "Error; Can't open database: " + Parms[prmDatabase] + "; " + Parms[prmPassword], ParserErr::peNewErr );
     QSqlQuery Query( DB );
@@ -494,9 +514,10 @@ void ReadyRead(const QByteArray& Args)
               bFirstStep = true;
               continue;
               }
-            Q = "Insert Into HintTask( idTask,Comment,Template,Step,Mark,NoHint) Values(" + idTask + ",'" +
+            Q = "Insert Into HintTask( idTask,Comment,Template,Step,Mark,NoHint,HeightEditorWindow) Values(" + idTask + ",'" +
               ToLang( pStep->GetComment() ) + "','" + Task.GetTemplate( iStep - '0' ) +
-              "'," + iStep + ',' + QString::number( pStep->m_Mark ) + ',' + ('0' + pStep->m_ShowParms.m_NoHint) + ')';
+              "'," + iStep + ',' + QString::number( pStep->m_Mark ) + ',' + ('0' + pStep->m_ShowParms.m_NoHint) +
+              ',' + QString::number( pStep->m_ShowParms.m_HeightEditorWindow ) + ')';
             if (!Query.exec(Q))
               throw ErrParser("Error; Cant't add HintTask, query: " + Q, ParserErr::peNewErr);
             if (!pStep->m_pAnswerPrompt->m_pFirst.isNull())
@@ -510,8 +531,9 @@ void ReadyRead(const QByteArray& Args)
             }
           else
             {
-            Q = "Insert Into HintTask( idTask,Comment,Template,Step,Track) Values(" + idTask + ",'" +
-              ToLang(pStep->GetComment()) + "','" + Task.GetTemplate(iStep - '0') + "'," + iStep + ',' + TrackId + ')';
+            Q = "Insert Into HintTask( idTask,Comment,Template,Step,Track, HeightEditorWindow) Values(" + idTask + ",'" +
+              ToLang(pStep->GetComment()) + "','" + Task.GetTemplate(iStep - '0') + "'," + iStep + ',' + TrackId +
+                ',' + QString::number( pStep->m_ShowParms.m_HeightEditorWindow ) + ')';
             if (!Query.exec(Q))
               throw ErrParser("Error; Cant't add HintTask, query: " + Q, ParserErr::peNewErr);
             }
@@ -541,18 +563,32 @@ void ReadyRead(const QByteArray& Args)
         if( TaskType == "wrkExam" ) break;
         }
       }
-    m_pSocket->write( FirstTask + "\n\n" );
-    m_pSocket->flush();
-    if( TaskType == "wrkExam" )
+    if( iHiperRef != 1)
       {
-      QByteArray Q( "Insert Into BusyTopic( tpc_id, idTask, RndValues ) Values(" + Parms[prmTopic] + ',' + FirstTask + ",'" + Task.GetBusy() + "')" );
-      Query.exec( Q );
+      m_pSocket->write( FirstTask + "\n\n" );
+      m_pSocket->flush();
+      if( TaskType == "wrkExam" )
+        {
+        QByteArray Q( "Insert Into BusyTopic( tpc_id, idTask, RndValues ) Values(" + Parms[prmTopic] + ',' + FirstTask + ",'" + Task.GetBusy() + "')" );
+        Query.exec( Q );
+        }
+      }
+    else
+      {
+      QByteArray Html = "<html><head><script>function Initiate(){window.location.href='" + s_MainUrl;
+      Html += "/WebTestManager/StartTest.php?FirstTask=" + FirstTask + "&ext=" + Ext.toLower() + "';}";
+      Html += "</script></head><body onload='Initiate()'></body></html>\r\n\r\n\r\n";
+      m_pSocket->write( "HTTP/1.1 200 OK\r\nContent-Length: " +
+        QByteArray::number(Html.length()) + "\r\nContent-Type: text/html\r\n\r\n");
+      m_pSocket->write(Html);
+      m_pSocket->flush();
       }
     }
   catch( ErrParser& ErrMsg )
     {
-    qCritical() << ErrMsg.Message();
-    m_pSocket->write( '#' + ToLang(ErrMsg.Message()).toUtf8() + "\n\n" );
+    m_pSocket->write( "HTTP/1.1 200 OK\r\n\r\n" );
+//    qCritical() << ErrMsg.Message();
+//    m_pSocket->write( '#' + ToLang(ErrMsg.Message()).toUtf8() + "\n\n" );
     m_pSocket->flush(); 
     TStr::sm_Server = false;
     }
@@ -613,3 +649,14 @@ QByteArray ContentCreator::GetContent( PDescrList List )
   return Result;
 //  return Result += Content.mid( iStart );
   }
+
+RefServer::RefServer() : DataServer()
+  {
+  m_Port = 26491;
+  }
+/*
+void RefServer::incomingConnection( qintptr socketDescriptor )
+  {
+
+  }
+*/

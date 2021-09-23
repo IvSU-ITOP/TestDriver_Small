@@ -26,7 +26,7 @@ class RichTextWindow : public QTextEdit, public RichText
   {
   Q_OBJECT
   ViewSettings m_ViewSettings;
-  ViewSettings *m_pOldViewSettings;
+  ViewSettings m_OldViewSettings;
   virtual void closeEvent( QCloseEvent *event );
   void showEvent( QShowEvent * );
   virtual void contextMenuEvent( QContextMenuEvent *event );
@@ -252,6 +252,7 @@ class StepEdit : public QDialog
   QPushButton *m_pBtnEdCommentF2;
   QPushButton *m_pBtnEdCommentF3;
   MarkEd *m_pMarkEdit;
+  QDoubleSpinBox *m_pHeightEditorWindow;
   public:
     StepEdit( HelpButton *pButton );
     public slots:

@@ -130,6 +130,7 @@ bool TaskFile::LoadNameFromTaskFile( const QByteArray& LKeyWord, QByteArray& Nam
   bool TaskFile::LoadRValueFromTaskFile( const QByteArray& LKeyWord, double& Value )
     {
     reset();
+    SkipLinesUntilSelectedTrack( LKeyWord );
     do
       {
       QByteArray line( readLine() );
@@ -901,6 +902,7 @@ void TXPStep::LoadFromTaskFile( const QByteArray& StepID )
   m_ShowParms.m_OnExactCompare = File.LoadBooleanFromTaskFile("EXACTCOMPARE" + StepID, m_Task.m_ExactCompare);
   m_Task.m_ExactCompare = m_ShowParms.m_OnExactCompare;
   m_ShowParms.m_NoHint = File.LoadBooleanFromTaskFile("NOHINT" + StepID, m_ShowParms.m_NoHint);
+  File.LoadRValueFromTaskFile( "EDITORHEIGHT" + StepID + "=", m_ShowParms.m_HeightEditorWindow );
   }
 
 QByteArray TXPStep::GetComment()
@@ -1131,6 +1133,7 @@ void TXPStep::ShowParms::Save( QByteStream & Stream, QByteArray& Id )
     Stream << "EXACTCOMPARE" << Id << "\r\n";
   if (m_NoHint)
     Stream << "NOHINT" << Id << "\r\n";
+  Stream << "EDITORHEIGHT" << Id << "=" << m_HeightEditorWindow << "\r\n";
   }
 
 void TXPStep::ResetMark( int NewMark )
@@ -2438,7 +2441,11 @@ QByteStream& QByteAStream::operator << ( const QByteArray& Arg )
 void QByteAStream::AppText( const QByteArray& Text )
   {
   if(Text == nullptr)
-    throw ErrParser( "Null Text ptr", ParserErr::peNewErr );
+    {
+//    throw ErrParser( "Null Text ptr", ParserErr::peNewErr );
+    QMessageBox::critical(nullptr, "Error", "Null Text ptr");
+    return;
+    }
   int iEndPos = Text.indexOf( "\r\n" );
   if( iEndPos == -1 )
     {
