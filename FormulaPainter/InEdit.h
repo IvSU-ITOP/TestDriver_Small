@@ -388,8 +388,7 @@ class EdBaseChar : public EdElm
     IndReg m_ind;
     QColor m_Color;
     bool m_EditKeyPress;
-    EdBaseChar( uchar C, IndReg ind, QColor Color, XPInEdit *pOwn ) : EdElm( pOwn), m_ch( C ), m_ind( ind ),
-      m_Color( Color ), m_Qch( ToUnicode( C ) ), m_EditKeyPress(TXPGrEl::sm_EditKeyPress) {}
+    EdBaseChar( uchar C, IndReg ind, QColor Color, XPInEdit *pOwn );
     void ResetChar( uchar C );
     uchar c() { return m_ch; };
     QChar C() { return m_Qch; }
@@ -1198,7 +1197,7 @@ class EdStr : public EdElm
   void SelectFont();
   bool m_NoSelectFont;
   public:
-    FORMULAPAINTER_EXPORT static bool sm_PureText;
+    static bool sm_PureText;
     FORMULAPAINTER_EXPORT static QTextCodec *sm_pCodec;
     EdStr( XPInEdit *pOwn, QByteArray text, bool NoSelectFont = false );
     EdStr( XPInEdit *pOwn, QString text, bool NoSelectFont = false );
