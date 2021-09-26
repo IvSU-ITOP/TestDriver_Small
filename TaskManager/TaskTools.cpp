@@ -645,7 +645,9 @@ void ExprPanel::mousePressEvent( QMouseEvent* pE)
   MathExpr Expr = MathExpr( Parser::StrToExpr( *m_pExpr ) );
   if( s_GlobalInvalid || Expr.IsEmpty() ) return;
   QString Path( RichTextDocument::GetTempPath() );
-  XPInEdit InEd( Expr.SWrite(), *BaseTask::sm_pEditSets, 
+  QByteArray Formula(Expr.SWrite());
+  if(Formula.contains("comment") && Formula[9] == (char) msBaseLang) return;
+  XPInEdit InEd( Formula, *BaseTask::sm_pEditSets,
     ViewSettings( QFont( "Arial", 16 ), QFont( "Arial", 16 ), QFont( "Arial", 16 ), "white" ) );
   QImage *pImage = InEd.GetImage();
   pImage->setText( "F1", Parser::PackUnAscii( *m_pExpr ) );
@@ -1214,15 +1216,17 @@ void NationalTextButton::mouseReleaseEvent(QMouseEvent *e)
   {
   QByteArray Text(*m_pExprPanel->m_pExpr);
   if (Text.length() > 0 && Text[0] == '"')
+    {
     Text = Text.mid(1, Text.length() - 2);
+    if(!Text.isEmpty() && Text[0] == (char) msBaseLang)
+      Text = Text.mid(1);
+    }
   else
     Text.clear();
   NationalTextEditor TE(ToLang(Text.replace(msPrime, '"').replace(msDoublePrime, '{' ).replace(msTriplePrime,'}' ).replace(msCharNewLine, '\n')) );
   if (TE.exec() == QDialog::Rejected) return;
   *m_pExprPanel->m_pExpr = TE.GetText();
-  EdStr::sm_PureText = true;
   m_pExprPanel->CreateContent();
-  EdStr::sm_PureText = false;
   }
 
 NationalTextEditor::NationalTextEditor(const QString& Text) : QDialog(nullptr, Qt::WindowSystemMenuHint), m_TextEditor(new QTextEdit)
@@ -1265,6 +1269,7 @@ NationalTextEditor::NationalTextEditor(const QString& Text) : QDialog(nullptr, Q
 QByteArray NationalTextEditor::GetText() 
   { 
   QByteArray Result(1, '"');
+  Result += msBaseLang;
   if (s_Task.GetLanguage() == lngHebrew)
     {
     QString H = m_TextEditor->toHtml();

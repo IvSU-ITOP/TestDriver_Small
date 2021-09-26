@@ -320,7 +320,8 @@ void XPGedit::mousePressEvent( QMouseEvent* pEvent )
     }
   if(m_pInEdit->Selected())
     {
-    QByteArray Formula( m_pInEdit->Write() );
+    QByteArray Formula;
+    Formula = m_pInEdit->Write();
     if( Formula.isEmpty() ) return;
     if( sm_SelectPictures )
       {
@@ -343,13 +344,20 @@ void XPGedit::mousePressEvent( QMouseEvent* pEvent )
        BaseTask::sm_pEditSets->m_BkgrColor = sm_ViewSettings.m_BkgrColor;
        bool ShowMultSignOld = TMult::sm_ShowMultSign;
        TMult::sm_ShowMultSign = sm_ShowMultSignInQWindow;
+       try {
       XPInEdit InEd( Expr.SWrite(), *BaseTask::sm_pEditSets, sm_ViewSettings );
       if( bText ) m_pInEdit->SetTextFont();
       QImage *pImage = InEd.GetImage();
       TMult::sm_ShowMultSign = ShowMultSignOld;
       pImage->setText( "F1", Parser::PackUnAscii( Formula ) );
       pImage->save( Path );
+       }
 //      pImage->save("C:/ProgramData/Halomda/Formula.jpg");
+       catch( ErrParser& ErrMsg )
+         {
+         QMessageBox::critical( nullptr, "Error", X_Str( ErrMsg.Name(), ErrMsg.Message() ) );
+         return;
+         }
       QString Html = "<img src=\"" + Path + "\" style=\"vertical-align:middle;\" />";
       QDrag *pDrag = new QDrag( this );
       pDrag->setPixmap( QPixmap( ":/Resources/Drag.png" ) );

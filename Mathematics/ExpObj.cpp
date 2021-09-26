@@ -6251,6 +6251,11 @@ QByteArray TFunc::SWrite() const
     {
     MathExpr T = m_Arg.Clone();
     TLexp *pTmp = CastPtr( TLexp, T );
+    if(pTmp == nullptr)
+      {
+      s_LastError = "Invalid function argument";
+      throw  ErrParser(X_Str("MBadArgument", "Invalid function argument!"), peNewErr);
+      }
     QByteArray Result( "\\func{" + pTmp->m_pFirst->m_Memb->SWrite() + "}{" );
     pTmp->DeleteMemb( pTmp->m_pFirst );
     return Result + pTmp->SWrite() + '}';

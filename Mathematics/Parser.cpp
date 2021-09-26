@@ -334,7 +334,10 @@ QByteArray Parser::PreProcessor( const QByteArray& Source, const QByteArray& ASe
 
 //  static SetOfChars SetChar( ")*+/(" );
   static SetOfChars SetChar( ")(" );
-  static SetOfChars SetChar1( SetOfChars( "*+/(,;=" ) + SetOfChars { 255 } );
+  static SetOfChars SetChar1( SetOfChars( "*+/(,;=" ) +
+    SetOfChars { 255, msMinequal, msNotequal, msMaxequal, msApprox, msRound, msAround, msParallel,
+    msIdentity, msCross, msAddition, msArrowToRight, msDoubleArrow, msIntersection, msStrictInclusion,
+    msUnstrictInclusion, msArrowsUp, msArrowsUpDown, msNotBelong, msUnion} );
   static SetOfChars SetChar2( SetOfChars( "A..Za..z$" ) + SetOfChars { 184, '.', '.', 189, 192, 200, 201, 206, 208, 209, 230, 231, 232 } );
   static SetOfChars SetChar3(SetOfChars("A..Za..z") + SetOfChars{ msBigAlpha, '.', '.', msOmega, 221, 222, 230, 231, 232 });
 //  static SetOfChars SetChar3( SetOfChars( "A..Za..z" ) + SetOfChars { 184, '.', '.', 189, 192, 200, 201, 206, 208, 209, 221, 222, 230, 231, 232 } );

@@ -23,12 +23,13 @@ FORMULAPAINTER_EXPORT QByteArray Encode( const QByteArray& Formula );
 bool SplitOperSign( uchar SignChar );
 
 const unsigned char
-  msIdle = 16,
-  msSystem = 123,
-  msCharNewLine = 254,
-	msPlus = 43,
-	msMinus = 45,
-  msDivi = 58,
+msBaseLang = 15,
+msIdle = 16,
+msSystem = 123,
+msCharNewLine = 254,
+msPlus = 43,
+msMinus = 45,
+msDivi = 58,
 msMetaSign = '@',
 msDegree = 221,
 msMinute = 222,

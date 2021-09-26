@@ -150,6 +150,8 @@ void CreateRecode()
   Recode[msLongMinus] = '-';
   Recode[msLongPlus] = '+';
   Recode[msIdle] = 0x2021;
+  Recode[msBrackLeftLower] = '{';
+  Recode[msBrackRightLower] = '}';
   }
 
 MapColor::MapColor()
@@ -177,8 +179,8 @@ MapColor::MapColor()
 QChar ToUnicode(uchar Smb)
   {
   if( XPInEdit::sm_TextFont || Smb < 127 && Smb != msMultSign2 && Smb != msMultSign1 && Smb != msIdle) return Smb;
-  if (XPInEdit::sm_EditKeyPress)
-    return EdBaseChar::sm_pCodec->toUnicode( (const char*) &Smb, 1)[0];
+//  if (XPInEdit::sm_EditKeyPress)
+//    return EdBaseChar::sm_pCodec->toUnicode( (const char*) &Smb, 1)[0];
   return Recode[Smb];
   }
 
@@ -1095,13 +1097,14 @@ EdAction XPInEdit::EditAction( U_A_T Uact  )
         m_pL->m_pSub_L->Append_Before(new EdChar(Text[i], this));
         }
       sm_EditKeyPress = false;
-
+      }
       */
-      for (auto pChar = sm_Text.begin(); pChar != sm_Text.end(); pChar++)
+      sm_Language == lngEnglish;
+      QByteArray Text(1, '\"');
+      Text += sm_Text + '\"';
+      for (auto pChar = Text.begin(); pChar != Text.end(); pChar++)
         {
-        EdElm::sm_EditKeyPress = true;
         m_pL->m_pSub_L->Append_Before(new EdChar(*pChar, this));
-        EdElm::sm_EditKeyPress = false;
         }
       return edRefresh;
       }
@@ -2206,7 +2209,8 @@ QByteArray EdList::Write()
           IsText = IsText || (C < 0 && dynamic_cast<EdChar*>(pIndex->m_pMember.data())->m_EditKeyPress);
     W += pIndex->m_pMember->Write();
     }
-  if (IsText) return '"' + W + '"';
+  if (IsText && W[0] != '"')
+    return '"' + W + '"';
   return W;
   }
 
@@ -2438,6 +2442,7 @@ EdMemb* EdList::Append_Before( const PEdElm& pE )
     return Result;
     }
   if (m_pMother != nullptr && m_pLast != nullptr && m_pMother->m_pMember->m_pParent != nullptr ) return m_pMother->m_pMember->m_pParent->ReplaceParentMemb(this, pE);
+  /*
   if( !sm_EditKeyPress && pC != nullptr && IsHebChar( pC->c() ) )
     if( m_pFirst == nullptr )
       {
@@ -2456,6 +2461,7 @@ EdMemb* EdList::Append_Before( const PEdElm& pE )
         return m_pLast;
         }
       }
+*/
   if( Result == nullptr )
     Result = new EdMemb( pE, m_pLast, nullptr, this );
   if( m_pFirst == nullptr)
@@ -2690,6 +2696,19 @@ void EdMatrixBody::MemberDelete(EdMemb *pM)
     return;
     }
   EdList::MemberDelete(pM);
+  }
+
+EdBaseChar::EdBaseChar( uchar C, IndReg ind, QColor Color, XPInEdit *pOwn ) :
+  EdElm( pOwn), m_ind( ind ), m_Color( Color ), m_EditKeyPress(TXPGrEl::sm_EditKeyPress)
+  {
+  if(m_EditKeyPress)
+    if( C == '{')
+      C = msBrackLeftLower;
+    else
+      if( C == '}')
+        C = msBrackRightLower;
+  m_ch = C;
+  m_Qch = ToUnicode( C );
   }
 
 void EdBaseChar::ResetChar( uchar C )
@@ -8124,19 +8143,14 @@ QByteArray EdSubst::SWrite()
 
 EdStr::EdStr(XPInEdit *pOwn, QByteArray Text, bool NoSelectFont) : EdElm(pOwn), m_Value(Text), m_SelStart(-1), m_SelEnd(-1), m_NoSelectFont(NoSelectFont)
   {
-  if(!sm_PureText)
+  if(Text[0] != (char) msBaseLang)
     {
     QString UString;
-    bool WasOperation = false;
-    for( int iChar = 0; iChar < Text.length(); UString += ::ToUnicode( Text[iChar++] ) )
-      WasOperation = WasOperation || Recode.contains(Text[iChar]);
-    if(WasOperation)
-      {
-      m_SValue = UString.split('\n');
-      return;
-      }
+    for( int iChar = 0; iChar < Text.length(); UString += ::ToUnicode( Text[iChar++] ) );
+    m_SValue = UString.split('\n');
+    return;
     }
-  m_SValue = ToLang(Text.replace(msPrime, '"').replace(msDoublePrime, '{').replace(msTriplePrime, '}').replace(msCharNewLine, '\n')).split('\n');
+  m_SValue = ToLang(Text.mid(1).replace(msPrime, '"').replace(msDoublePrime, '{').replace(msTriplePrime, '}').replace(msCharNewLine, '\n')).split('\n');
   }
 
 EdStr::EdStr(XPInEdit *pOwn, QString text, bool NoSelectFont) : EdElm(pOwn), m_SelStart(-1),m_SelEnd(-1), m_NoSelectFont(NoSelectFont)
@@ -8286,7 +8300,8 @@ QByteArray EdStr::Write()
 
 QByteArray EdStr::SWrite()
     {
-    return "\\comment{" + m_Value + '}';
+    QByteArray Text(m_Value);
+    return "\\comment{" + Text.replace('{', msBrackLeftUpper ).replace('}', msBrackRightUpper ) + '}';
     }
 
 void EdStr::AddChar(char c)
@@ -9027,7 +9042,7 @@ bool EdTable::MoveToNext( EdList*& L )
     {
     for( ; iNewCol < m_ColCount && m_FrozenCells[iNewRow][iNewCol] && m_GridState != TGRUnvisible; iNewCol++ );
     if( iNewCol < m_ColCount ) break;
-    if( XPInEdit::sm_Language == 0 )
+    if( XPInEdit::sm_Language == lngHebrew )
       iNewRow--;
     else
       iNewRow++;
@@ -9049,7 +9064,7 @@ bool EdTable::MoveToPrev( EdList*& L )
     {
     for( ; iNewCol >= 0 && m_FrozenCells[iNewRow][iNewCol] && m_GridState != TGRUnvisible; iNewCol-- );
     if( iNewCol >= 0 ) break;
-    if( XPInEdit::sm_Language == 0 )
+    if( XPInEdit::sm_Language == lngHebrew )
       iNewRow++;
     else
       iNewRow--;
@@ -9348,7 +9363,7 @@ void EdTable::Freeze()
   m_Row = 0;
   while( m_Row < m_RowCount )
     {
-    if( XPInEdit::sm_Language == 0 )
+    if( XPInEdit::sm_Language == lngHebrew )
       {
       m_Col = m_ColCount - 1;
       while( m_Col >= 0 )
