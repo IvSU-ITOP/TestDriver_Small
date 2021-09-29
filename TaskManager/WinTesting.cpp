@@ -777,12 +777,10 @@ void WinTesting::slotChangeLanguage( TLanguages Lang )
   LangActions[Lang]->setEnabled( false );
   LangActions[Lang]->setChecked( true );
   XPInEdit::sm_Language = Lang;
-#ifndef DEBUG_TASK
   if( Lang == lngHebrew )
     s_MainTask.SetFileName( ":/Resources/Main/MAIN.heb" );
   else
     s_MainTask.SetFileName( ":/Resources/Main/main.tsk" );
-#endif
   EdStr::sm_pCodec = QTextCodec::codecForName( Lang == lngHebrew ? "Windows-1255" : "Windows-1251" );
   m_pEditTask->setText( X_Str( "ActionEditTask", "Edit Task File" ) );
   m_pOpenTask->setText( X_Str( "ActionOpenTask", "Open Task File" ) );

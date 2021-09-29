@@ -1281,7 +1281,7 @@ void BaseTask::SetFileName( const QString& FName )
   XPInEdit::sm_BasePath = FName.left(FName.lastIndexOf('/'));
   m_OutTemplate = false;
   m_Template = "";
-  if( m_pFile->isOpen() ) m_pFile->close();
+  if( m_pFile->isOpen() ) m_pFile->close();  
   m_pFile->setFileName( FName );
   m_pFile->open( QIODevice::ReadOnly );
   if( !m_pFile->isOpen() )
