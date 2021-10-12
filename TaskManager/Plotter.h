@@ -20,7 +20,6 @@ QT_END_NAMESPACE
 class Plotter : public QMainWindow
   {
   Q_OBJECT
-  private:
     Ui::Plotter *m_pUi;
     QLineSeries *m_pLinesCursor=new QLineSeries;
     QScatterSeries *m_pSeriesBreakPoints=new QScatterSeries;
@@ -46,6 +45,7 @@ class Plotter : public QMainWindow
     bool m_NamesAxisIsHidden=true;
     bool m_GridAxisIsHidden=true;
     bool m_ChartLegendIsHidden=true;
+    QString m_YLabel;
 
     void ReCalculateAndUpdate();
     void UpdateGraph();

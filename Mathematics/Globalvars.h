@@ -42,6 +42,8 @@ const int
   extern bool s_bSuppressErrorMsg;
   extern char s_DecimalSeparator;
   MATHEMATICS_EXPORT extern bool s_GlobalInvalid;
+  MATHEMATICS_EXPORT extern bool s_InvalidExpand;
+
   MATHEMATICS_EXPORT extern bool s_CheckError;
   MATHEMATICS_EXPORT extern memory_mode s_MemorySwitch;
   extern bool s_NoLogReduce;

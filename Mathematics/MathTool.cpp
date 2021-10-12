@@ -826,7 +826,7 @@ MathExpr Expand( MathExpr Exi0 )
     {
     if( Exi.Equal( Exi0 ) )
       {
-      s_GlobalInvalid = true;
+      s_InvalidExpand = true;
       return Exi0;
       }
     return Exi;
@@ -851,7 +851,7 @@ MathExpr Expand( MathExpr Exi0 )
 
   if( Exi.Constan( Rconst ) )
     {
-    s_GlobalInvalid = Exi.Eq( Exi0 );
+    s_InvalidExpand = Exi.Eq( Exi0 );
     return Exi;
     }
 
@@ -859,19 +859,19 @@ MathExpr Expand( MathExpr Exi0 )
     {
     if( P.Summa( Op11, Op12 ) )
       {
-      s_GlobalInvalid = false;
+      s_InvalidExpand = false;
       return (-Op11 - Op12);
       }
 
     if( P.Subtr( Op11, Op12 ) )
       {
-      s_GlobalInvalid = false;
+      s_InvalidExpand = false;
       return (Op12 - Op11);
       }
 
     if( P.Unarminus( Op11 ) )
       {
-      s_GlobalInvalid = false;
+      s_InvalidExpand = false;
       return Op11;
       }
     return -Expand( P );
@@ -921,17 +921,17 @@ MathExpr Expand( MathExpr Exi0 )
     {
     int Flag1 = 0, Flag2 = 0;
     MathExpr Opr1 = Expand( Arg1 );
-    if( !s_GlobalInvalid || !Opr1.Eq( Arg1 ) )
+    if( !s_InvalidExpand || !Opr1.Eq( Arg1 ) )
       Flag1 = 1;
     MathExpr Opr2 = Expand( Arg2 );
-    if( !s_GlobalInvalid || !Opr2.Equal( Arg2 ) )
+    if( !s_InvalidExpand || !Opr2.Equal( Arg2 ) )
       Flag2 = 1;
     if( ( Flag1 + Flag2 ) == 0 )
       {
-      s_GlobalInvalid = true;
+      s_InvalidExpand = true;
       return Exi;
       }
-    s_GlobalInvalid = false;
+    s_InvalidExpand = false;
     return (Opr1 + Opr2);
     }
 
@@ -939,10 +939,10 @@ MathExpr Expand( MathExpr Exi0 )
     {
     int Flag1 = 0, Flag2 = 0;
     MathExpr Opr1 = Expand( Arg1 );
-    if( !s_GlobalInvalid || !Opr1.Eq( Arg1 ) )
+    if( !s_InvalidExpand || !Opr1.Eq( Arg1 ) )
       Flag1 = 1;
     MathExpr Opr2 = Expand( Arg2 );
-    if( !s_GlobalInvalid || !Opr2.Equal( Arg2 ) )
+    if( !s_InvalidExpand || !Opr2.Equal( Arg2 ) )
       Flag2 = 1;
 
     if( Opr2.Summa( Op21, Op22 ) )
@@ -953,10 +953,10 @@ MathExpr Expand( MathExpr Exi0 )
 
     if( Flag1 + Flag2 == 0 )
       {
-      s_GlobalInvalid = true;
+      s_InvalidExpand = true;
       return Exi;
       }
-    s_GlobalInvalid = false;
+    s_InvalidExpand = false;
     return BreakInfiniteLoop( Opr1 - Opr2 );
     }
 
@@ -966,34 +966,34 @@ MathExpr Expand( MathExpr Exi0 )
     MathExpr Opr2 = Expand( Arg2 );
     if( Opr1.Summa( Op11, Op12 ) )
       {
-      s_GlobalInvalid = false;
+      s_InvalidExpand = false;
       return BreakInfiniteLoop( Op11.Reduce() * Opr2.Reduce() + Op12.Reduce() *  Opr2.Reduce() );
       }
     if( Opr2.Summa( Op21, Op22 ) )
       {
-      s_GlobalInvalid = false;
+      s_InvalidExpand = false;
       return BreakInfiniteLoop( Opr1.Reduce() * Op21.Reduce() + Opr1.Reduce() *  Op22.Reduce() );
       }
     if( Opr1.Subtr( Op11, Op12 ) )
       {
-      s_GlobalInvalid = false;
+      s_InvalidExpand = false;
       return BreakInfiniteLoop( Op11.Reduce() * Opr2.Reduce() - Op12.Reduce() *  Opr2.Reduce() );
       }
     if( Opr2.Subtr( Op21, Op22 ) )
       {
-      s_GlobalInvalid = false;
+      s_InvalidExpand = false;
       return BreakInfiniteLoop( Opr1.Reduce() * Op21.Reduce() - Opr1.Reduce() *  Op22.Reduce() );
       }
 
     uchar BinSign;
     if( Opr1.Binar_( BinSign, Op11, Op12 ) && ( BinSign == msPlusMinus || BinSign == msMinusPlus ) )
       {
-      s_GlobalInvalid = false;
+      s_InvalidExpand = false;
       return BreakInfiniteLoop( new TBinar( BinSign, Op11.Reduce() * Opr2.Reduce(), Op12.Reduce() * Opr2.Reduce() ) );
       }
     if( Opr2.Binar_( BinSign, Op21, Op22 ) && BinSign == msPlusMinus )
       {
-      s_GlobalInvalid = false;
+      s_InvalidExpand = false;
       return BreakInfiniteLoop( new TBinar( BinSign, Op21.Reduce() * Opr1.Reduce(), Op22.Reduce() * Opr1.Reduce() ) );
       }
     return ( Opr1 * Opr2 );
@@ -1056,10 +1056,11 @@ MathExpr Expand( MathExpr Exi0 )
 
   if( Exi.Equal( Exi0 ) )
     {
-    s_GlobalInvalid = true;
+    s_InvalidExpand = true;
     return Exi0;
     }
   s_GlobalInvalid = false;
+  s_InvalidExpand = false;
   return Exi;
   }
 

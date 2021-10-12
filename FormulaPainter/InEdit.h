@@ -6,7 +6,7 @@
 #include "XPSymbol.h"
 #include "YClasses.h"
 #include "formulapainter_global.h"
-#include <qtextcodec.h>
+#include <QTextCodec>
 
 #define ToLang(x) EdStr::sm_pCodec->toUnicode(x)
 #define FromLang(x) EdStr::sm_pCodec->fromUnicode(x)

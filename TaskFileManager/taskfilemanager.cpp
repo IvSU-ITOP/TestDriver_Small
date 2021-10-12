@@ -285,7 +285,8 @@ bool CalcPair::CalcExpress()
   Expression.replace( "@SE(", "@SimplifyEquation(" );
   Expression.replace( "@SF(", "@SimplifyFull(" );
   s_iDogOption = !s_TaskEditorOn;
-  MathExpr VarValue(Parser::PureStrToExpr( Expression ).Perform());
+  MathExpr VarValue(Parser::PureStrToExpr( Expression ));
+  if(!VarValue.IsEmpty()) VarValue = VarValue.Perform();
   if(!RandExpr.IsEmpty()) VarValue = VarValue.SimplifyFull();
   s_iDogOption = 0;
   if( s_GlobalInvalid || VarValue.IsEmpty() && !m_Variable.isEmpty() ) throw ErrParser( "Task corrupted " + m_Expression, ParserErr::peNewErr );
@@ -871,15 +872,23 @@ void TXPStep::LoadFromTaskFile( const QByteArray& StepID )
   LoadSubTaskFromTaskFile( "STEP" + StepID );
   m_pMethodL->LoadFromTaskFile( "METH" + StepID );
   m_pResultE->LoadFromTaskFile( "RESULT" + StepID );
+  if(m_pResultE->m_pFirst == nullptr)
+    throw ErrParser( "Step: " + StepID + " Result true expression not exists!", ParserErr::peNewErr );
   m_pAnswerPrompt->LoadFromTaskFile("PROMPT" + StepID);
   m_pAnswerTemplate->LoadFromTaskFile( "TEMPLATE" + StepID );
   m_pF1->LoadFromTaskFile( "FALSE" + StepID + ".1" );
+  if(m_pF1->m_pFirst == nullptr)
+    throw ErrParser( "Step: " + StepID + " Result expression False1 not exists!", ParserErr::peNewErr );
   m_pFComm1->Assign(m_pF1);
   m_pFComm1->Delete(m_pFComm1->m_pFirst);
   m_pF2->LoadFromTaskFile( "FALSE" + StepID + ".2" );
+  if(m_pF2->m_pFirst == nullptr)
+    throw ErrParser( "Step: " + StepID + " Result expression False2 not exists!", ParserErr::peNewErr );
   m_pFComm2->Assign(m_pF2);
   m_pFComm2->Delete(m_pFComm2->m_pFirst);
   m_pF3->LoadFromTaskFile( "FALSE" + StepID + ".3" );
+  if(m_pF3->m_pFirst == nullptr)
+    throw ErrParser( "Step: " + StepID + " Result expression False3 not exists!", ParserErr::peNewErr );
   m_pFComm3->Assign(m_pF3);
   m_pFComm3->Delete(m_pFComm3->m_pFirst);
   m_pComm->LoadFromTaskFile( "COMM" + StepID );
@@ -1161,14 +1170,31 @@ void TXPStep::Save( QByteStream& Stream, int iId )
   TXDescrList::Save(Stream, m_pAnswerPrompt);
   Stream << "RESULT" << ID << "  ";
   for( PDescrMemb index = m_pResultE->m_pFirst; !index.isNull(); index = index->m_pNext )
-    if( index->m_Kind == tXDexpress ) Stream << "EXPR(" << index->m_Content << ")\r\n";
+    if( index->m_Kind == tXDexpress )
+      {
+      if(m_pResultE->m_pFirst == nullptr)
+        throw ErrParser( "Step: " + ID + " Result expression not exists!", ParserErr::peNewErr );
+      Stream << "EXPR(" << index->m_Content << ")\r\n";
+      }
   if( !m_pAnswerTemplate->m_pFirst.isNull() )
     Stream << "TEMPLATE" << ID << "  EXPR(" << m_pAnswerTemplate->m_pFirst->m_Content << ")\r\n";
-  Stream << "FALSE" << ID << ".1  EXPR(" << m_pF1->m_pFirst->m_Content << ")\r\n";
+  if(m_pF1->m_pFirst == nullptr)
+    throw ErrParser( "Step: " + ID + " Result expression False1 not exists!", ParserErr::peNewErr );
+  QByteArray Content = m_pF1->m_pFirst->m_Content;
+  if(Content.isEmpty()) Content = "Answer";
+  Stream << "FALSE" << ID << ".1  EXPR(" << Content << ")\r\n";
   TXDescrList::Save(Stream, m_pFComm1);
-  Stream << "FALSE" << ID << ".2  EXPR(" << m_pF2->m_pFirst->m_Content << ")\r\n";
+  if(m_pF2->m_pFirst == nullptr)
+    throw ErrParser( "Step: " + ID + " Result expression False2 not exists!", ParserErr::peNewErr );
+  Content = m_pF2->m_pFirst->m_Content;
+  if(Content.isEmpty()) Content = "Answer";
+  Stream << "FALSE" << ID << ".2  EXPR(" << Content << ")\r\n";
   TXDescrList::Save(Stream, m_pFComm2);
-  Stream << "FALSE" << ID << ".3  EXPR(" << m_pF3->m_pFirst->m_Content << ")\r\n";
+  if(m_pF3->m_pFirst == nullptr)
+    throw ErrParser( "Step: " + ID + " Result expression False3 not exists!", ParserErr::peNewErr );
+  Content = m_pF3->m_pFirst->m_Content;
+  if(Content.isEmpty()) Content = "Answer";
+  Stream << "FALSE" << ID << ".3  EXPR(" << Content << ")\r\n";
   TXDescrList::Save(Stream, m_pFComm3);
   Stream << "COMM" << ID << "   '" << GetComment() << "'\r\n";
   }

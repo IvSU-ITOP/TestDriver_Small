@@ -672,7 +672,7 @@ WinTesting::WinTesting() : m_Review(false)
   m_pCreateTask = m_pFile->addAction( QIcon( ":/Resources/NewTask.jpg" ), "&Create Task", this, SLOT( slotCreateTask() ), QKeySequence( "CTRL+N" ) );
   m_pOpenStack = m_pFile->addAction( QIcon( ":/Resources/NewTask.jpg" ), "&Create Task from Stack", this, SLOT( slotOpenStack() ), QKeySequence( "CTRL+M" ) );
   sm_pSaveTaskFile = m_pFile->addAction( QIcon( ":/Resources/filesave.png" ), "&Save Task File", this, SLOT( slotSaveTaskFile() ), QKeySequence( "CTRL+S" ) );
-  m_pWebTask = m_pFile->addAction( QIcon( ":/Resources/WebOpen.png" ), "Open Task from &Web", this, SLOT( BrowseTask() ), QKeySequence( "CTRL+W" ) );
+//  m_pWebTask = m_pFile->addAction( QIcon( ":/Resources/WebOpen.png" ), "Open Task from &Web", this, SLOT( BrowseTask() ), QKeySequence( "CTRL+W" ) );
   sm_pSaveTaskFile->setEnabled( false );
   m_pFile->addSeparator();
   m_pSaveFormula = m_pFile->addAction( QIcon( ":/Resources/btnSaveHistory.jpg" ), "Save E&xpression", this, SLOT( SaveExpression() ), QKeySequence( "CTRL+X" ) );
@@ -777,12 +777,12 @@ void WinTesting::slotChangeLanguage( TLanguages Lang )
   LangActions[Lang]->setEnabled( false );
   LangActions[Lang]->setChecked( true );
   XPInEdit::sm_Language = Lang;
-#ifndef DEBUG_TASK
+//#ifndef DEBUG_TASK
   if( Lang == lngHebrew )
     s_MainTask.SetFileName( ":/Resources/Main/MAIN.heb" );
   else
     s_MainTask.SetFileName( ":/Resources/Main/main.tsk" );
-#endif
+//#endif
   EdStr::sm_pCodec = QTextCodec::codecForName( Lang == lngHebrew ? "Windows-1255" : "Windows-1251" );
   m_pEditTask->setText( X_Str( "ActionEditTask", "Edit Task File" ) );
   m_pOpenTask->setText( X_Str( "ActionOpenTask", "Open Task File" ) );
@@ -1442,10 +1442,8 @@ void WinTesting::Calc()
 
 void WinTesting::PlotGraph()
   {
-     m_pPlotter=new Plotter(nullptr);
-     m_pPlotter->setFixedSize(m_pPlotter->size());
-     if( m_pPlotter->Plot(Panel::sm_pEditor->Write()) )m_pPlotter->show();
-     else return;
+  m_Plotter.setFixedSize(m_Plotter.size());
+  if( m_Plotter.Plot(Panel::sm_pEditor->Write()) )  m_Plotter.show();
   }
 
 TypeSelector::TypeSelector( QWidget *pParent ) : QDialog( pParent, Qt::WindowSystemMenuHint ), m_pLearn( new QRadioButton( "Learn", this ) ),

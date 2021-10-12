@@ -89,7 +89,7 @@ class WinTesting : public QMainWindow
   QString m_UserId;
   QLabel *m_pWaitMessage;
   QFile m_PictFile;
-  Plotter* m_pPlotter=nullptr;
+  Plotter m_Plotter;
 
   bool m_Review;
   virtual bool event( QEvent *event );

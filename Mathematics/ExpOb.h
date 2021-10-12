@@ -166,6 +166,7 @@ class TExpr
     virtual bool Trigocomplex() const { return false; }
     virtual bool ConstExpr() const { return false; }
     virtual bool IsLinear() const { return false; }
+    virtual bool IsLimit() const { return false; }
     virtual int Compare( const MathExpr& ex ) const { return 0; }
     virtual MathExpr TrigTerm( const QByteArray& sName, const MathExpr& exArg, const MathExpr& exPower );
     virtual MathExpr TrigTerm( const QByteArray& sName, const MathExpr& exArg );
@@ -362,6 +363,7 @@ class MathExpr
     bool HasExpr( const MathExpr& ex ) { TestPtr(); return m_pExpr->HasExpr( ex ); }
     bool IsFactorized( const QByteArray& Name ) const { TestPtr(); return m_pExpr->IsFactorized( Name ); }
     bool SimpleInterval( const QByteArray& N, MathExpr& op1, MathExpr& op2 ) { TestPtr(); return m_pExpr->SimpleInterval( N, op1, op2 ); }
+    MATHEMATICS_EXPORT bool IsLimit() { TestPtr(); return m_pExpr->IsLimit(); }
     MATHEMATICS_EXPORT bool HasComplex() const { TestPtr(); return m_pExpr->HasComplex(); }
     MATHEMATICS_EXPORT bool HasMatrix() const { TestPtr(); return m_pExpr->HasMatrix(); }
     bool IsNumericalValue( double &V );
@@ -643,7 +645,7 @@ class TConstant : public TExpr
 
     bool Eq( const MathExpr& E2 ) const;  //проверить завершение сравнений
     bool Equal( const MathExpr& E2 ) const; //проверить завершение сравнений
-    QByteArray WriteE() const;
+    MATHEMATICS_EXPORT QByteArray WriteE() const;
     virtual QByteArray SWrite() const { return WriteE(); }
 
     bool Constan( double& V ) const;

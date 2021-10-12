@@ -23,7 +23,7 @@ Plotter::Plotter(QObject *parent)
   m_pCursor->setColor(Qt::blue);
   m_pCursor->setBorderColor(Qt::blue);
   m_pCursor->setMarkerSize(8);
-  QPen PenLine(Qt::blue);
+  QPen PenLine(Qt::red);
   PenLine.setWidth(1);
   m_pLinesCursor->setPen(PenLine);
 
@@ -51,63 +51,69 @@ Plotter::~Plotter()
 }
 
 QVector <QPointF> Plotter::CalculatePoint()
-{
- if( m_Formula.isEmpty() || m_Formula.contains("/0") )return {};
+  {
+  if( m_Formula.isEmpty() || m_Formula.contains("/0") )return {};
+
+  int iEq = m_Formula.indexOf('=');
+  if(iEq == -1)
+    m_YLabel = "Y";
+  else
+    {
+    m_YLabel = m_Formula.left(iEq);
+    m_Formula = m_Formula.mid(iEq + 1);
+    }
 
   m_Formula=m_Formula.toLower();
+  if(!m_Formula.contains('x')) return {};
 
- if(m_Formula.contains("y") && m_Formula[m_Formula.indexOf('y')+1]=='=') m_Formula.remove(m_Formula.indexOf('y'),2);
- if(!m_Formula.contains('x') && !m_Formula.contains('y')) return {};
+  QVector <QPointF> Result;
+  double X_start(m_pUi->xmin->value()), X_end(m_pUi->xmax->value()), X_step;
 
- QVector <QPointF> Result;
- double Y{};
- double X_start(m_pUi->xmin->value()), X_end(m_pUi->xmax->value()), X_step(0.01);
+  int NumberX=abs(X_start)+abs(X_end);
 
- int NumberX=abs(X_start)+abs(X_end);
- if(NumberX<=20)X_step=0.01;
- else if(NumberX<=40)X_step=0.05;
- else if(NumberX<=80)X_step=0.1;
- else if(NumberX<=250)X_step=1;
- else if(NumberX<=500)X_step=5;
- else if(NumberX<=5000)X_step=10;
- else X_step=50;
+  if(NumberX<=25)X_step=0.05;
+  else if(NumberX<=50)X_step=0.1;
+  else if(NumberX<=100)X_step=0.2;
+  else if(NumberX<=250)X_step=1;
+  else if(NumberX<=500)X_step=5;
+  else if(NumberX<=5000)X_step=50;
+  else X_step=250;
 
-  for( double X = X_start; ceil(X) <= X_end; X += X_step)
-  {
-   if(fabs(X) < 0.5 * X_step ) X = 0;
 
-    QByteArray Formula_copy(m_Formula);
-    QByteArray TextX(QByteArray::number(X));
-    if(X < 0) TextX = '(' + TextX + ')';
-    Formula_copy.remove(m_Formula.indexOf("exp"),3);
-    if(m_Formula.contains('x')) Formula_copy.replace('x', TextX);
-    //if(m_Formula.contains('y')) Formula_copy.replace('y', TextX);
-    Formula_copy.insert(m_Formula.indexOf("exp"),m_Formula.mid(m_Formula.indexOf("exp"),3));
-    MathExpr Expr = MathExpr( Parser::StrToExpr( Formula_copy));
-
-    if(s_GlobalInvalid || Expr.IsEmpty())return {};
-
-    Expr=Expr.SimplifyFull();
-
-    if(s_GlobalInvalid && s_LastError=="INFVAL" && !Result.isEmpty())
-        m_BreakPoints.append(QPointF(X, Y));
-
-    TConstant *pValue =CastPtr(TConstant, Expr);
-    if(!(pValue==nullptr) && !s_GlobalInvalid)
+  MathExpr Expr = MathExpr( Parser::StrToExpr( m_Formula));
+  if(s_GlobalInvalid || Expr.IsEmpty())return {};
+  for( double YOld, Y, X = X_start; ceil(X) <= X_end; X += X_step, YOld = Y)
     {
-      if(pValue->IsLimit()) m_BreakPoints.append(QPointF(X, pValue->Value()));
-      else
+    if(fabs(X) < 0.5 * X_step ) X = 0;
+    MathExpr Value = Expr.Substitute("x", Constant(X) ).SimplifyFull();
+    Y = 0;
+    if( s_GlobalInvalid && s_LastError=="INFVAL" && !Result.isEmpty())
+      m_BreakPoints.append(QPointF(X, Y));
+    else
       {
-        Y = pValue->Value();
-        if(Y < m_YMin) m_YMin = Y;
-        if( Y > m_YMax ) m_YMax = Y;
-        Result.append(QPointF(X, Y));
+      if(!(Value.IsEmpty()) && !s_GlobalInvalid && Value.Constan(Y))
+        {
+        if(Value.IsLimit())
+          m_BreakPoints.append(QPointF(X, Y));
+        else
+          {
+          if( Value.HasComplex() ) continue;
+          if( X > X_start && YOld * Y <= 0 && ( fabs(Y) > 0.5 || fabs(YOld) > 0.5 ) )
+            {
+            m_BreakPoints.append(QPointF(X - X_step, YOld));
+            m_BreakPoints.append(QPointF(X, Y));
+            continue;
+            }
+          if(Y < m_YMin) m_YMin = Y;
+          if( Y > m_YMax ) m_YMax = Y;
+          Result.append(QPointF(X, Y));
+          }
+        }
       }
     }
-   }
-   m_pUi->cur_val_slider->setMaximum(Result.length());
-   return Result;
- }
+    m_pUi->cur_val_slider->setMaximum(Result.length());
+    return Result;
+  }
 
 bool Plotter::Plot(QByteArray Formula)
 {
@@ -223,7 +229,7 @@ void Plotter::PaintAxis()
     m_Path.lineTo(ymax.x()+5,ymax.y()+10);
     m_Path.moveTo(ymax);
     m_Path.lineTo(ymax.x()-5,ymax.y()+10);
-    TextAxisY.append(m_pScene->addText("Y",m_pMainChart->FontAxisY));
+    TextAxisY.append(m_pScene->addText(m_YLabel, m_pMainChart->FontAxisY));
     TextAxisY.last()->setPos(ymax.x()+10,ymax.y());
     m_Path.moveTo(xmin);
     m_Path.lineTo(xmax);

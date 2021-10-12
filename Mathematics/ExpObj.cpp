@@ -5524,6 +5524,11 @@ MathExpr TComplexExpr::Reduce() const
     return m_Re.Reduce();
   MathExpr Re( m_Re.Reduce() );
   MathExpr Im( m_Im.Reduce() );
+  if(Re.Eq(m_Re) && Im.Eq(m_Im))
+    if(Re == 0 && Im == 0)
+      return Constant(0);
+    else
+      return CreateComplex( Re, Im );
   if( Re == 0 && !( IsType( TConstant, Im ) ) && !(IsType( TVariable, Im ) ) )
     return new TMult( Im, CreateComplex( 0, 1 ) );
   return CreateComplex( Re, Im );

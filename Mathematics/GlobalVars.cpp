@@ -8,6 +8,7 @@ double s_OldPrecision = 0.01;
 bool s_bSuppressErrorMsg = false;
 char s_DecimalSeparator = '.';
 bool s_GlobalInvalid = false;
+bool s_InvalidExpand = false;
 bool s_CheckError = false;
 memory_mode s_MemorySwitch = SWtask;
 bool s_NoLogReduce = false;

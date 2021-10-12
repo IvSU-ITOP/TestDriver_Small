@@ -285,13 +285,16 @@ void Parser::GetToken()
       if( m_Name == "" || ( m_Name.length() > 1 && !_litera( m_Name[0] ) ) )
         throw ErrParser( "Incorrect m_Name", peName );
       int fnum;
-      if (IsFunctName(m_Name, fnum))
+      if ( m_Name == "S" && m_Char != '[' )
         m_Token = toFunction;
       else
-        {
-        m_Token = toIdentifier;
-        if (m_DerivativeWithBrackets && m_FixCount != -1 ) m_FixCount++;
-        }
+        if( m_Name != "S" && IsFunctName(m_Name, fnum))
+          m_Token = toFunction;
+        else
+          {
+          m_Token = toIdentifier;
+          if (m_DerivativeWithBrackets && m_FixCount != -1 ) m_FixCount++;
+          }
       Next = false;
     }
   if (Next)
@@ -627,7 +630,8 @@ QByteArray Parser::FullPreProcessor( const QByteArray& ASource, const QByteArray
     {
     s1.clear();
     p = s.indexOf( InputFunctName( i ) );
-    if( p >= 0 && s.mid( p, 4 ) == "Lime" ) p = -1;
+    if( p >= 0 && ( s[p] == 'S' && (s[p+1] == '_' || s[p+1] == '=' || s[p+1] == '[' ) || s.mid( p, 4 ) == "Lime" ) )
+      p = -1;
     while( p >= 0 )
       {
       n = p + InputFunctName( i ).length();
@@ -2074,7 +2078,7 @@ MathExpr Parser::OutPut( PNode p ) // The tree of solution will be transformed t
     case 'm':
       op22 = op1.Reduce();
       if( !op22.Unarminus( op11 ) ) op11 = op22;
-      if( s_iDogOption > 0 || op11.Constan( d ) || op11.SimpleFrac_( Nom, Den ) || op11.MixedFrac_( Int, Nom, Den ) || op11.Variab( fname ) || s_TaskEditorOn)
+      if( s_iDogOption > 0 || s_TaskEditorOn || op11.Variab( fname ) || op11.ConstExpr() )
         Result = new TMeaExpr( op1, op2 );
       else
         throw  ErrParser( "Syntax error!", peSyntacs );
