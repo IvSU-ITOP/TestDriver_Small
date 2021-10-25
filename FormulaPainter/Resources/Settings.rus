@@ -1,3 +1,47 @@
+[MainMenuXP]
+MFile_Caption=Файл
+MNew_Caption=Новый
+MOpen_Caption=Открыть...
+MSaveOutAs_Caption=Сохранить работу как..
+MSavAS_Title_Caption=Сохранить работу как файл..
+MSavAS_Filter_Caption=В формате XPress   *.xpr?|*.xpr|Любой файл                *.*|*.*
+MOpenWorkFile_Caption=Открыть рабочий файл
+MOpWrk_Title_Caption=Открыть рабочий файл..
+MOpWrk_Filter_Caption=В формате XPress    *.xpr|*.xpr|Файл результата  *.tst|*.tst|Любой файл                *.*|*.*
+MExit_Caption=Выход
+MEdit_Caption=Редактировать
+MCopy_Caption=Копировать
+MSelectAll_Caption=Выбрать все
+MDeselect_Caption=Снять выделение
+MWindow_Caption=Просмотр
+MGraph_Caption=График
+MGraphPlot_Caption=Нарисовать график
+MGraphCopy_Caption=Копировать график
+MGraphSave_Caption=Сохранить график
+MVisOutWin_Caption=Вывод
+MVisEditor_Caption=Редактор
+MVisControl_Caption=Клавиши редактора
+MVisCalculator_Caption=Калькулятор
+MVisMarkTab_Caption=Метки
+MShow_QWin_ToolBar=Показать панель инструментов
+MHideToolBar_Hint=Спрятать панель инструментов
+MTile_Caption=Упорядочить все
+MHelp_Caption=Помощь
+MHelpStepCaption=Помощь для шага
+MmnmHelp_Caption=Содержимое
+MAbout_Caption=Про...
+MGraphic_Edit=Геометрия
+MLanguageCaption=Язык
+MSelfTestCaption=Самопроверка
+MHebrewCaption=Иврит
+MCancelEdition_Hint=Отменить редактирование объекта
+MShowElectro_Hint=Показать электронную схему
+MShowUnar=Показать унарный минус
+MHideUnar=Спрятать унарный минус
+MHideMultSign=Спрятать знак умножения
+MShowMultSign=Показать знак умножения
+MTestResultsCaption=Результаты теста
+
 [XpExpOb]
 MNotAInt=Операнды должны быть целыми положительными числами!
 MNullPtr=Был нулевой указатель выражения!
