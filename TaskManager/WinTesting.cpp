@@ -734,6 +734,21 @@ void WinTesting::slotChangeLanguage( TLanguages Lang )
   m_pEditTask->setText( X_Str( "ActionEditTask", "Edit Task File" ) );
   m_pOpenTask->setText( X_Str( "ActionOpenTask", "Open Task File" ) );
   sm_pSaveTaskFile->setText( X_Str( "ActionSaveTask", "Save Task File" ) );
+  m_pCreateTask->setText(X_Str("ActionCreateTask", "Create Task"));
+  m_pWebTask->setText(X_Str("ActionOpenTaskFromWeb", "Open Task from Web"));
+  m_pSaveFormula->setText(X_Str("ActionSaveFormula", "Save Expression"));
+  m_pRestoreFormula->setText(X_Str("ActionRestoreFormula", "Restore Expression"));
+  sm_pEditor->setTitle(X_Str("MEditor_Caption", "Task Editor"));
+  sm_pEditHeader->setText(X_Str("ActionEditHeader", "Edit Header"));
+  sm_pEditCalc->setText(X_Str("ActionEditCalc", "Edit Calculation"));
+  sm_pAddPicture->setText(X_Str("ActionAddPicture", "Add Picture"));
+  m_pShowFunctions->setText(X_Str("ActionShowFunctions", "Show Functions"));
+  m_pShowExpression->setText(X_Str("ActionShowExpression", "Show Expression"));
+  m_pHyperlink->setText(X_Str("ActionHyperlink", "Insert Hyperlink"));
+  m_pEditTracks->setText(X_Str("ActionEditTracks", "Edit Tracks"));
+  m_pSelectTrack->setText(X_Str("ActionSelectTrack", "Select Track"));
+
+
   m_pFile->setTitle( X_Str( "MFile_Caption", "File" ) );
   m_pQuit->setText( X_Str( "MExit_Caption", "Exit" ) );
   m_pOpenTaskBtn->setText( X_Str( "ActionOpenTask", "Open Task File" ) );

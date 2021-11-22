@@ -186,6 +186,20 @@ MTestResultsCaption=Результаты теста
 ActionEditTask=Редактировать файл задания
 ActionOpenTask=Открыть файл задания
 ActionSaveTask=Сохранить файл задания
+ActionCreateTask=Создать задание
+ActionOpenTaskFromWeb=Открыть задание в интернете
+ActionSaveFormula=Сохранить формулу
+ActionRestoreFormula=Восстановить формулу
+MEditor_Caption=Редактор заданий
+ActionEditHeader=Редактировать заголовок
+ActionEditCalc=Редактировать вычисления
+ActionAddPicture=Добавить изображение
+ActionShowFunctions=Показать функции
+ActionShowExpression=Показать выражение
+ActionHyperlink=Вставить гипер-ссылку
+ActionEditTracks=Редактировать пути
+ActionSelectTrack=Выбрать путь
+
 [XpExpOb]
 MNotAInt=Операнды должны быть целыми положительными числами!
 MNullPtr=Был нулевой указатель выражения!
