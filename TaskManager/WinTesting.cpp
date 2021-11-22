@@ -615,7 +615,9 @@ WinTesting::WinTesting() : m_Review(false)
   connect( sm_pPanel, SIGNAL( ExitBtn() ), SLOT( close() ) );
   sm_pMenuBar = new QMenuBar;
   m_pFile = new QMenu( "&File" );
+  m_pFile->setTitle("&Файл");
   m_pOpenTask = m_pFile->addAction( QIcon( ":/Resources/fileopen.png" ), "&Open Task File", this, SLOT( slotOpenTaskFile() ), QKeySequence( "CTRL+O" ) );
+  m_pOpenTask->setText("&Открыть файл задания");
   m_pEditTask = m_pFile->addAction( QIcon( ":/Resources/fileopen.png" ), "&Edit Task File", this, SLOT( slotEditTaskFile() ), QKeySequence( "CTRL+E" ) );
   m_pCreateTask = m_pFile->addAction( QIcon( ":/Resources/NewTask.jpg" ), "&Create Task", this, SLOT( slotCreateTask() ), QKeySequence( "CTRL+N" ) );
   sm_pSaveTaskFile = m_pFile->addAction( QIcon( ":/Resources/filesave.png" ), "&Save Task File", this, SLOT( slotSaveTaskFile() ), QKeySequence( "CTRL+S" ) );
